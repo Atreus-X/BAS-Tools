@@ -11,21 +11,34 @@ using System.Windows.Forms;
 
 namespace MainApp
 {
-    public partial class BACnet_IP : UserControl
+    public partial class BACnet_IP : UserControl, IHistorySupport
     {
         // BACnet communication client
         private BacnetClient _bacnetClient;
         private Thread _bacnetThread;
-
+        private readonly HistoryManager _historyManager; // Use the dedicated HistoryManager
 
         // Data storage
         private uint? _lastPingedDeviceId = null;
         private bool _isClientStarted = false;
+
         public BACnet_IP()
         {
             InitializeComponent();
+            _historyManager = new HistoryManager("BACnet_IP_"); // Initialize with a unique prefix
             PopulateDefaultValues();
+            LoadHistory(); // Load history after populating default network interfaces
             UpdateAllStates(null, null);
+
+            // Wire up event handlers to save history on text changes for ComboBoxes
+            // We'll use Leave event for better control over when history is saved
+            ipAddressComboBox.Leave += (sender, e) => SaveComboBoxEntry(ipAddressComboBox, "ipAddress");
+            instanceNumberComboBox.Leave += (sender, e) => SaveComboBoxEntry(instanceNumberComboBox, "instanceNumber");
+            ipPortComboBox.Leave += (sender, e) => SaveComboBoxEntry(ipPortComboBox, "ipPort");
+            apduTimeoutComboBox.Leave += (sender, e) => SaveComboBoxEntry(apduTimeoutComboBox, "apduTimeout");
+            bbmdIpComboBox.Leave += (sender, e) => SaveComboBoxEntry(bbmdIpComboBox, "bbmdIp");
+            bbmdTtlComboBox.Leave += (sender, e) => SaveComboBoxEntry(bbmdTtlComboBox, "bbmdTtl");
+            interfaceComboBox.Leave += (sender, e) => SaveComboBoxEntry(interfaceComboBox, "interface"); // Save selected interface
         }
 
         // --- BACnet Logic ---
@@ -51,23 +64,24 @@ namespace MainApp
 
                 string localIp = "0.0.0.0";
 
-                if (interfaceComboBox.SelectedIndex > 0)
+                if (interfaceComboBox.SelectedIndex > 0 && interfaceComboBox.SelectedItem != null)
                 {
-                    var match = System.Text.RegularExpressions.Regex.Match(interfaceComboBox.Text, @"\((.*?)\)");
+                    var match = System.Text.RegularExpressions.Regex.Match(interfaceComboBox.SelectedItem.ToString(), @"\((.*?)\)");
                     if (match.Success)
                     {
-                        // Now we just assign a new value to the existing variable
                         localIp = match.Groups[1].Value;
                     }
                 }
+
+                // Save the currently selected interface to history
+                _historyManager.AddEntry("interface", interfaceComboBox.Text);
+
 
                 var transport = new BacnetIpUdpProtocolTransport(int.Parse(ipPortComboBox.Text), true, false, 1472, localIp);
                 _bacnetClient = new BacnetClient(transport) { Timeout = int.Parse(apduTimeoutComboBox.Text) };
 
 
                 _bacnetClient.OnIam += OnIamHandler;
-
-                // ... (event subscriptions, thread start, etc.)
 
                 _bacnetThread = new Thread(() =>
                 {
@@ -83,7 +97,6 @@ namespace MainApp
                 _isClientStarted = true; // Set the flag
                 Log("BACnet client started.");
 
-                // ... (BBMD registration)
             }
             catch (Exception ex)
             {
@@ -245,11 +258,7 @@ namespace MainApp
 
         private void PopulateDefaultValues()
         {
-            bbmdIpComboBox.Text = "172.19.10.102";
-            ipPortComboBox.Text = "47808";
-            apduTimeoutComboBox.Text = "5000";
-            bbmdTtlComboBox.Text = "3600";
-
+            // Always add network interfaces, as they are system-dependent
             interfaceComboBox.Items.Add("0.0.0.0 (Any)");
             foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
             {
@@ -265,7 +274,6 @@ namespace MainApp
                     }
                 }
             }
-            interfaceComboBox.SelectedIndex = 0;
         }
 
         private void UpdateAllStates(object sender, EventArgs e)
@@ -283,10 +291,7 @@ namespace MainApp
             {
                 uint deviceId = uint.Parse(e.Node.Name);
                 instanceNumberComboBox.Text = deviceId.ToString();
-                if (!(e.Node.Tag is BacnetAddress bacnetAddress))
-                {
-                }
-                else
+                if (e.Node.Tag is BacnetAddress bacnetAddress)
                 {
                     // Take the first 4 bytes (the IP address) and join them with "."
                     ipAddressComboBox.Text = string.Join(".", bacnetAddress.adr.Take(4));
@@ -329,12 +334,10 @@ namespace MainApp
             Log($"Address for Device {deviceId} not cached. Sending targeted WhoIs...");
             var tcs = new TaskCompletionSource<BacnetAddress>();
 
-            // This handler signature is now corrected to match your library's event
             void handler(BacnetClient sender, BacnetAddress address, uint receivedDeviceId, uint maxApdu, BacnetSegmentations segmentation, ushort vendorId)
             {
                 if (receivedDeviceId == deviceId)
                 {
-                    // When we get the right response, complete the task
                     tcs.TrySetResult(address);
                 }
             }
@@ -342,7 +345,6 @@ namespace MainApp
             _bacnetClient.OnIam += handler;
             _bacnetClient.WhoIs((int)deviceId, (int)deviceId);
 
-            // Asynchronously wait for the task to complete or timeout
             var timeoutTask = Task.Delay(2000);
             var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
 
@@ -359,9 +361,98 @@ namespace MainApp
             }
         }
 
+        // --- History Management ---
+        private void LoadHistory()
+        {
+            PopulateComboBoxWithHistory(ipAddressComboBox, "ipAddress");
+            PopulateComboBoxWithHistory(instanceNumberComboBox, "instanceNumber");
+            PopulateComboBoxWithHistory(ipPortComboBox, "ipPort");
+            PopulateComboBoxWithHistory(apduTimeoutComboBox, "apduTimeout");
+            PopulateComboBoxWithHistory(bbmdIpComboBox, "bbmdIp");
+            PopulateComboBoxWithHistory(bbmdTtlComboBox, "bbmdTtl");
+            PopulateComboBoxWithHistory(interfaceComboBox, "interface"); // Load selected interface
+
+            // Set default values if history is empty or not present
+            if (string.IsNullOrEmpty(ipAddressComboBox.Text)) ipAddressComboBox.Text = "192.168.1.200";
+            if (string.IsNullOrEmpty(instanceNumberComboBox.Text)) instanceNumberComboBox.Text = "100";
+            if (string.IsNullOrEmpty(ipPortComboBox.Text)) ipPortComboBox.Text = "47808";
+            if (string.IsNullOrEmpty(apduTimeoutComboBox.Text)) apduTimeoutComboBox.Text = "5000";
+            if (string.IsNullOrEmpty(bbmdIpComboBox.Text)) bbmdIpComboBox.Text = "172.19.10.102";
+            if (string.IsNullOrEmpty(bbmdTtlComboBox.Text)) bbmdTtlComboBox.Text = "3600";
+            // For interfaceComboBox, if history is empty, it will default to "0.0.0.0 (Any)" due to PopulateDefaultValues.
+            // If there's a history entry, it will select that.
+        }
+
+        private void PopulateComboBoxWithHistory(ComboBox comboBox, string key)
+        {
+            comboBox.Items.Clear(); // Clear existing items (except for interfaceCombo which is system specific)
+
+            // Only clear if it's not the interfaceComboBox
+            if (comboBox.Name != interfaceComboBox.Name)
+            {
+                comboBox.Items.Clear();
+            }
+
+            var historyList = _historyManager.GetHistoryForPrefixedKey(key);
+            if (historyList.Any())
+            {
+                // If it's the interfaceComboBox, ensure system-detected interfaces are still present
+                if (comboBox.Name == interfaceComboBox.Name)
+                {
+                    // Add history items, but ensure no duplicates with system items
+                    foreach (var item in historyList.Where(h => !comboBox.Items.Contains(h)))
+                    {
+                        comboBox.Items.Insert(0, item); // Add to top
+                    }
+                }
+                else
+                {
+                    comboBox.Items.AddRange(historyList.Cast<object>().ToArray());
+                }
+
+                // Set the text to the last entered value
+                comboBox.Text = historyList.First();
+            }
+            else if (comboBox.Name == interfaceComboBox.Name && comboBox.Items.Count > 0)
+            {
+                // Select "0.0.0.0 (Any)" if no specific interface was previously saved
+                comboBox.SelectedIndex = 0;
+            }
+        }
+
+        private void SaveComboBoxEntry(ComboBox comboBox, string key)
+        {
+            if (!string.IsNullOrWhiteSpace(comboBox.Text))
+            {
+                _historyManager.AddEntry(key, comboBox.Text);
+                // After saving, re-populate to update the dropdown list with the new/moved item
+                PopulateComboBoxWithHistory(comboBox, key);
+                comboBox.Text = comboBox.Text; // Restore the current text after repopulating
+            }
+        }
+
+        public void ClearHistory()
+        {
+            _historyManager.ClearHistory();
+            ipAddressComboBox.Items.Clear();
+            instanceNumberComboBox.Items.Clear();
+            ipPortComboBox.Items.Clear();
+            apduTimeoutComboBox.Items.Clear();
+            bbmdIpComboBox.Items.Clear();
+            bbmdTtlComboBox.Items.Clear();
+
+            // Re-populate system interfaces after clearing history
+            interfaceComboBox.Items.Clear();
+            PopulateDefaultValues();
+            interfaceComboBox.SelectedIndex = 0; // Select "0.0.0.0 (Any)"
+
+            Log("BACnet/IP history cleared.");
+        }
+
         // This is important for cleanup when the main application closes
         public void Shutdown()
         {
+            _historyManager.SaveHistory(); // Ensure history is saved on shutdown
             _bacnetClient?.Dispose();
         }
     }

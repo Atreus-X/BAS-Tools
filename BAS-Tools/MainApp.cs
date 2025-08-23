@@ -15,6 +15,7 @@ namespace MainApp
 
             // --- Wire up menu item event handlers ---
             this.exitToolStripMenuItem.Click += (sender, e) => this.Close();
+            this.clearHistoryToolStripMenuItem.Click += (sender, e) => this.ClearHistoryMenuItem_Click();
             this.bacnetIPToolStripMenuItem.Click += new System.EventHandler(this.BacnetIpMenuItem_Click);
             this.bacnetMSTPToolStripMenuItem.Click += new System.EventHandler(this.BacnetMstpMenuItem_Click);
             this.modbusTCPToolStripMenuItem.Click += new System.EventHandler(this.ModbusTcpMenuItem_Click);
@@ -45,19 +46,16 @@ namespace MainApp
 
         private void MainApp_FormClosing(object sender, FormClosingEventArgs e)
         {
-            // Find the BACnet/IP control and shut it down
-            if (_protocolControls.TryGetValue("BACnet/IP", out UserControl bacnetIpControl))
+            // Iterate through all protocol controls and call their Shutdown method if available
+            foreach (var control in _protocolControls.Values)
             {
-                // We cast it to its specific type to access the Shutdown method
-                (bacnetIpControl as BACnet_IP)?.Shutdown();
+                if (control is IHistorySupport historyControl)
+                {
+                    historyControl.Shutdown(); // Call Shutdown through the interface
+                }
             }
-
-            // You can add similar logic for other controls here as you build them
-            // if (_protocolControls.TryGetValue("BACnet MS/TP", out UserControl bacnetMstpControl))
-            // {
-            //     (bacnetMstpControl as BACnet_MSTP)?.Shutdown();
-            // }
         }
+
         private void ShowProtocolControl(string key)
         {
             if (!_protocolControls.ContainsKey(key)) return;
@@ -70,7 +68,7 @@ namespace MainApp
 
             // Show the selected control
             _protocolControls[key].Visible = true;
-            this.Text = $"BACnet Tools - {key}"; // Update window title
+            this.Text = $"BAS Tools - {key}"; // Update window title
         }
 
         // --- Menu Item Click Handlers ---
@@ -93,5 +91,26 @@ namespace MainApp
         {
             ShowProtocolControl("Modbus RTU");
         }
+
+        private void ClearHistoryMenuItem_Click()
+        {
+            // Clear history for all active protocol controls
+            foreach (var control in _protocolControls.Values)
+            {
+                if (control is IHistorySupport historyControl)
+                {
+                    historyControl.ClearHistory();
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Interface for controls that support history management and proper shutdown.
+    /// </summary>
+    public interface IHistorySupport
+    {
+        void ClearHistory();
+        void Shutdown(); // Added Shutdown to the interface
     }
 }
