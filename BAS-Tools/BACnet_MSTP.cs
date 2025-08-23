@@ -1,5 +1,7 @@
 ﻿using System.Windows.Forms;
-namespace BacnetToolsCSharp
+
+// Ensure the namespace is consistent
+namespace MainApp
 {
     public partial class BACnet_MSTP : UserControl
     {

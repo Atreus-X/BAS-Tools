@@ -1,6 +1,8 @@
-﻿namespace BAS_Tools
+﻿// Ensure the namespace matches the main file
+namespace MainApp
 {
-    partial class BACnet_IP
+    // Ensure the partial class name is correct
+    partial class Modbus_RTU
     {
         /// <summary> 
         /// Required designer variable.
@@ -28,7 +30,8 @@
         /// </summary>
         private void InitializeComponent()
         {
-            components = new System.ComponentModel.Container();
+            // The designer now knows about the 'components' field declared above
+            this.components = new System.ComponentModel.Container();
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
         }
 

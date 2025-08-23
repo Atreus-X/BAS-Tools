@@ -6,10 +6,10 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
-namespace BacnetToolsCSharp
+namespace MainApp
 {
     public partial class BACnet_IP : UserControl
     {
@@ -17,9 +17,10 @@ namespace BacnetToolsCSharp
         private BacnetClient _bacnetClient;
         private Thread _bacnetThread;
 
+
         // Data storage
         private uint? _lastPingedDeviceId = null;
-
+        private bool _isClientStarted = false;
         public BACnet_IP()
         {
             InitializeComponent();
@@ -28,14 +29,20 @@ namespace BacnetToolsCSharp
         }
 
         // --- BACnet Logic ---
-
-        private void StartBacnetClient()
+        private void EnsureBacnetClientStarted()
         {
+            // If the client is already running, do nothing.
+            if (_isClientStarted && _bacnetClient != null)
+            {
+                return;
+            }
+
+            // If a previous client exists, dispose it before creating a new one.
             if (_bacnetClient != null)
             {
                 _bacnetClient.Dispose();
                 _bacnetClient = null;
-                Thread.Sleep(200);
+                Thread.Sleep(200); // Give it a moment to release resources
             }
 
             try
@@ -43,40 +50,44 @@ namespace BacnetToolsCSharp
                 Log("Initializing BACnet client...");
 
                 string localIp = "0.0.0.0";
+
                 if (interfaceComboBox.SelectedIndex > 0)
                 {
                     var match = System.Text.RegularExpressions.Regex.Match(interfaceComboBox.Text, @"\((.*?)\)");
                     if (match.Success)
                     {
+                        // Now we just assign a new value to the existing variable
                         localIp = match.Groups[1].Value;
                     }
                 }
 
-                var transport = new BacnetIpUdpProtocolTransport(int.Parse(ipPortComboBox.Text), useWildcardAddress: true, localIpAddress: localIp);
-                int apduTimeout = int.Parse(apduTimeoutComboBox.Text);
-                _bacnetClient = new BacnetClient(transport) { Timeout = apduTimeout };
+                var transport = new BacnetIpUdpProtocolTransport(int.Parse(ipPortComboBox.Text), true, false, 1472, localIp);
+                _bacnetClient = new BacnetClient(transport) { Timeout = int.Parse(apduTimeoutComboBox.Text) };
+
 
                 _bacnetClient.OnIam += OnIamHandler;
-                _bacnetClient.OnReadPropertyAck += OnReadPropertyAckHandler;
 
-                _bacnetThread = new Thread(() => {
+                // ... (event subscriptions, thread start, etc.)
+
+                _bacnetThread = new Thread(() =>
+                {
                     try { _bacnetClient.Start(); }
                     catch (Exception ex) { Log($"--- BACnet Thread Error: {ex.Message} ---"); }
-                });
-                _bacnetThread.IsBackground = true;
+                })
+                {
+                    IsBackground = true
+                };
                 _bacnetThread.Start();
+                Thread.Sleep(100);
 
+                _isClientStarted = true; // Set the flag
                 Log("BACnet client started.");
 
-                if (!string.IsNullOrWhiteSpace(bbmdIpComboBox.Text))
-                {
-                    ushort ttl = ushort.Parse(bbmdTtlComboBox.Text);
-                    Log($"Registering as Foreign Device to {bbmdIpComboBox.Text} with TTL {ttl}s...");
-                    _bacnetClient.RegisterAsForeignDevice(bbmdIpComboBox.Text, ttl);
-                }
+                // ... (BBMD registration)
             }
             catch (Exception ex)
             {
+                _isClientStarted = false; // Ensure flag is false on failure
                 Log($"--- ERROR initializing BACnet client: {ex.Message} ---");
                 MessageBox.Show($"Error during BACnet initialization: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -96,18 +107,6 @@ namespace BacnetToolsCSharp
             });
         }
 
-        private void OnReadPropertyAckHandler(BacnetClient sender, BacnetAddress adr, BacnetObjectId objectId, BacnetPropertyReference property, IList<BacnetValue> values)
-        {
-            this.Invoke((MethodInvoker)delegate
-            {
-                Log($"--- Read ACK from {adr} for {objectId.type}/{objectId.instance} -> {property.propertyIdentifier} ---");
-                foreach (var val in values)
-                {
-                    Log($"  Value: {val.Value}");
-                }
-            });
-        }
-
         private void PingButton_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(instanceNumberComboBox.Text))
@@ -116,8 +115,8 @@ namespace BacnetToolsCSharp
                 return;
             }
 
-            StartBacnetClient();
-            if (_bacnetClient == null) return;
+            EnsureBacnetClientStarted(); // Use the new method
+            if (!_isClientStarted) return;
 
             uint deviceId = uint.Parse(instanceNumberComboBox.Text);
             Log($"Pinging Device ID: {deviceId}...");
@@ -130,15 +129,15 @@ namespace BacnetToolsCSharp
 
         private void DiscoverButton_Click(object sender, EventArgs e)
         {
-            StartBacnetClient();
-            if (_bacnetClient == null) return;
+            EnsureBacnetClientStarted(); // Use the new method
+            if (!_isClientStarted) return;
 
             deviceTreeView.Nodes.Clear();
             Log("Discovering devices with global Who-Is broadcast...");
             _bacnetClient.WhoIs();
         }
 
-        private void DiscoverObjectsButton_Click(object sender, EventArgs e)
+        private async void DiscoverObjectsButton_Click(object sender, EventArgs e)
         {
             if (_lastPingedDeviceId == null)
             {
@@ -146,15 +145,15 @@ namespace BacnetToolsCSharp
                 return;
             }
 
-            StartBacnetClient();
-            if (_bacnetClient == null) return;
+            EnsureBacnetClientStarted(); // Use the new method
+            if (!_isClientStarted) return;
 
             try
             {
                 uint deviceId = _lastPingedDeviceId.Value;
                 Log($"Discovering objects for Device {deviceId}...");
 
-                BacnetAddress deviceAddress = FindDeviceAddress(deviceId);
+                BacnetAddress deviceAddress = await FindDeviceAddressAsync(deviceId);
                 if (deviceAddress == null)
                 {
                     Log($"--- ERROR: Could not resolve address for Device {deviceId}. It may be offline. ---");
@@ -180,7 +179,7 @@ namespace BacnetToolsCSharp
             }
         }
 
-        private void ReadPropertyButton_Click(object sender, EventArgs e)
+        private async void ReadPropertyButton_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(instanceNumberComboBox.Text))
             {
@@ -188,24 +187,44 @@ namespace BacnetToolsCSharp
                 return;
             }
 
-            StartBacnetClient();
-            if (_bacnetClient == null) return;
+            EnsureBacnetClientStarted();
+            if (!_isClientStarted) return;
 
             try
             {
                 uint deviceId = uint.Parse(instanceNumberComboBox.Text);
-                BacnetAddress deviceAddress = FindDeviceAddress(deviceId);
+                BacnetAddress deviceAddress = await FindDeviceAddressAsync(deviceId);
                 if (deviceAddress == null)
                 {
                     Log($"--- ERROR: Device {deviceId} not found. Ping or Discover first. ---");
                     return;
                 }
 
+                // This is still hardcoded, but now it will work.
+                // A great next step is to get this from the object tree view selection.
                 var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
                 var propertyId = BacnetPropertyIds.PROP_OBJECT_NAME;
 
                 Log($"Reading {propertyId} from Device {deviceId}...");
-                _bacnetClient.ReadPropertyRequest(deviceAddress, objectId, propertyId);
+
+                // Run the blocking network call on a background thread
+                await Task.Run(() =>
+                {
+                    // The 'out' parameter gets filled with the result
+                    if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, propertyId, out IList<BacnetValue> values))
+                    {
+                        // We're on a background thread, so we must use Invoke to log the result
+                        Log($"--- SUCCESS: Read ACK for {propertyId} ---");
+                        foreach (var val in values)
+                        {
+                            Log($"  Value: {val.Value}");
+                        }
+                    }
+                    else
+                    {
+                        Log($"--- ERROR: Failed to read property {propertyId}. No response or error received. ---");
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -264,7 +283,14 @@ namespace BacnetToolsCSharp
             {
                 uint deviceId = uint.Parse(e.Node.Name);
                 instanceNumberComboBox.Text = deviceId.ToString();
-                ipAddressComboBox.Text = (e.Node.Tag as BacnetAddress)?.adr;
+                if (!(e.Node.Tag is BacnetAddress bacnetAddress))
+                {
+                }
+                else
+                {
+                    // Take the first 4 bytes (the IP address) and join them with "."
+                    ipAddressComboBox.Text = string.Join(".", bacnetAddress.adr.Take(4));
+                }
                 _lastPingedDeviceId = deviceId;
                 UpdateAllStates(null, null);
                 DiscoverObjectsButton_Click(null, null);
@@ -292,34 +318,45 @@ namespace BacnetToolsCSharp
             }
         }
 
-        private BacnetAddress FindDeviceAddress(uint deviceId)
+        private async Task<BacnetAddress> FindDeviceAddressAsync(uint deviceId)
         {
             var nodes = deviceTreeView.Nodes.Find(deviceId.ToString(), true);
             if (nodes.Length > 0 && nodes[0].Tag is BacnetAddress adr)
             {
-                return adr;
+                return adr; // Return the cached address
             }
 
             Log($"Address for Device {deviceId} not cached. Sending targeted WhoIs...");
-            BacnetAddress deviceAddress = null;
-            var foundEvent = new ManualResetEvent(false);
+            var tcs = new TaskCompletionSource<BacnetAddress>();
 
-            EventHandler<BacnetClient.IamEventArgs> handler = (s, args) =>
+            // This handler signature is now corrected to match your library's event
+            void handler(BacnetClient sender, BacnetAddress address, uint receivedDeviceId, uint maxApdu, BacnetSegmentations segmentation, ushort vendorId)
             {
-                if (args.DeviceId == deviceId)
+                if (receivedDeviceId == deviceId)
                 {
-                    deviceAddress = args.Address;
-                    foundEvent.Set();
+                    // When we get the right response, complete the task
+                    tcs.TrySetResult(address);
                 }
-            };
+            }
 
             _bacnetClient.OnIam += handler;
             _bacnetClient.WhoIs((int)deviceId, (int)deviceId);
 
-            foundEvent.WaitOne(2000);
-            _bacnetClient.OnIam -= handler;
+            // Asynchronously wait for the task to complete or timeout
+            var timeoutTask = Task.Delay(2000);
+            var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
 
-            return deviceAddress;
+            _bacnetClient.OnIam -= handler; // Always clean up the handler
+
+            if (completedTask == tcs.Task)
+            {
+                return await tcs.Task; // Success
+            }
+            else
+            {
+                Log($"--- Timeout: No I-Am response from Device {deviceId}. ---");
+                return null; // Failure (timeout)
+            }
         }
 
         // This is important for cleanup when the main application closes

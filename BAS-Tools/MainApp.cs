@@ -13,6 +13,14 @@ namespace MainApp
         {
             InitializeComponent();
 
+            // --- Wire up menu item event handlers ---
+            this.exitToolStripMenuItem.Click += (sender, e) => this.Close();
+            this.bacnetIPToolStripMenuItem.Click += new System.EventHandler(this.BacnetIpMenuItem_Click);
+            this.bacnetMSTPToolStripMenuItem.Click += new System.EventHandler(this.BacnetMstpMenuItem_Click);
+            this.modbusTCPToolStripMenuItem.Click += new System.EventHandler(this.ModbusTcpMenuItem_Click);
+            this.modbusRTUToolStripMenuItem.Click += new System.EventHandler(this.ModbusRtuMenuItem_Click);
+            // --- End of new code ---
+
             // Create instances of our protocol controls
             _protocolControls = new Dictionary<string, UserControl>
             {
@@ -31,8 +39,25 @@ namespace MainApp
 
             // Show the BACnet/IP control by default
             ShowProtocolControl("BACnet/IP");
+
+            this.FormClosing += MainApp_FormClosing;
         }
 
+        private void MainApp_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            // Find the BACnet/IP control and shut it down
+            if (_protocolControls.TryGetValue("BACnet/IP", out UserControl bacnetIpControl))
+            {
+                // We cast it to its specific type to access the Shutdown method
+                (bacnetIpControl as BACnet_IP)?.Shutdown();
+            }
+
+            // You can add similar logic for other controls here as you build them
+            // if (_protocolControls.TryGetValue("BACnet MS/TP", out UserControl bacnetMstpControl))
+            // {
+            //     (bacnetMstpControl as BACnet_MSTP)?.Shutdown();
+            // }
+        }
         private void ShowProtocolControl(string key)
         {
             if (!_protocolControls.ContainsKey(key)) return;
@@ -49,22 +74,22 @@ namespace MainApp
         }
 
         // --- Menu Item Click Handlers ---
-        private void bacnetIpMenuItem_Click(object sender, EventArgs e)
+        private void BacnetIpMenuItem_Click(object sender, EventArgs e)
         {
             ShowProtocolControl("BACnet/IP");
         }
 
-        private void bacnetMstpMenuItem_Click(object sender, EventArgs e)
+        private void BacnetMstpMenuItem_Click(object sender, EventArgs e)
         {
             ShowProtocolControl("BACnet MS/TP");
         }
 
-        private void modbusTcpMenuItem_Click(object sender, EventArgs e)
+        private void ModbusTcpMenuItem_Click(object sender, EventArgs e)
         {
             ShowProtocolControl("Modbus TCP/IP");
         }
 
-        private void modbusRtuMenuItem_Click(object sender, EventArgs e)
+        private void ModbusRtuMenuItem_Click(object sender, EventArgs e)
         {
             ShowProtocolControl("Modbus RTU");
         }

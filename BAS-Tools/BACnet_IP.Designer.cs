@@ -1,4 +1,4 @@
-﻿namespace BacnetToolsCSharp
+﻿namespace MainApp
 {
     partial class BACnet_IP
     {

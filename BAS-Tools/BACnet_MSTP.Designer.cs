@@ -1,6 +1,7 @@
-﻿namespace BAS_Tools
+﻿// Use the same namespace as BACnet_MSTP.cs
+namespace MainApp
 {
-    partial class BACnet_IP
+    partial class BACnet_MSTP
     {
         /// <summary> 
         /// Required designer variable.
