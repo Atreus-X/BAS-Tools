@@ -27,6 +27,7 @@
             this.modbusTCPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.modbusRTUToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mainContentPanel = new System.Windows.Forms.Panel();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.mainMenuStrip.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -46,8 +47,9 @@
             // fileToolStripMenuItem
             // 
             this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.exitToolStripMenuItem,
-            this.clearHistoryToolStripMenuItem});
+            this.clearHistoryToolStripMenuItem,
+            this.toolStripSeparator1,
+            this.exitToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
             this.fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
             this.fileToolStripMenuItem.Text = "File";
@@ -55,13 +57,13 @@
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(139, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.exitToolStripMenuItem.Text = "Exit";
-            //
+            // 
             // clearHistoryToolStripMenuItem
-            //
+            // 
             this.clearHistoryToolStripMenuItem.Name = "clearHistoryToolStripMenuItem";
-            this.clearHistoryToolStripMenuItem.Size = new System.Drawing.Size(139, 22);
+            this.clearHistoryToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.clearHistoryToolStripMenuItem.Text = "Clear History";
             // 
             // configurationToolStripMenuItem
@@ -103,10 +105,15 @@
             // 
             this.mainContentPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainContentPanel.Location = new System.Drawing.Point(0, 24);
-            this.mainContentPanel.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.mainContentPanel.Margin = new System.Windows.Forms.Padding(2);
             this.mainContentPanel.Name = "mainContentPanel";
             this.mainContentPanel.Size = new System.Drawing.Size(834, 969);
             this.mainContentPanel.TabIndex = 1;
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
             // 
             // MainApp
             // 
@@ -116,7 +123,7 @@
             this.Controls.Add(this.mainContentPanel);
             this.Controls.Add(this.mainMenuStrip);
             this.MainMenuStrip = this.mainMenuStrip;
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "MainApp";
             this.Text = "BACnet Tools";
             this.mainMenuStrip.ResumeLayout(false);
@@ -138,5 +145,6 @@
         private System.Windows.Forms.ToolStripMenuItem modbusTCPToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem modbusRTUToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem clearHistoryToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
     }
 }

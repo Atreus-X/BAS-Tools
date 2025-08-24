@@ -1,37 +1,45 @@
-﻿using System;
+﻿using FluentModbus;
+using System;
+using System.Buffers;
 using System.IO.Ports;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using FluentModbus; // Make sure FluentModbus NuGet package is installed
-using System.Buffers; // Required for ReadOnlySequence<T> and Memory<T>
 
 namespace MainApp
 {
     public partial class Modbus_RTU : UserControl, IHistorySupport
     {
         private ModbusRtuClient _modbusClient;
-        private readonly HistoryManager _historyManager;
+        private HistoryManager _historyManager;
         private bool _isConnected = false;
 
         public Modbus_RTU()
         {
             InitializeComponent();
+            // The Load event is the correct place for initialization code
+            // to prevent it from running in the Visual Studio designer.
+            this.Load += new System.EventHandler(this.Modbus_RTU_Load);
+        }
+
+        private void Modbus_RTU_Load(object sender, EventArgs e)
+        {
+            // This code now runs when the control is loaded at runtime, not at design time.
             _historyManager = new HistoryManager("Modbus_RTU_");
             PopulateDefaultValues();
             LoadHistory();
             UpdateConnectionState(false);
 
             // Wire up event handlers for history saving
-            serialPortComboBox.Leave += (sender, e) => SaveComboBoxEntry(serialPortComboBox, "serialPort");
-            baudRateComboBox.Leave += (sender, e) => SaveComboBoxEntry(baudRateComboBox, "baudRate");
-            dataBitsComboBox.Leave += (sender, e) => SaveComboBoxEntry(dataBitsComboBox, "dataBits");
-            parityComboBox.Leave += (sender, e) => SaveComboBoxEntry(parityComboBox, "parity");
-            stopBitsComboBox.Leave += (sender, e) => SaveComboBoxEntry(stopBitsComboBox, "stopBits");
-            unitIdComboBox.Leave += (sender, e) => SaveComboBoxEntry(unitIdComboBox, "unitId");
-            startAddressTextBox.Leave += (sender, e) => SaveTextBoxEntry(startAddressTextBox, "startAddress");
-            quantityTextBox.Leave += (sender, e) => SaveTextBoxEntry(quantityTextBox, "quantity");
-            writeValueTextBox.Leave += (sender, e) => SaveTextBoxEntry(writeValueTextBox, "writeValue");
+            serialPortComboBox.Leave += (s, args) => SaveComboBoxEntry(serialPortComboBox, "serialPort");
+            baudRateComboBox.Leave += (s, args) => SaveComboBoxEntry(baudRateComboBox, "baudRate");
+            dataBitsComboBox.Leave += (s, args) => SaveComboBoxEntry(dataBitsComboBox, "dataBits");
+            parityComboBox.Leave += (s, args) => SaveComboBoxEntry(parityComboBox, "parity");
+            stopBitsComboBox.Leave += (s, args) => SaveComboBoxEntry(stopBitsComboBox, "stopBits");
+            unitIdComboBox.Leave += (s, args) => SaveComboBoxEntry(unitIdComboBox, "unitId");
+            startAddressTextBox.Leave += (s, args) => SaveTextBoxEntry(startAddressTextBox, "startAddress");
+            quantityTextBox.Leave += (s, args) => SaveTextBoxEntry(quantityTextBox, "quantity");
+            writeValueTextBox.Leave += (s, args) => SaveTextBoxEntry(writeValueTextBox, "writeValue");
 
             // Wire up button click handlers
             connectButton.Click += ConnectButton_Click;
@@ -49,31 +57,24 @@ namespace MainApp
         private void PopulateDefaultValues()
         {
             // Populate Serial Ports
+            serialPortComboBox.Items.Clear();
             serialPortComboBox.Items.AddRange(SerialPort.GetPortNames());
             if (serialPortComboBox.Items.Count > 0)
                 serialPortComboBox.SelectedIndex = 0;
 
-            // Populate Baud Rates
+            // Populate other controls
             baudRateComboBox.Items.AddRange(new object[] { "9600", "19200", "38400", "57600", "115200" });
-            baudRateComboBox.Text = "9600";
-
-            // Populate Data Bits
             dataBitsComboBox.Items.AddRange(new object[] { "7", "8" });
-            dataBitsComboBox.Text = "8";
-
-            // Populate Parity
             parityComboBox.Items.AddRange(Enum.GetNames(typeof(Parity)));
-            parityComboBox.Text = Parity.None.ToString();
-
-            // Populate Stop Bits
             stopBitsComboBox.Items.AddRange(Enum.GetNames(typeof(StopBits)));
-            stopBitsComboBox.Text = StopBits.One.ToString();
-
-            // Unit ID defaults
             unitIdComboBox.Items.AddRange(new object[] { "1" });
-            unitIdComboBox.Text = "1";
 
-            // Modbus action defaults
+            // Set default text values
+            baudRateComboBox.Text = "9600";
+            dataBitsComboBox.Text = "8";
+            parityComboBox.Text = Parity.None.ToString();
+            stopBitsComboBox.Text = StopBits.One.ToString();
+            unitIdComboBox.Text = "1";
             startAddressTextBox.Text = "0";
             quantityTextBox.Text = "1";
         }
@@ -100,15 +101,17 @@ namespace MainApp
             {
                 var portName = serialPortComboBox.Text;
                 var baudRate = int.Parse(baudRateComboBox.Text);
-                var dataBits = int.Parse(dataBitsComboBox.Text);
                 var parity = (Parity)Enum.Parse(typeof(Parity), parityComboBox.Text);
                 var stopBits = (StopBits)Enum.Parse(typeof(StopBits), stopBitsComboBox.Text);
 
-                _modbusClient = new ModbusRtuClient();
-                // Wrap the synchronous connect call in Task.Run to avoid blocking the UI
-                // Corrected Connect method call with standard serial port parameters and Endianness
-                await Task.Run(() => _modbusClient.Connect(portName, baudRate, dataBits, parity, stopBits, ModbusEndianness.LittleEndian));
-                // Removed _modbusClient.Endianness = ModbusEndianness.LittleEndian; as it's passed in Connect
+                _modbusClient = new ModbusRtuClient
+                {
+                    BaudRate = baudRate,
+                    Parity = parity,
+                    StopBits = stopBits
+                };
+
+                await Task.Run(() => _modbusClient.Connect(portName, ModbusEndianness.LittleEndian));
 
                 Log($"Connected to Modbus RTU server on {portName} at {baudRate} baud.");
                 UpdateConnectionState(true);
@@ -116,7 +119,7 @@ namespace MainApp
                 // Save successful connection details to history
                 _historyManager.AddEntry("serialPort", portName);
                 _historyManager.AddEntry("baudRate", baudRate.ToString());
-                _historyManager.AddEntry("dataBits", dataBits.ToString());
+                _historyManager.AddEntry("dataBits", dataBitsComboBox.Text);
                 _historyManager.AddEntry("parity", parity.ToString());
                 _historyManager.AddEntry("stopBits", stopBits.ToString());
             }
@@ -132,7 +135,7 @@ namespace MainApp
         {
             if (_modbusClient != null && _modbusClient.IsConnected)
             {
-                _modbusClient.Disconnect();
+                _modbusClient.Close(); // Use Close() for RTU client
                 Log("Disconnected from Modbus RTU server.");
             }
             UpdateConnectionState(false);
@@ -140,7 +143,6 @@ namespace MainApp
 
         private async void ReadCoilsButton_Click(object sender, EventArgs e)
         {
-            // Call the overload for boolean reads
             await ExecuteModbusRead("Read Coils", async (startAddress, quantity, unitId) =>
             {
                 return await _modbusClient.ReadCoilsAsync(unitId, startAddress, quantity);
@@ -149,7 +151,6 @@ namespace MainApp
 
         private async void ReadDiscreteInputsButton_Click(object sender, EventArgs e)
         {
-            // Call the overload for boolean reads
             await ExecuteModbusRead("Read Discrete Inputs", async (startAddress, quantity, unitId) =>
             {
                 return await _modbusClient.ReadDiscreteInputsAsync(unitId, startAddress, quantity);
@@ -158,7 +159,6 @@ namespace MainApp
 
         private async void ReadHoldingRegistersButton_Click(object sender, EventArgs e)
         {
-            // Call the generic overload for ushort reads
             await ExecuteModbusRead<ushort>("Read Holding Registers", async (startAddress, quantity, unitId) =>
             {
                 return await _modbusClient.ReadHoldingRegistersAsync<ushort>(unitId, startAddress, quantity);
@@ -167,7 +167,6 @@ namespace MainApp
 
         private async void ReadInputRegistersButton_Click(object sender, EventArgs e)
         {
-            // Call the generic overload for ushort reads
             await ExecuteModbusRead<ushort>("Read Input Registers", async (startAddress, quantity, unitId) =>
             {
                 return await _modbusClient.ReadInputRegistersAsync<ushort>(unitId, startAddress, quantity);
@@ -214,14 +213,6 @@ namespace MainApp
             }, "ushort[]");
         }
 
-
-        /// <summary>
-        /// Executes a Modbus read operation for boolean values (coils, discrete inputs) and logs the result.
-        /// Handles conversion from Memory<byte> to bool[].
-        /// </summary>
-        /// <param name="operationName">The name of the operation for logging.</param>
-        /// <param name="readFunction">The asynchronous function to perform the Modbus read, returning Memory<byte>.</param>
-        /// <param name="valueType">A string representation of the value type for logging.</param>
         private async Task ExecuteModbusRead(string operationName, Func<int, int, byte, Task<Memory<byte>>> readFunction, string valueType)
         {
             if (!_isConnected)
@@ -238,32 +229,30 @@ namespace MainApp
 
                 Log($"Performing {operationName}: Unit ID={unitId}, Start Address={startAddress}, Quantity={quantity}");
 
-                // The read function now returns Memory<byte>
                 var memoryValues = await Task.Run(() => readFunction(startAddress, quantity, unitId));
 
-                // Convert Memory<byte> to bool[]
-                bool[] boolValues = new bool[quantity]; // The quantity refers to the number of coils/inputs, not bytes
+                bool[] boolValues = new bool[quantity];
                 int bitIndex = 0;
                 for (int i = 0; i < memoryValues.Length; i++)
                 {
                     byte b = memoryValues.Span[i];
                     for (int j = 0; j < 8; j++)
                     {
-                        if (bitIndex < quantity) // Ensure we don't go out of bounds for the requested quantity
+                        if (bitIndex < quantity)
                         {
                             boolValues[bitIndex] = ((b >> j) & 1) == 1;
                             bitIndex++;
                         }
                         else
                         {
-                            break; // Stop if we've read the requested quantity
+                            break;
                         }
                     }
                     if (bitIndex >= quantity) break;
                 }
 
                 Log($"--- SUCCESS: {operationName} Result ({valueType}): ---");
-                Log(string.Join(", ", boolValues.Take(quantity))); // Only log the requested quantity
+                Log(string.Join(", ", boolValues.Take(quantity)));
             }
             catch (Exception ex)
             {
@@ -272,13 +261,6 @@ namespace MainApp
             }
         }
 
-        /// <summary>
-        /// Executes a Modbus read operation for generic types (e.g., ushort) and logs the result.
-        /// </summary>
-        /// <typeparam name="T">The type of data to read (e.g., ushort).</typeparam>
-        /// <param name="operationName">The name of the operation for logging.</param>
-        /// <param name="readFunction">The asynchronous function to perform the Modbus read, returning Memory<T>.</param>
-        /// <param name="valueType">A string representation of the value type for logging.</param>
         private async Task ExecuteModbusRead<T>(string operationName, Func<int, int, byte, Task<Memory<T>>> readFunction, string valueType) where T : unmanaged
         {
             if (!_isConnected)
@@ -295,10 +277,8 @@ namespace MainApp
 
                 Log($"Performing {operationName}: Unit ID={unitId}, Start Address={startAddress}, Quantity={quantity}");
 
-                // The read function now returns Memory<T>
                 var memoryValues = await Task.Run(() => readFunction(startAddress, quantity, unitId));
 
-                // Convert Memory<T> to an array for easier logging
                 var valuesArray = memoryValues.ToArray();
 
                 Log($"--- SUCCESS: {operationName} Result ({valueType}): ---");
@@ -361,7 +341,6 @@ namespace MainApp
             outputTextBox.ScrollToCaret();
         }
 
-        // --- History Management ---
         private void LoadHistory()
         {
             PopulateComboBoxWithHistory(serialPortComboBox, "serialPort");
@@ -374,7 +353,6 @@ namespace MainApp
             PopulateTextBoxWithHistory(quantityTextBox, "quantity");
             PopulateTextBoxWithHistory(writeValueTextBox, "writeValue");
 
-            // Set default values if history is empty
             if (string.IsNullOrEmpty(serialPortComboBox.Text) && serialPortComboBox.Items.Count > 0)
                 serialPortComboBox.SelectedIndex = 0;
             if (string.IsNullOrEmpty(baudRateComboBox.Text)) baudRateComboBox.Text = "9600";
@@ -388,11 +366,9 @@ namespace MainApp
 
         private void PopulateComboBoxWithHistory(ComboBox comboBox, string key)
         {
-            // For serialPortComboBox, system-detected ports are already added in PopulateDefaultValues.
-            // We need to preserve them and add history if they are not duplicates.
             if (comboBox.Name != serialPortComboBox.Name)
             {
-                comboBox.Items.Clear(); // Clear existing items for other comboboxes
+                comboBox.Items.Clear();
             }
 
             var historyList = _historyManager.GetHistoryForPrefixedKey(key);
@@ -400,21 +376,20 @@ namespace MainApp
             {
                 if (comboBox.Name == serialPortComboBox.Name)
                 {
-                    // Add history items, but ensure no duplicates with system items
                     foreach (var item in historyList.Where(h => !comboBox.Items.Contains(h)))
                     {
-                        comboBox.Items.Insert(0, item); // Add to top
+                        comboBox.Items.Insert(0, item);
                     }
                 }
                 else
                 {
                     comboBox.Items.AddRange(historyList.Cast<object>().ToArray());
                 }
-                comboBox.Text = historyList.First(); // Set to the most recent value
+                comboBox.Text = historyList.First();
             }
             else if (comboBox.Name == serialPortComboBox.Name && comboBox.Items.Count > 0)
             {
-                comboBox.SelectedIndex = 0; // Select the first available serial port
+                comboBox.SelectedIndex = 0;
             }
         }
 
@@ -433,7 +408,7 @@ namespace MainApp
             {
                 _historyManager.AddEntry(key, comboBox.Text);
                 PopulateComboBoxWithHistory(comboBox, key);
-                comboBox.Text = comboBox.Text; // Restore the current text after repopulating
+                comboBox.Text = comboBox.Text;
             }
         }
 
@@ -457,9 +432,7 @@ namespace MainApp
             startAddressTextBox.Clear();
             quantityTextBox.Clear();
             writeValueTextBox.Clear();
-
-            PopulateDefaultValues(); // Reset to defaults after clearing
-
+            PopulateDefaultValues();
             Log("Modbus RTU history cleared.");
         }
 
@@ -468,7 +441,7 @@ namespace MainApp
             _historyManager.SaveHistory();
             if (_modbusClient != null && _modbusClient.IsConnected)
             {
-                _modbusClient.Disconnect();
+                _modbusClient.Close(); // Use Close() for RTU client
             }
             _isConnected = false;
         }

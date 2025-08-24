@@ -43,7 +43,6 @@
             browserFrame.Controls.Add(browserSplitContainer);
 
             this.deviceTreeView = new System.Windows.Forms.TreeView { Dock = System.Windows.Forms.DockStyle.Fill, HideSelection = false };
-            this.deviceTreeView.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.DeviceTreeView_AfterSelect);
             browserSplitContainer.Panel1.Controls.Add(this.deviceTreeView);
 
             this.objectTreeView = new System.Windows.Forms.TreeView { Dock = System.Windows.Forms.DockStyle.Fill, HideSelection = false };
@@ -65,7 +64,6 @@
 
             ipLayout.Controls.Add(new System.Windows.Forms.Label { Text = "Target Instance #:", Anchor = System.Windows.Forms.AnchorStyles.Left, AutoSize = true }, 2, 0);
             this.instanceNumberComboBox = new System.Windows.Forms.ComboBox { Dock = System.Windows.Forms.DockStyle.Fill };
-            this.instanceNumberComboBox.TextChanged += new System.EventHandler(this.UpdateAllStates);
             ipLayout.Controls.Add(this.instanceNumberComboBox, 3, 0);
 
             ipLayout.Controls.Add(new System.Windows.Forms.Label { Text = "Local Interface:", Anchor = System.Windows.Forms.AnchorStyles.Left, AutoSize = true }, 0, 1);
@@ -100,19 +98,15 @@
             actionsFrame.Controls.Add(actionsLayout);
 
             this.discoverButton = new System.Windows.Forms.Button { Text = "Discover Devices", Width = 120 };
-            this.discoverButton.Click += new System.EventHandler(this.DiscoverButton_Click);
             actionsLayout.Controls.Add(this.discoverButton);
 
             this.pingButton = new System.Windows.Forms.Button { Text = "Ping Device", Width = 120 };
-            this.pingButton.Click += new System.EventHandler(this.PingButton_Click);
             actionsLayout.Controls.Add(this.pingButton);
 
             this.discoverObjectsButton = new System.Windows.Forms.Button { Text = "Discover Objects", Width = 120 };
-            this.discoverObjectsButton.Click += new System.EventHandler(this.DiscoverObjectsButton_Click);
             actionsLayout.Controls.Add(this.discoverObjectsButton);
 
             this.readPropertyButton = new System.Windows.Forms.Button { Text = "Read Property", Width = 120 };
-            this.readPropertyButton.Click += new System.EventHandler(this.ReadPropertyButton_Click);
             actionsLayout.Controls.Add(this.readPropertyButton);
 
             this.writePropertyButton = new System.Windows.Forms.Button { Text = "Write Property", Width = 120, Enabled = false };

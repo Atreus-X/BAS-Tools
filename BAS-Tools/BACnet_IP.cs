@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
+using System.ComponentModel;
 using System.IO.BACnet;
 using System.Linq;
 using System.Net.NetworkInformation;
@@ -16,7 +16,7 @@ namespace MainApp
         // BACnet communication client
         private BacnetClient _bacnetClient;
         private Thread _bacnetThread;
-        private readonly HistoryManager _historyManager; // Use the dedicated HistoryManager
+        private HistoryManager _historyManager;
 
         // Data storage
         private uint? _lastPingedDeviceId = null;
@@ -25,21 +25,52 @@ namespace MainApp
         public BACnet_IP()
         {
             InitializeComponent();
-            _historyManager = new HistoryManager("BACnet_IP_"); // Initialize with a unique prefix
-            PopulateDefaultValues();
-            LoadHistory(); // Load history after populating default network interfaces
-            UpdateAllStates(null, null);
-
-            // Wire up event handlers to save history on text changes for ComboBoxes
-            // We'll use Leave event for better control over when history is saved
-            ipAddressComboBox.Leave += (sender, e) => SaveComboBoxEntry(ipAddressComboBox, "ipAddress");
-            instanceNumberComboBox.Leave += (sender, e) => SaveComboBoxEntry(instanceNumberComboBox, "instanceNumber");
-            ipPortComboBox.Leave += (sender, e) => SaveComboBoxEntry(ipPortComboBox, "ipPort");
-            apduTimeoutComboBox.Leave += (sender, e) => SaveComboBoxEntry(apduTimeoutComboBox, "apduTimeout");
-            bbmdIpComboBox.Leave += (sender, e) => SaveComboBoxEntry(bbmdIpComboBox, "bbmdIp");
-            bbmdTtlComboBox.Leave += (sender, e) => SaveComboBoxEntry(bbmdTtlComboBox, "bbmdTtl");
-            interfaceComboBox.Leave += (sender, e) => SaveComboBoxEntry(interfaceComboBox, "interface"); // Save selected interface
+            // Defer initialization to the Load event to make it designer-safe
+            this.Load += new System.EventHandler(this.BACnet_IP_Load);
         }
+
+        private void BACnet_IP_Load(object sender, EventArgs e)
+        {
+            // Prevent initialization code from running in the Visual Studio Designer
+            bool inDesignMode = this.DesignMode || LicenseManager.UsageMode == LicenseUsageMode.Designtime;
+            if (inDesignMode)
+            {
+                return;
+            }
+
+            // Wrap initialization in a try-catch block to prevent designer crashes
+            try
+            {
+                _historyManager = new HistoryManager("BACnet_IP_");
+                PopulateDefaultValues();
+                LoadHistory();
+                UpdateAllStates(null, null);
+
+                // Wire up event handlers here, instead of in the designer, to make the form designer-safe.
+                this.deviceTreeView.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.DeviceTreeView_AfterSelect);
+                this.instanceNumberComboBox.TextChanged += new System.EventHandler(this.UpdateAllStates);
+                this.discoverButton.Click += new System.EventHandler(this.DiscoverButton_Click);
+                this.pingButton.Click += new System.EventHandler(this.PingButton_Click);
+                this.discoverObjectsButton.Click += new System.EventHandler(this.DiscoverObjectsButton_Click);
+                this.readPropertyButton.Click += new System.EventHandler(this.ReadPropertyButton_Click);
+
+
+                // Wire up event handlers to save history
+                ipAddressComboBox.Leave += (s, args) => SaveComboBoxEntry(ipAddressComboBox, "ipAddress");
+                instanceNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(instanceNumberComboBox, "instanceNumber");
+                ipPortComboBox.Leave += (s, args) => SaveComboBoxEntry(ipPortComboBox, "ipPort");
+                apduTimeoutComboBox.Leave += (s, args) => SaveComboBoxEntry(apduTimeoutComboBox, "apduTimeout");
+                bbmdIpComboBox.Leave += (s, args) => SaveComboBoxEntry(bbmdIpComboBox, "bbmdIp");
+                bbmdTtlComboBox.Leave += (s, args) => SaveComboBoxEntry(bbmdTtlComboBox, "bbmdTtl");
+                interfaceComboBox.Leave += (s, args) => SaveComboBoxEntry(interfaceComboBox, "interface");
+            }
+            catch (Exception ex)
+            {
+                // This catch block will prevent the designer from crashing if an error occurs during load.
+                Console.WriteLine("Error during BACnet_IP_Load, likely in designer: " + ex.Message);
+            }
+        }
+
 
         // --- BACnet Logic ---
         private void EnsureBacnetClientStarted()
@@ -74,7 +105,10 @@ namespace MainApp
                 }
 
                 // Save the currently selected interface to history
-                _historyManager.AddEntry("interface", interfaceComboBox.Text);
+                if (_historyManager != null)
+                {
+                    _historyManager.AddEntry("interface", interfaceComboBox.Text);
+                }
 
 
                 var transport = new BacnetIpUdpProtocolTransport(int.Parse(ipPortComboBox.Text), true, false, 1472, localIp);
@@ -108,11 +142,12 @@ namespace MainApp
 
         private void OnIamHandler(BacnetClient sender, BacnetAddress adr, uint deviceId, uint maxApdu, BacnetSegmentations segmentation, ushort vendorId)
         {
+            if (this.IsDisposed || !this.IsHandleCreated) return;
             this.Invoke((MethodInvoker)delegate {
                 Log($"I-Am received from {adr} (DeviceID: {deviceId})");
                 string deviceDisplay = $"{deviceId} ({adr})";
 
-                if (!deviceTreeView.Nodes.ContainsKey(deviceId.ToString()))
+                if (deviceTreeView != null && !deviceTreeView.Nodes.ContainsKey(deviceId.ToString()))
                 {
                     var node = new TreeNode(deviceDisplay) { Name = deviceId.ToString(), Tag = adr };
                     deviceTreeView.Nodes.Add(node);
@@ -145,7 +180,7 @@ namespace MainApp
             EnsureBacnetClientStarted(); // Use the new method
             if (!_isClientStarted) return;
 
-            deviceTreeView.Nodes.Clear();
+            if (deviceTreeView != null) deviceTreeView.Nodes.Clear();
             Log("Discovering devices with global Who-Is broadcast...");
             _bacnetClient.WhoIs();
         }
@@ -213,20 +248,15 @@ namespace MainApp
                     return;
                 }
 
-                // This is still hardcoded, but now it will work.
-                // A great next step is to get this from the object tree view selection.
                 var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
                 var propertyId = BacnetPropertyIds.PROP_OBJECT_NAME;
 
                 Log($"Reading {propertyId} from Device {deviceId}...");
 
-                // Run the blocking network call on a background thread
                 await Task.Run(() =>
                 {
-                    // The 'out' parameter gets filled with the result
                     if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, propertyId, out IList<BacnetValue> values))
                     {
-                        // We're on a background thread, so we must use Invoke to log the result
                         Log($"--- SUCCESS: Read ACK for {propertyId} ---");
                         foreach (var val in values)
                         {
@@ -252,12 +282,17 @@ namespace MainApp
                 this.Invoke(new Action<string>(Log), message);
                 return;
             }
-            outputTextBox.AppendText(DateTime.Now.ToLongTimeString() + ": " + message + Environment.NewLine);
-            outputTextBox.ScrollToCaret();
+            if (outputTextBox != null)
+            {
+                outputTextBox.AppendText(DateTime.Now.ToLongTimeString() + ": " + message + Environment.NewLine);
+                outputTextBox.ScrollToCaret();
+            }
         }
 
         private void PopulateDefaultValues()
         {
+            if (interfaceComboBox == null) return;
+
             // Always add network interfaces, as they are system-dependent
             interfaceComboBox.Items.Add("0.0.0.0 (Any)");
             foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
@@ -278,11 +313,12 @@ namespace MainApp
 
         private void UpdateAllStates(object sender, EventArgs e)
         {
+            if (instanceNumberComboBox == null) return;
             bool instanceExists = !string.IsNullOrWhiteSpace(instanceNumberComboBox.Text);
-            pingButton.Enabled = instanceExists;
-            readPropertyButton.Enabled = instanceExists;
-            writePropertyButton.Enabled = instanceExists;
-            discoverObjectsButton.Enabled = _lastPingedDeviceId.HasValue;
+            if (pingButton != null) pingButton.Enabled = instanceExists;
+            if (readPropertyButton != null) readPropertyButton.Enabled = instanceExists;
+            if (writePropertyButton != null) writePropertyButton.Enabled = instanceExists;
+            if (discoverObjectsButton != null) discoverObjectsButton.Enabled = _lastPingedDeviceId.HasValue;
         }
 
         private void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e)
@@ -290,11 +326,10 @@ namespace MainApp
             if (e.Node != null)
             {
                 uint deviceId = uint.Parse(e.Node.Name);
-                instanceNumberComboBox.Text = deviceId.ToString();
+                if (instanceNumberComboBox != null) instanceNumberComboBox.Text = deviceId.ToString();
                 if (e.Node.Tag is BacnetAddress bacnetAddress)
                 {
-                    // Take the first 4 bytes (the IP address) and join them with "."
-                    ipAddressComboBox.Text = string.Join(".", bacnetAddress.adr.Take(4));
+                    if (ipAddressComboBox != null) ipAddressComboBox.Text = string.Join(".", bacnetAddress.adr.Take(4));
                 }
                 _lastPingedDeviceId = deviceId;
                 UpdateAllStates(null, null);
@@ -304,6 +339,7 @@ namespace MainApp
 
         private void PopulateObjectTree(IList<BacnetValue> objectList)
         {
+            if (objectTreeView == null) return;
             objectTreeView.Nodes.Clear();
 
             var objectGroups = objectList
@@ -373,22 +409,19 @@ namespace MainApp
             PopulateComboBoxWithHistory(interfaceComboBox, "interface"); // Load selected interface
 
             // Set default values if history is empty or not present
-            if (string.IsNullOrEmpty(ipAddressComboBox.Text)) ipAddressComboBox.Text = "192.168.1.200";
-            if (string.IsNullOrEmpty(instanceNumberComboBox.Text)) instanceNumberComboBox.Text = "100";
-            if (string.IsNullOrEmpty(ipPortComboBox.Text)) ipPortComboBox.Text = "47808";
-            if (string.IsNullOrEmpty(apduTimeoutComboBox.Text)) apduTimeoutComboBox.Text = "5000";
-            if (string.IsNullOrEmpty(bbmdIpComboBox.Text)) bbmdIpComboBox.Text = "172.19.10.102";
-            if (string.IsNullOrEmpty(bbmdTtlComboBox.Text)) bbmdTtlComboBox.Text = "3600";
-            // For interfaceComboBox, if history is empty, it will default to "0.0.0.0 (Any)" due to PopulateDefaultValues.
-            // If there's a history entry, it will select that.
+            if (ipAddressComboBox != null && string.IsNullOrEmpty(ipAddressComboBox.Text)) ipAddressComboBox.Text = "192.168.1.200";
+            if (instanceNumberComboBox != null && string.IsNullOrEmpty(instanceNumberComboBox.Text)) instanceNumberComboBox.Text = "100";
+            if (ipPortComboBox != null && string.IsNullOrEmpty(ipPortComboBox.Text)) ipPortComboBox.Text = "47808";
+            if (apduTimeoutComboBox != null && string.IsNullOrEmpty(apduTimeoutComboBox.Text)) apduTimeoutComboBox.Text = "5000";
+            if (bbmdIpComboBox != null && string.IsNullOrEmpty(bbmdIpComboBox.Text)) bbmdIpComboBox.Text = "172.19.10.102";
+            if (bbmdTtlComboBox != null && string.IsNullOrEmpty(bbmdTtlComboBox.Text)) bbmdTtlComboBox.Text = "3600";
         }
 
         private void PopulateComboBoxWithHistory(ComboBox comboBox, string key)
         {
-            comboBox.Items.Clear(); // Clear existing items (except for interfaceCombo which is system specific)
+            if (comboBox == null) return;
 
-            // Only clear if it's not the interfaceComboBox
-            if (comboBox.Name != interfaceComboBox.Name)
+            if (interfaceComboBox != null && comboBox.Name != interfaceComboBox.Name)
             {
                 comboBox.Items.Clear();
             }
@@ -396,13 +429,11 @@ namespace MainApp
             var historyList = _historyManager.GetHistoryForPrefixedKey(key);
             if (historyList.Any())
             {
-                // If it's the interfaceComboBox, ensure system-detected interfaces are still present
-                if (comboBox.Name == interfaceComboBox.Name)
+                if (interfaceComboBox != null && comboBox.Name == interfaceComboBox.Name)
                 {
-                    // Add history items, but ensure no duplicates with system items
                     foreach (var item in historyList.Where(h => !comboBox.Items.Contains(h)))
                     {
-                        comboBox.Items.Insert(0, item); // Add to top
+                        comboBox.Items.Insert(0, item);
                     }
                 }
                 else
@@ -410,49 +441,49 @@ namespace MainApp
                     comboBox.Items.AddRange(historyList.Cast<object>().ToArray());
                 }
 
-                // Set the text to the last entered value
                 comboBox.Text = historyList.First();
             }
-            else if (comboBox.Name == interfaceComboBox.Name && comboBox.Items.Count > 0)
+            else if (interfaceComboBox != null && comboBox.Name == interfaceComboBox.Name && comboBox.Items.Count > 0)
             {
-                // Select "0.0.0.0 (Any)" if no specific interface was previously saved
                 comboBox.SelectedIndex = 0;
             }
         }
 
         private void SaveComboBoxEntry(ComboBox comboBox, string key)
         {
-            if (!string.IsNullOrWhiteSpace(comboBox.Text))
+            if (_historyManager != null && comboBox != null && !string.IsNullOrWhiteSpace(comboBox.Text))
             {
                 _historyManager.AddEntry(key, comboBox.Text);
-                // After saving, re-populate to update the dropdown list with the new/moved item
                 PopulateComboBoxWithHistory(comboBox, key);
-                comboBox.Text = comboBox.Text; // Restore the current text after repopulating
+                comboBox.Text = comboBox.Text;
             }
         }
 
         public void ClearHistory()
         {
+            if (_historyManager == null) return;
             _historyManager.ClearHistory();
-            ipAddressComboBox.Items.Clear();
-            instanceNumberComboBox.Items.Clear();
-            ipPortComboBox.Items.Clear();
-            apduTimeoutComboBox.Items.Clear();
-            bbmdIpComboBox.Items.Clear();
-            bbmdTtlComboBox.Items.Clear();
 
-            // Re-populate system interfaces after clearing history
-            interfaceComboBox.Items.Clear();
+            ipAddressComboBox?.Items.Clear();
+            instanceNumberComboBox?.Items.Clear();
+            ipPortComboBox?.Items.Clear();
+            apduTimeoutComboBox?.Items.Clear();
+            bbmdIpComboBox?.Items.Clear();
+            bbmdTtlComboBox?.Items.Clear();
+            interfaceComboBox?.Items.Clear();
+
             PopulateDefaultValues();
-            interfaceComboBox.SelectedIndex = 0; // Select "0.0.0.0 (Any)"
+            if (interfaceComboBox != null && interfaceComboBox.Items.Count > 0)
+            {
+                interfaceComboBox.SelectedIndex = 0;
+            }
 
             Log("BACnet/IP history cleared.");
         }
 
-        // This is important for cleanup when the main application closes
         public void Shutdown()
         {
-            _historyManager.SaveHistory(); // Ensure history is saved on shutdown
+            _historyManager?.SaveHistory();
             _bacnetClient?.Dispose();
         }
     }

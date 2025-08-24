@@ -14,7 +14,7 @@ namespace MainApp
     public class HistoryManager
     {
         private const string HISTORY_FILE_NAME = "BAS-Tools.history.json";
-        private readonly string _historyFilePath; // Changed to readonly
+        private string _historyFilePath;
         private Dictionary<string, List<string>> _history;
         private readonly string _prefix; // Prefix for keys to isolate history per protocol
 
