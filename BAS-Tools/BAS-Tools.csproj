@@ -65,6 +65,9 @@
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=9.0.0.8, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.9.0.8\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection, Version=9.0.0.8, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.9.0.8\lib\net462\Microsoft.Extensions.DependencyInjection.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=9.0.0.8, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.Abstractions.9.0.8\lib\net462\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
     </Reference>
@@ -124,6 +127,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="LoggerService.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HistoryManager.cs" />
     <Compile Include="Modbus_IP.cs">
@@ -161,8 +165,17 @@
     <EmbeddedResource Include="BACnet_IP.resx">
       <DependentUpon>BACnet_IP.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="BACnet_MSTP.resx">
+      <DependentUpon>BACnet_MSTP.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainApp.resx">
       <DependentUpon>MainApp.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Modbus_IP.resx">
+      <DependentUpon>Modbus_IP.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Modbus_RTU.resx">
+      <DependentUpon>Modbus_RTU.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

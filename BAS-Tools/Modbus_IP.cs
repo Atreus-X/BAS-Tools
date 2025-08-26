@@ -1,6 +1,7 @@
 ﻿using FluentModbus;
 using System;
 using System.Buffers;
+using System.ComponentModel;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -11,17 +12,29 @@ namespace MainApp
     public partial class Modbus_IP : UserControl, IHistorySupport
     {
         private ModbusTcpClient _modbusClient;
-        private readonly HistoryManager _historyManager;
+        private HistoryManager _historyManager;
         private bool _isConnected = false;
 
         public Modbus_IP()
         {
             InitializeComponent();
+            this.Load += Modbus_IP_Load;
+        }
+
+        private void Modbus_IP_Load(object sender, EventArgs e)
+        {
+            if (this.DesignMode || LicenseManager.UsageMode == LicenseUsageMode.Designtime)
+                return;
+
             _historyManager = new HistoryManager("Modbus_IP_");
             PopulateDefaultValues();
             LoadHistory();
             UpdateConnectionState(false);
+            WireUpEventHandlers();
+        }
 
+        private void WireUpEventHandlers()
+        {
             ipAddressComboBox.Leave += (sender, e) => SaveComboBoxEntry(ipAddressComboBox, "ipAddress");
             portComboBox.Leave += (sender, e) => SaveComboBoxEntry(portComboBox, "port");
             unitIdComboBox.Leave += (sender, e) => SaveComboBoxEntry(unitIdComboBox, "unitId");
@@ -108,7 +121,6 @@ namespace MainApp
             UpdateConnectionState(false);
         }
 
-        // ... (The rest of the file remains the same)
         private async void ReadCoilsButton_Click(object sender, EventArgs e)
         {
             await ExecuteModbusRead("Read Coils", async (startAddress, quantity, unitId) =>
