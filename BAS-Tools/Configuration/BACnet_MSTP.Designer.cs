@@ -1,4 +1,4 @@
-﻿namespace MainApp
+﻿namespace MainApp.Configuration
 {
     partial class BACnet_MSTP
     {
@@ -45,6 +45,7 @@
             this.discoverObjectsButton = new System.Windows.Forms.Button();
             this.readPropertyButton = new System.Windows.Forms.Button();
             this.writePropertyButton = new System.Windows.Forms.Button();
+            this.clearLogButton = new System.Windows.Forms.Button();
             this.mstpFrame = new System.Windows.Forms.GroupBox();
             this.settingsPanel = new System.Windows.Forms.Panel();
             this.mstpLayout = new System.Windows.Forms.TableLayoutPanel();
@@ -199,6 +200,7 @@
             this.actionsLayout.Controls.Add(this.discoverObjectsButton);
             this.actionsLayout.Controls.Add(this.readPropertyButton);
             this.actionsLayout.Controls.Add(this.writePropertyButton);
+            this.actionsLayout.Controls.Add(this.clearLogButton);
             this.actionsLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.actionsLayout.Location = new System.Drawing.Point(10, 28);
             this.actionsLayout.Name = "actionsLayout";
@@ -272,10 +274,18 @@
             this.writePropertyButton.Text = "Write Property";
             this.writePropertyButton.UseVisualStyleBackColor = true;
             // 
+            // clearLogButton
+            // 
+            this.clearLogButton.Location = new System.Drawing.Point(129, 32);
+            this.clearLogButton.Name = "clearLogButton";
+            this.clearLogButton.Size = new System.Drawing.Size(120, 23);
+            this.clearLogButton.TabIndex = 8;
+            this.clearLogButton.Text = "Clear Log";
+            this.clearLogButton.UseVisualStyleBackColor = true;
+            // 
             // mstpFrame
             // 
             this.mstpFrame.Controls.Add(this.settingsPanel);
-            this.mstpFrame.Controls.Add(this.mstpLayout);
             this.mstpFrame.Controls.Add(this._localModeRadioButton);
             this.mstpFrame.Controls.Add(this._remoteModeRadioButton);
             this.mstpFrame.Dock = System.Windows.Forms.DockStyle.Top;
@@ -314,7 +324,6 @@
             this.mstpLayout.Controls.Add(this.label3, 0, 1);
             this.mstpLayout.Controls.Add(this.label4, 2, 1);
             this.mstpLayout.Controls.Add(this.label5, 2, 2);
-            this.mstpLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mstpLayout.Location = new System.Drawing.Point(10, 28);
             this.mstpLayout.Name = "mstpLayout";
             this.mstpLayout.RowCount = 3;
@@ -469,6 +478,7 @@
             this.mstpLayout.ResumeLayout(false);
             this.mstpLayout.PerformLayout();
             this.ResumeLayout(false);
+
         }
 
         #endregion
@@ -505,5 +515,6 @@
         private System.Windows.Forms.RichTextBox outputTextBox;
         private System.Windows.Forms.Button cancelDiscoveryButton;
         private System.Windows.Forms.Label discoveryStatusLabel;
+        private System.Windows.Forms.Button clearLogButton;
     }
 }

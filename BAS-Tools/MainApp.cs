@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using MainApp.Configuration;
 
 namespace MainApp
 {
@@ -38,8 +39,8 @@ namespace MainApp
                 control.Dock = DockStyle.Fill;
             }
 
-            // Show the BACnet/IP control by default
-            ShowProtocolControl("BACnet/IP");
+            // Show the BACnet MS/TP control by default
+            ShowProtocolControl("BACnet MS/TP");
 
             this.FormClosing += MainApp_FormClosing;
         }

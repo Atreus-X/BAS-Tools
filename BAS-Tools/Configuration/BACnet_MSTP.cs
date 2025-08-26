@@ -4,18 +4,18 @@ using System.ComponentModel;
 using System.IO.BACnet;
 using System.IO.Ports;
 using System.Linq;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace MainApp
+namespace MainApp.Configuration
 {
     public partial class BACnet_MSTP : UserControl, IHistorySupport
     {
         private BacnetClient _bacnetClient;
-        private Thread _bacnetThread;
         private HistoryManager _historyManager;
         private uint? _lastPingedDeviceId = null;
         private bool _isClientStarted = false;
@@ -26,6 +26,9 @@ namespace MainApp
         private ComboBox _bbmdIpComboBox;
         private ComboBox _networkNumberComboBox;
         private ComboBox _localInterfaceComboBox;
+        private ComboBox _apduTimeoutComboBox;
+        private ComboBox _bbmdPortComboBox;
+        private ComboBox _bbmdTtlComboBox;
 
         public BACnet_MSTP()
         {
@@ -45,6 +48,8 @@ namespace MainApp
             UpdateAllStates(null, null);
             WireUpEventHandlers();
 
+            _remoteModeRadioButton.Checked = true;
+
             _discoveryTimer = new System.Windows.Forms.Timer();
             _discoveryTimer.Interval = 10000; // 10 seconds
             _discoveryTimer.Tick += DiscoveryTimer_Tick;
@@ -62,19 +67,37 @@ namespace MainApp
             _localInterfaceComboBox = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList };
             _bbmdIpComboBox = new ComboBox { Dock = DockStyle.Fill };
             _networkNumberComboBox = new ComboBox { Dock = DockStyle.Fill };
+            _apduTimeoutComboBox = new ComboBox { Dock = DockStyle.Fill };
+            _bbmdPortComboBox = new ComboBox { Dock = DockStyle.Fill };
+            _bbmdTtlComboBox = new ComboBox { Dock = DockStyle.Fill };
 
-            var remoteLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 2 };
+            var remoteLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 4 };
             remoteLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
             remoteLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             remoteLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
             remoteLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            remoteLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 25F));
+            remoteLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 25F));
+            remoteLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 25F));
+            remoteLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 25F));
+
             remoteLayout.Controls.Add(new Label { Text = "Local Interface:", Anchor = AnchorStyles.Left, AutoSize = true }, 0, 0);
             remoteLayout.SetColumnSpan(_localInterfaceComboBox, 3);
             remoteLayout.Controls.Add(_localInterfaceComboBox, 1, 0);
+
             remoteLayout.Controls.Add(new Label { Text = "BBMD IP:", Anchor = AnchorStyles.Left, AutoSize = true }, 0, 1);
             remoteLayout.Controls.Add(_bbmdIpComboBox, 1, 1);
-            remoteLayout.Controls.Add(new Label { Text = "Network #:", Anchor = AnchorStyles.Left, AutoSize = true }, 2, 1);
-            remoteLayout.Controls.Add(_networkNumberComboBox, 3, 1);
+            remoteLayout.Controls.Add(new Label { Text = "BBMD Port:", Anchor = AnchorStyles.Left, AutoSize = true }, 2, 1);
+            remoteLayout.Controls.Add(_bbmdPortComboBox, 3, 1);
+
+            remoteLayout.Controls.Add(new Label { Text = "BBMD TTL (s):", Anchor = AnchorStyles.Left, AutoSize = true }, 0, 2);
+            remoteLayout.Controls.Add(_bbmdTtlComboBox, 1, 2);
+
+            remoteLayout.Controls.Add(new Label { Text = "Network #:", Anchor = AnchorStyles.Left, AutoSize = true }, 0, 3);
+            remoteLayout.Controls.Add(_networkNumberComboBox, 1, 3);
+            remoteLayout.Controls.Add(new Label { Text = "APDU Timeout (ms):", Anchor = AnchorStyles.Left, AutoSize = true }, 2, 3);
+            remoteLayout.Controls.Add(_apduTimeoutComboBox, 3, 3);
+
             _remotePanel.Controls.Add(remoteLayout);
 
             settingsPanel.Controls.Add(_localPanel);
@@ -92,15 +115,24 @@ namespace MainApp
             instanceNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(instanceNumberComboBox, "instanceNumber");
             if (_bbmdIpComboBox != null) _bbmdIpComboBox.Leave += (s, args) => SaveComboBoxEntry(_bbmdIpComboBox, "bbmdIp");
             if (_networkNumberComboBox != null) _networkNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(_networkNumberComboBox, "networkNumber");
-            if (_localInterfaceComboBox != null) _localInterfaceComboBox.Leave += (s, args) => SaveComboBoxEntry(_localInterfaceComboBox, "localInterface");
+            if (_apduTimeoutComboBox != null) _apduTimeoutComboBox.Leave += (s, args) => SaveComboBoxEntry(_apduTimeoutComboBox, "apduTimeout");
+            if (_bbmdPortComboBox != null) _bbmdPortComboBox.Leave += (s, args) => SaveComboBoxEntry(_bbmdPortComboBox, "bbmdPort");
+            if (_bbmdTtlComboBox != null) _bbmdTtlComboBox.Leave += (s, args) => SaveComboBoxEntry(_bbmdTtlComboBox, "bbmdTtl");
 
             startDiscoveryButton.Click += StartDiscoveryButton_Click;
             cancelDiscoveryButton.Click += CancelDiscoveryButton_Click;
             pingButton.Click += PingButton_Click;
             discoverObjectsButton.Click += DiscoverObjectsButton_Click;
             readPropertyButton.Click += ReadPropertyButton_Click;
+            clearLogButton.Click += ClearLogButton_Click;
             deviceTreeView.AfterSelect += DeviceTreeView_AfterSelect;
             instanceNumberComboBox.TextChanged += UpdateAllStates;
+        }
+
+        private void ClearLogButton_Click(object sender, EventArgs e)
+        {
+            outputTextBox.Clear();
+            Log("Log cleared.");
         }
 
         private void ModeRadioButton_CheckedChanged(object sender, EventArgs e)
@@ -123,6 +155,12 @@ namespace MainApp
             try
             {
                 IBacnetTransport transport;
+                int apduTimeout = 5000;
+                if (_remoteModeRadioButton.Checked && int.TryParse(_apduTimeoutComboBox.Text, out int parsedTimeout))
+                {
+                    apduTimeout = parsedTimeout;
+                }
+
                 if (_localModeRadioButton.Checked)
                 {
                     Log("Initializing BACnet MS/TP client (Local)...");
@@ -142,30 +180,40 @@ namespace MainApp
                         var match = System.Text.RegularExpressions.Regex.Match(_localInterfaceComboBox.SelectedItem.ToString(), @"\((.*?)\)");
                         if (match.Success) localIp = match.Groups[1].Value;
                     }
-                    transport = new BacnetIpUdpProtocolTransport(0, false, false, 1472, localIp);
+
+                    int bbmdPort = 47808;
+                    if (int.TryParse(_bbmdPortComboBox.Text, out int parsedPort))
+                    {
+                        bbmdPort = parsedPort;
+                    }
+
+                    transport = new BacnetIpUdpProtocolTransport(bbmdPort, false, false, 1472, localIp);
                 }
 
-                _bacnetClient = new BacnetClient(transport);
+                _bacnetClient = new BacnetClient(transport) { Timeout = apduTimeout };
                 _bacnetClient.OnIam += OnIamHandler;
 
-                _bacnetThread = new Thread(() => {
-                    try
-                    {
-                        _bacnetClient.Start();
-                    }
-                    catch (Exception ex)
-                    {
-                        Log($"--- BACnet Thread Error: {ex.Message} ---");
-                    }
-                })
-                { IsBackground = true };
-                _bacnetThread.Start();
-                Thread.Sleep(500);
+                _bacnetClient.Start();
+
+                // Give the transport a moment to initialize before registering
+                Thread.Sleep(1000);
 
                 if (!_localModeRadioButton.Checked && !string.IsNullOrWhiteSpace(_bbmdIpComboBox.Text))
                 {
-                    _bacnetClient.RegisterAsForeignDevice(_bbmdIpComboBox.Text, 60);
-                    Log($"Registered as Foreign Device with BBMD at {_bbmdIpComboBox.Text}");
+                    int bbmdPort = 47808;
+                    if (int.TryParse(_bbmdPortComboBox.Text, out int parsedPort))
+                    {
+                        bbmdPort = parsedPort;
+                    }
+                    short ttl;
+                    if (!short.TryParse(_bbmdTtlComboBox.Text, out ttl))
+                    {
+                        Log("--- ERROR: Invalid BBMD TTL value. ---");
+                        return;
+                    }
+                    Log($"Attempting to register as Foreign Device with BBMD at {_bbmdIpComboBox.Text}:{bbmdPort} with TTL {ttl}...");
+                    _bacnetClient.RegisterAsForeignDevice(_bbmdIpComboBox.Text, ttl, bbmdPort);
+                    Log("Foreign Device Registration message sent.");
                 }
 
                 _isClientStarted = true;
@@ -227,8 +275,10 @@ namespace MainApp
             discoveryStatusLabel.Visible = true;
 
             _discoveryTimer.Start();
+            Log("Sending Who-Is broadcast for discovery.");
             _bacnetClient.WhoIs();
         }
+
 
         private void CancelDiscoveryButton_Click(object sender, EventArgs e)
         {
@@ -354,6 +404,7 @@ namespace MainApp
             maxMastersComboBox.Items.AddRange(Enumerable.Range(1, 127).Select(i => i.ToString()).ToArray());
             maxInfoFramesComboBox.Items.AddRange(Enumerable.Range(1, 10).Select(i => i.ToString()).ToArray());
 
+            _localInterfaceComboBox.Items.Clear();
             _localInterfaceComboBox.Items.Add("0.0.0.0 (Any)");
             foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
             {
@@ -368,6 +419,14 @@ namespace MainApp
                     }
                 }
             }
+            if (_localInterfaceComboBox.Items.Count > 0)
+            {
+                _localInterfaceComboBox.SelectedIndex = 0;
+            }
+
+            _apduTimeoutComboBox.Items.AddRange(new object[] { "3000", "5000", "10000" });
+            _bbmdPortComboBox.Items.AddRange(new object[] { "47808" });
+            _bbmdTtlComboBox.Items.AddRange(new object[] { "60", "3600" });
         }
 
         private void UpdateAllStates(object sender, EventArgs e)
@@ -444,7 +503,10 @@ namespace MainApp
             PopulateComboBoxWithHistory(instanceNumberComboBox, "instanceNumber");
             if (_bbmdIpComboBox != null) PopulateComboBoxWithHistory(_bbmdIpComboBox, "bbmdIp");
             if (_networkNumberComboBox != null) PopulateComboBoxWithHistory(_networkNumberComboBox, "networkNumber");
-            if (_localInterfaceComboBox != null) PopulateComboBoxWithHistory(_localInterfaceComboBox, "localInterface");
+            if (_apduTimeoutComboBox != null) PopulateComboBoxWithHistory(_apduTimeoutComboBox, "apduTimeout");
+            if (_bbmdPortComboBox != null) PopulateComboBoxWithHistory(_bbmdPortComboBox, "bbmdPort");
+            if (_bbmdTtlComboBox != null) PopulateComboBoxWithHistory(_bbmdTtlComboBox, "bbmdTtl");
+
 
             if (string.IsNullOrEmpty(serialPortComboBox.Text) && serialPortComboBox.Items.Count > 0)
                 serialPortComboBox.SelectedIndex = 0;
@@ -453,14 +515,18 @@ namespace MainApp
             if (string.IsNullOrEmpty(maxInfoFramesComboBox.Text)) maxInfoFramesComboBox.Text = "1";
             if (string.IsNullOrEmpty(instanceNumberComboBox.Text)) instanceNumberComboBox.Text = "100";
             if (_networkNumberComboBox != null && string.IsNullOrEmpty(_networkNumberComboBox.Text)) _networkNumberComboBox.Text = "1";
-            if (_localInterfaceComboBox != null && string.IsNullOrEmpty(_localInterfaceComboBox.Text) && _localInterfaceComboBox.Items.Count > 0)
-                _localInterfaceComboBox.SelectedIndex = 0;
+            if (_apduTimeoutComboBox != null && string.IsNullOrEmpty(_apduTimeoutComboBox.Text)) _apduTimeoutComboBox.Text = "5000";
+            if (_bbmdPortComboBox != null && string.IsNullOrEmpty(_bbmdPortComboBox.Text)) _bbmdPortComboBox.Text = "47808";
+            if (_bbmdTtlComboBox != null && string.IsNullOrEmpty(_bbmdTtlComboBox.Text)) _bbmdTtlComboBox.Text = "3600";
         }
 
         private void PopulateComboBoxWithHistory(ComboBox comboBox, string key)
         {
             if (comboBox == null) return;
-            bool isSpecialComboBox = comboBox == serialPortComboBox || comboBox == _localInterfaceComboBox;
+
+            if (comboBox.Name == "_localInterfaceComboBox") return;
+
+            bool isSpecialComboBox = comboBox == serialPortComboBox;
             if (!isSpecialComboBox) comboBox.Items.Clear();
 
             var historyList = _historyManager.GetHistoryForPrefixedKey(key);
@@ -485,7 +551,7 @@ namespace MainApp
 
         private void SaveComboBoxEntry(ComboBox comboBox, string key)
         {
-            if (comboBox != null && !string.IsNullOrWhiteSpace(comboBox.Text))
+            if (comboBox != null && !string.IsNullOrWhiteSpace(comboBox.Text) && comboBox.Name != "_localInterfaceComboBox")
             {
                 _historyManager.AddEntry(key, comboBox.Text);
                 PopulateComboBoxWithHistory(comboBox, key);
@@ -495,6 +561,7 @@ namespace MainApp
 
         public void ClearHistory()
         {
+            if (_historyManager == null) return;
             _historyManager.ClearHistory();
             serialPortComboBox.Items.Clear();
             baudRateComboBox.Items.Clear();
@@ -503,7 +570,10 @@ namespace MainApp
             instanceNumberComboBox.Items.Clear();
             _bbmdIpComboBox.Items.Clear();
             _networkNumberComboBox.Items.Clear();
-            _localInterfaceComboBox.Items.Clear();
+            _apduTimeoutComboBox.Items.Clear();
+            _bbmdPortComboBox.Items.Clear();
+            _bbmdTtlComboBox.Items.Clear();
+
 
             PopulateDefaultValues();
             LoadHistory();
@@ -512,7 +582,7 @@ namespace MainApp
 
         public void Shutdown()
         {
-            _historyManager.SaveHistory();
+            _historyManager?.SaveHistory();
             _bacnetClient?.Dispose();
         }
     }

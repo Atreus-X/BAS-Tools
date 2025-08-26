@@ -9,12 +9,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace MainApp
+namespace MainApp.Configuration
 {
     public partial class BACnet_IP : UserControl, IHistorySupport
     {
         private BacnetClient _bacnetClient;
-        private Thread _bacnetThread;
         private HistoryManager _historyManager;
         private uint? _lastPingedDeviceId = null;
         private bool _isClientStarted = false;
@@ -45,6 +44,7 @@ namespace MainApp
             this.pingButton.Click += this.PingButton_Click;
             this.discoverObjectsButton.Click += this.DiscoverObjectsButton_Click;
             this.readPropertyButton.Click += this.ReadPropertyButton_Click;
+            this.clearLogButton.Click += this.ClearLogButton_Click;
 
             ipAddressComboBox.Leave += (s, args) => SaveComboBoxEntry(ipAddressComboBox, "ipAddress");
             instanceNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(instanceNumberComboBox, "instanceNumber");
@@ -52,7 +52,12 @@ namespace MainApp
             apduTimeoutComboBox.Leave += (s, args) => SaveComboBoxEntry(apduTimeoutComboBox, "apduTimeout");
             bbmdIpComboBox.Leave += (s, args) => SaveComboBoxEntry(bbmdIpComboBox, "bbmdIp");
             bbmdTtlComboBox.Leave += (s, args) => SaveComboBoxEntry(bbmdTtlComboBox, "bbmdTtl");
-            interfaceComboBox.Leave += (s, args) => SaveComboBoxEntry(interfaceComboBox, "interface");
+        }
+
+        private void ClearLogButton_Click(object sender, EventArgs e)
+        {
+            outputTextBox.Clear();
+            Log("Log cleared.");
         }
 
         private void EnsureBacnetClientStarted()
@@ -74,18 +79,26 @@ namespace MainApp
                     var match = System.Text.RegularExpressions.Regex.Match(interfaceComboBox.SelectedItem.ToString(), @"\((.*?)\)");
                     if (match.Success) localIp = match.Groups[1].Value;
                 }
-                _historyManager?.AddEntry("interface", interfaceComboBox.Text);
 
                 var transport = new BacnetIpUdpProtocolTransport(int.Parse(ipPortComboBox.Text), true, false, 1472, localIp);
                 _bacnetClient = new BacnetClient(transport) { Timeout = int.Parse(apduTimeoutComboBox.Text) };
                 _bacnetClient.OnIam += OnIamHandler;
-                _bacnetThread = new Thread(() => {
-                    try { _bacnetClient.Start(); }
-                    catch (Exception ex) { Log($"--- BACnet Thread Error: {ex.Message} ---"); }
-                })
-                { IsBackground = true };
-                _bacnetThread.Start();
-                Thread.Sleep(100);
+
+                _bacnetClient.Start();
+
+                if (!string.IsNullOrWhiteSpace(bbmdIpComboBox.Text))
+                {
+                    int bbmdPort = int.Parse(ipPortComboBox.Text);
+                    short ttl;
+                    if (!short.TryParse(bbmdTtlComboBox.Text, out ttl))
+                    {
+                        Log("--- ERROR: Invalid BBMD TTL value. ---");
+                        return;
+                    }
+                    _bacnetClient.RegisterAsForeignDevice(bbmdIpComboBox.Text, ttl, bbmdPort);
+                    Log($"Registered as Foreign Device with BBMD at {bbmdIpComboBox.Text}:{bbmdPort} with TTL {ttl}");
+                }
+
                 _isClientStarted = true;
                 Log("BACnet client started.");
             }
@@ -224,6 +237,7 @@ namespace MainApp
 
         private void PopulateDefaultValues()
         {
+            interfaceComboBox.Items.Clear();
             interfaceComboBox.Items.Add("0.0.0.0 (Any)");
             foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
             {
@@ -238,6 +252,11 @@ namespace MainApp
                     }
                 }
             }
+            if (interfaceComboBox.Items.Count > 0)
+            {
+                interfaceComboBox.SelectedIndex = 0;
+            }
+            bbmdTtlComboBox.Items.AddRange(new object[] { "60", "3600" });
         }
 
         private void UpdateAllStates(object sender, EventArgs e)
@@ -316,45 +335,34 @@ namespace MainApp
             PopulateComboBoxWithHistory(apduTimeoutComboBox, "apduTimeout");
             PopulateComboBoxWithHistory(bbmdIpComboBox, "bbmdIp");
             PopulateComboBoxWithHistory(bbmdTtlComboBox, "bbmdTtl");
-            PopulateComboBoxWithHistory(interfaceComboBox, "interface");
 
             if (string.IsNullOrEmpty(ipAddressComboBox.Text)) ipAddressComboBox.Text = "192.168.1.200";
             if (string.IsNullOrEmpty(instanceNumberComboBox.Text)) instanceNumberComboBox.Text = "100";
             if (string.IsNullOrEmpty(ipPortComboBox.Text)) ipPortComboBox.Text = "47808";
             if (string.IsNullOrEmpty(apduTimeoutComboBox.Text)) apduTimeoutComboBox.Text = "5000";
-            if (string.IsNullOrEmpty(bbmdIpComboBox.Text)) bbmdIpComboBox.Text = "172.19.10.102";
+            if (string.IsNullOrEmpty(bbmdIpComboBox.Text)) bbmdIpComboBox.Text = "";
             if (string.IsNullOrEmpty(bbmdTtlComboBox.Text)) bbmdTtlComboBox.Text = "3600";
         }
 
         private void PopulateComboBoxWithHistory(ComboBox comboBox, string key)
         {
             if (comboBox == null) return;
-            bool isSpecialComboBox = comboBox.Name == interfaceComboBox.Name;
-            if (!isSpecialComboBox) comboBox.Items.Clear();
+
+            if (comboBox.Name == "interfaceComboBox") return;
+
+            comboBox.Items.Clear();
 
             var historyList = _historyManager.GetHistoryForPrefixedKey(key);
             if (historyList.Any())
             {
-                if (isSpecialComboBox)
-                {
-                    foreach (var item in historyList.Where(h => !comboBox.Items.Contains(h)))
-                        comboBox.Items.Insert(0, item);
-                }
-                else
-                {
-                    comboBox.Items.AddRange(historyList.Cast<object>().ToArray());
-                }
+                comboBox.Items.AddRange(historyList.Cast<object>().ToArray());
                 comboBox.Text = historyList.First();
-            }
-            else if (isSpecialComboBox && comboBox.Items.Count > 0)
-            {
-                comboBox.SelectedIndex = 0;
             }
         }
 
         private void SaveComboBoxEntry(ComboBox comboBox, string key)
         {
-            if (_historyManager != null && comboBox != null && !string.IsNullOrWhiteSpace(comboBox.Text))
+            if (_historyManager != null && comboBox != null && !string.IsNullOrWhiteSpace(comboBox.Text) && comboBox.Name != "interfaceComboBox")
             {
                 _historyManager.AddEntry(key, comboBox.Text);
                 PopulateComboBoxWithHistory(comboBox, key);
@@ -372,7 +380,6 @@ namespace MainApp
             apduTimeoutComboBox?.Items.Clear();
             bbmdIpComboBox?.Items.Clear();
             bbmdTtlComboBox?.Items.Clear();
-            interfaceComboBox?.Items.Clear();
             PopulateDefaultValues();
             LoadHistory();
             Log("BACnet/IP history cleared.");

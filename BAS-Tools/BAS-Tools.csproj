@@ -127,33 +127,33 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\Modbus_IP.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Configuration\Modbus_IP.Designer.cs">
+      <DependentUpon>Modbus_IP.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Configuration\Modbus_RTU.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Configuration\Modbus_RTU.Designer.cs">
+      <DependentUpon>Modbus_RTU.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Configuration\BACnet_MSTP.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Configuration\BACnet_MSTP.Designer.cs">
+      <DependentUpon>BACnet_MSTP.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Configuration\BACnet_IP.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Configuration\BACnet_IP.Designer.cs">
+      <DependentUpon>BACnet_IP.cs</DependentUpon>
+    </Compile>
     <Compile Include="LoggerService.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HistoryManager.cs" />
-    <Compile Include="Modbus_IP.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="Modbus_IP.Designer.cs">
-      <DependentUpon>Modbus_IP.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Modbus_RTU.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="Modbus_RTU.Designer.cs">
-      <DependentUpon>Modbus_RTU.cs</DependentUpon>
-    </Compile>
-    <Compile Include="BACnet_MSTP.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="BACnet_MSTP.Designer.cs">
-      <DependentUpon>BACnet_MSTP.cs</DependentUpon>
-    </Compile>
-    <Compile Include="BACnet_IP.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="BACnet_IP.Designer.cs">
-      <DependentUpon>BACnet_IP.cs</DependentUpon>
-    </Compile>
     <Compile Include="MainApp.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -162,19 +162,19 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="BACnet_IP.resx">
+    <EmbeddedResource Include="Configuration\BACnet_IP.resx">
       <DependentUpon>BACnet_IP.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="BACnet_MSTP.resx">
+    <EmbeddedResource Include="Configuration\BACnet_MSTP.resx">
       <DependentUpon>BACnet_MSTP.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainApp.resx">
       <DependentUpon>MainApp.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Modbus_IP.resx">
+    <EmbeddedResource Include="Configuration\Modbus_IP.resx">
       <DependentUpon>Modbus_IP.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Modbus_RTU.resx">
+    <EmbeddedResource Include="Configuration\Modbus_RTU.resx">
       <DependentUpon>Modbus_RTU.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
