@@ -71,7 +71,7 @@ namespace MainApp.Configuration
             if (serialPortComboBox.Items.Count > 0)
                 serialPortComboBox.SelectedIndex = 0;
 
-            baudRateComboBox.Items.AddRange(new object[] { "9600", "19200", "38400", "57600", "115200" });
+            baudRateComboBox.Items.AddRange(new object[] { "1200", "2400", "4800", "9600", "19200", "38400", "57600", "115200" });
             dataBitsComboBox.Items.AddRange(new object[] { "7", "8" });
             parityComboBox.Items.AddRange(Enum.GetNames(typeof(Parity)));
             stopBitsComboBox.Items.AddRange(Enum.GetNames(typeof(StopBits)));
@@ -267,7 +267,7 @@ namespace MainApp.Configuration
                 var unitId = byte.Parse(unitIdComboBox.Text);
                 var startAddress = int.Parse(startAddressTextBox.Text);
                 var writeValue = writeValueTextBox.Text;
-                Log($"Performing {operationName}: Unit ID={unitId}, Start Address={startAddress}, Value(s)='{writeValue}'");
+                Log($"Performing {operationName}: Unit ID={unitId}, Start Address={startAddress}, Value(s)='{writeValue}' (Expected Type: {valueType})");
                 if (await writeFunction(startAddress, writeValue, unitId))
                 {
                     Log($"--- SUCCESS: {operationName} completed. ---");
@@ -275,8 +275,8 @@ namespace MainApp.Configuration
             }
             catch (FormatException)
             {
-                Log($"--- ERROR: Invalid value format for {operationName}. ---");
-                MessageBox.Show($"Invalid value format for {operationName}.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Log($"--- ERROR: Invalid value format for {operationName}. Expected type: {valueType}. ---");
+                MessageBox.Show($"Invalid value format for {operationName}. Please enter a value compatible with {valueType}.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch (Exception ex)
             {

@@ -39,9 +39,7 @@ namespace MainApp.Configuration
             UpdateAllStates(null, null);
             WireUpEventHandlers();
 
-            // *** CHANGE IS HERE *** Initialize the timer
-            _discoveryTimer = new System.Windows.Forms.Timer();
-            _discoveryTimer.Interval = 10000; // 10 seconds
+            _discoveryTimer = new System.Windows.Forms.Timer { Interval = 10000 };
             _discoveryTimer.Tick += DiscoveryTimer_Tick;
 
             _remoteModeRadioButton.Checked = true;
@@ -424,7 +422,7 @@ namespace MainApp.Configuration
             if (serialPortComboBox.Items.Count > 0)
                 serialPortComboBox.SelectedIndex = 0;
 
-            baudRateComboBox.Items.AddRange(new object[] { "9600", "19200", "38400", "57600", "115200" });
+            baudRateComboBox.Items.AddRange(new object[] { "1200", "2400", "4800", "9600", "19200", "38400", "57600", "115200" });
             maxMastersComboBox.Items.AddRange(Enumerable.Range(1, 127).Select(i => i.ToString()).ToArray());
             maxInfoFramesComboBox.Items.AddRange(Enumerable.Range(1, 10).Select(i => i.ToString()).ToArray());
 
