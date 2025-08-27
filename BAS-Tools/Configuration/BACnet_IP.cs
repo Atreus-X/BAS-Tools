@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO.BACnet;
 using System.Linq;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Threading;
@@ -85,22 +86,23 @@ namespace MainApp.Configuration
                 _bacnetClient.OnIam += OnIamHandler;
 
                 _bacnetClient.Start();
+                Log("BACnet client transport started.");
 
                 if (!string.IsNullOrWhiteSpace(bbmdIpComboBox.Text))
                 {
                     int bbmdPort = int.Parse(ipPortComboBox.Text);
-                    short ttl;
-                    if (!short.TryParse(bbmdTtlComboBox.Text, out ttl))
+                    if (!short.TryParse(bbmdTtlComboBox.Text, out short ttl))
                     {
                         Log("--- ERROR: Invalid BBMD TTL value. ---");
                         return;
                     }
+                    Log($"Attempting to register as Foreign Device with BBMD at {bbmdIpComboBox.Text}:{bbmdPort} with TTL {ttl}...");
                     _bacnetClient.RegisterAsForeignDevice(bbmdIpComboBox.Text, ttl, bbmdPort);
-                    Log($"Registered as Foreign Device with BBMD at {bbmdIpComboBox.Text}:{bbmdPort} with TTL {ttl}");
+                    Log("Foreign Device Registration message sent.");
                 }
 
                 _isClientStarted = true;
-                Log("BACnet client started.");
+                Log("BACnet client initialization complete.");
             }
             catch (Exception ex)
             {
@@ -112,14 +114,20 @@ namespace MainApp.Configuration
 
         private void OnIamHandler(BacnetClient sender, BacnetAddress adr, uint deviceId, uint maxApdu, BacnetSegmentations segmentation, ushort vendorId)
         {
+            Log($"--- I-AM RECEIVED --- from {adr}, Device ID: {deviceId}, Vendor: {vendorId}");
+
             if (this.IsDisposed || !this.IsHandleCreated) return;
             this.Invoke((MethodInvoker)delegate {
-                Log($"I-Am received from {adr} (DeviceID: {deviceId})");
                 string deviceDisplay = $"{deviceId} ({adr})";
                 if (!deviceTreeView.Nodes.ContainsKey(deviceId.ToString()))
                 {
+                    Log($"Adding new device to tree: {deviceDisplay}");
                     var node = new TreeNode(deviceDisplay) { Name = deviceId.ToString(), Tag = adr };
                     deviceTreeView.Nodes.Add(node);
+                }
+                else
+                {
+                    Log($"Device already in tree: {deviceDisplay}");
                 }
             });
         }
@@ -145,7 +153,7 @@ namespace MainApp.Configuration
             EnsureBacnetClientStarted();
             if (!_isClientStarted) return;
             deviceTreeView.Nodes.Clear();
-            Log("Discovering devices with global Who-Is broadcast...");
+            Log("Sending Global Who-Is broadcast...");
             _bacnetClient.WhoIs();
         }
 
