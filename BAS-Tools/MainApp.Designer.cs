@@ -24,7 +24,8 @@
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.configurationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.bacnetIPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.bacnetMSTPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.bacnetMSTPLocalToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.bacnetMSTPRemoteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.modbusTCPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.modbusRTUToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mainContentPanel = new System.Windows.Forms.Panel();
@@ -75,7 +76,8 @@
             // 
             this.configurationToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.bacnetIPToolStripMenuItem,
-            this.bacnetMSTPToolStripMenuItem,
+            this.bacnetMSTPLocalToolStripMenuItem,
+            this.bacnetMSTPRemoteToolStripMenuItem,
             this.modbusTCPToolStripMenuItem,
             this.modbusRTUToolStripMenuItem});
             this.configurationToolStripMenuItem.Name = "configurationToolStripMenuItem";
@@ -88,11 +90,17 @@
             this.bacnetIPToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.bacnetIPToolStripMenuItem.Text = "BACnet/IP";
             // 
-            // bacnetMSTPToolStripMenuItem
+            // bacnetMSTPLocalToolStripMenuItem
             // 
-            this.bacnetMSTPToolStripMenuItem.Name = "bacnetMSTPToolStripMenuItem";
-            this.bacnetMSTPToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.bacnetMSTPToolStripMenuItem.Text = "BACnet MS/TP";
+            this.bacnetMSTPLocalToolStripMenuItem.Name = "bacnetMSTPLocalToolStripMenuItem";
+            this.bacnetMSTPLocalToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.bacnetMSTPLocalToolStripMenuItem.Text = "BACnet MS/TP Local";
+            // 
+            // bacnetMSTPRemoteToolStripMenuItem
+            // 
+            this.bacnetMSTPRemoteToolStripMenuItem.Name = "bacnetMSTPRemoteToolStripMenuItem";
+            this.bacnetMSTPRemoteToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.bacnetMSTPRemoteToolStripMenuItem.Text = "BACnet MS/TP Remote";
             // 
             // modbusTCPToolStripMenuItem
             // 
@@ -141,7 +149,8 @@
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem configurationToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem bacnetIPToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem bacnetMSTPToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem bacnetMSTPLocalToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem bacnetMSTPRemoteToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem modbusTCPToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem modbusRTUToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem clearHistoryToolStripMenuItem;

@@ -127,6 +127,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\BACnet_MSTP_Local.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Configuration\BACnet_MSTP_Local.Designer.cs">
+      <DependentUpon>BACnet_MSTP_Local.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Configuration\BACnet_MSTP_Remote.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Configuration\BACnet_MSTP_Remote.Designer.cs">
+      <DependentUpon>BACnet_MSTP_Remote.cs</DependentUpon>
+    </Compile>
     <Compile Include="Configuration\Modbus_IP.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -138,12 +150,6 @@
     </Compile>
     <Compile Include="Configuration\Modbus_RTU.Designer.cs">
       <DependentUpon>Modbus_RTU.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Configuration\BACnet_MSTP.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="Configuration\BACnet_MSTP.Designer.cs">
-      <DependentUpon>BACnet_MSTP.cs</DependentUpon>
     </Compile>
     <Compile Include="Configuration\BACnet_IP.cs">
       <SubType>UserControl</SubType>
@@ -165,8 +171,11 @@
     <EmbeddedResource Include="Configuration\BACnet_IP.resx">
       <DependentUpon>BACnet_IP.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Configuration\BACnet_MSTP.resx">
-      <DependentUpon>BACnet_MSTP.cs</DependentUpon>
+    <EmbeddedResource Include="Configuration\BACnet_MSTP_Local.resx">
+      <DependentUpon>BACnet_MSTP_Local.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Configuration\BACnet_MSTP_Remote.resx">
+      <DependentUpon>BACnet_MSTP_Remote.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainApp.resx">
       <DependentUpon>MainApp.cs</DependentUpon>

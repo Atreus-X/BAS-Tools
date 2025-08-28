@@ -18,7 +18,8 @@ namespace MainApp
             this.exitToolStripMenuItem.Click += (sender, e) => this.Close();
             this.clearHistoryToolStripMenuItem.Click += (sender, e) => this.ClearHistoryMenuItem_Click();
             this.bacnetIPToolStripMenuItem.Click += new System.EventHandler(this.BacnetIpMenuItem_Click);
-            this.bacnetMSTPToolStripMenuItem.Click += new System.EventHandler(this.BacnetMstpMenuItem_Click);
+            this.bacnetMSTPLocalToolStripMenuItem.Click += new System.EventHandler(this.BacnetMstpLocalMenuItem_Click);
+            this.bacnetMSTPRemoteToolStripMenuItem.Click += new System.EventHandler(this.BacnetMstpRemoteMenuItem_Click);
             this.modbusTCPToolStripMenuItem.Click += new System.EventHandler(this.ModbusTcpMenuItem_Click);
             this.modbusRTUToolStripMenuItem.Click += new System.EventHandler(this.ModbusRtuMenuItem_Click);
             // --- End of new code ---
@@ -27,7 +28,8 @@ namespace MainApp
             _protocolControls = new Dictionary<string, UserControl>
             {
                 { "BACnet/IP", new BACnet_IP() },
-                { "BACnet MS/TP", new BACnet_MSTP() },
+                { "BACnet MS/TP Local", new BACnet_MSTP_Local() },
+                { "BACnet MS/TP Remote", new BACnet_MSTP_Remote() },
                 { "Modbus TCP/IP", new Modbus_IP() },
                 { "Modbus RTU", new Modbus_RTU() }
             };
@@ -39,8 +41,8 @@ namespace MainApp
                 control.Dock = DockStyle.Fill;
             }
 
-            // Show the BACnet MS/TP control by default
-            ShowProtocolControl("BACnet MS/TP");
+            // Show the BACnet MS/TP Local control by default
+            ShowProtocolControl("BACnet MS/TP Local");
 
             this.FormClosing += MainApp_FormClosing;
         }
@@ -78,9 +80,14 @@ namespace MainApp
             ShowProtocolControl("BACnet/IP");
         }
 
-        private void BacnetMstpMenuItem_Click(object sender, EventArgs e)
+        private void BacnetMstpLocalMenuItem_Click(object sender, EventArgs e)
         {
-            ShowProtocolControl("BACnet MS/TP");
+            ShowProtocolControl("BACnet MS/TP Local");
+        }
+
+        private void BacnetMstpRemoteMenuItem_Click(object sender, EventArgs e)
+        {
+            ShowProtocolControl("BACnet MS/TP Remote");
         }
 
         private void ModbusTcpMenuItem_Click(object sender, EventArgs e)

@@ -87,7 +87,7 @@
             this.mainPanel.Margin = new System.Windows.Forms.Padding(2);
             this.mainPanel.Name = "mainPanel";
             this.mainPanel.Padding = new System.Windows.Forms.Padding(8);
-            this.mainPanel.Size = new System.Drawing.Size(600, 488);
+            this.mainPanel.Size = new System.Drawing.Size(834, 969);
             this.mainPanel.TabIndex = 0;
             // 
             // mainSplitContainer
@@ -104,8 +104,8 @@
             // mainSplitContainer.Panel2
             // 
             this.mainSplitContainer.Panel2.Controls.Add(this.outputFrame);
-            this.mainSplitContainer.Size = new System.Drawing.Size(584, 285);
-            this.mainSplitContainer.SplitterDistance = 336;
+            this.mainSplitContainer.Size = new System.Drawing.Size(818, 766);
+            this.mainSplitContainer.SplitterDistance = 470;
             this.mainSplitContainer.SplitterWidth = 3;
             this.mainSplitContainer.TabIndex = 2;
             // 
@@ -117,7 +117,7 @@
             this.browserFrame.Margin = new System.Windows.Forms.Padding(2);
             this.browserFrame.Name = "browserFrame";
             this.browserFrame.Padding = new System.Windows.Forms.Padding(8);
-            this.browserFrame.Size = new System.Drawing.Size(336, 285);
+            this.browserFrame.Size = new System.Drawing.Size(470, 766);
             this.browserFrame.TabIndex = 0;
             this.browserFrame.TabStop = false;
             this.browserFrame.Text = "Device & Object Browser";
@@ -137,8 +137,8 @@
             // browserSplitContainer.Panel2
             // 
             this.browserSplitContainer.Panel2.Controls.Add(this.objectTreeView);
-            this.browserSplitContainer.Size = new System.Drawing.Size(320, 256);
-            this.browserSplitContainer.SplitterDistance = 123;
+            this.browserSplitContainer.Size = new System.Drawing.Size(454, 737);
+            this.browserSplitContainer.SplitterDistance = 354;
             this.browserSplitContainer.SplitterWidth = 3;
             this.browserSplitContainer.TabIndex = 0;
             // 
@@ -149,7 +149,7 @@
             this.deviceTreeView.Location = new System.Drawing.Point(0, 0);
             this.deviceTreeView.Margin = new System.Windows.Forms.Padding(2);
             this.deviceTreeView.Name = "deviceTreeView";
-            this.deviceTreeView.Size = new System.Drawing.Size(320, 123);
+            this.deviceTreeView.Size = new System.Drawing.Size(454, 354);
             this.deviceTreeView.TabIndex = 0;
             // 
             // objectTreeView
@@ -159,7 +159,7 @@
             this.objectTreeView.Location = new System.Drawing.Point(0, 0);
             this.objectTreeView.Margin = new System.Windows.Forms.Padding(2);
             this.objectTreeView.Name = "objectTreeView";
-            this.objectTreeView.Size = new System.Drawing.Size(320, 130);
+            this.objectTreeView.Size = new System.Drawing.Size(454, 380);
             this.objectTreeView.TabIndex = 0;
             // 
             // outputFrame
@@ -170,7 +170,7 @@
             this.outputFrame.Margin = new System.Windows.Forms.Padding(2);
             this.outputFrame.Name = "outputFrame";
             this.outputFrame.Padding = new System.Windows.Forms.Padding(8);
-            this.outputFrame.Size = new System.Drawing.Size(245, 285);
+            this.outputFrame.Size = new System.Drawing.Size(345, 766);
             this.outputFrame.TabIndex = 0;
             this.outputFrame.TabStop = false;
             this.outputFrame.Text = "Output";
@@ -184,7 +184,7 @@
             this.outputTextBox.Margin = new System.Windows.Forms.Padding(2);
             this.outputTextBox.Name = "outputTextBox";
             this.outputTextBox.ReadOnly = true;
-            this.outputTextBox.Size = new System.Drawing.Size(229, 256);
+            this.outputTextBox.Size = new System.Drawing.Size(329, 737);
             this.outputTextBox.TabIndex = 0;
             this.outputTextBox.Text = "";
             // 
@@ -196,7 +196,7 @@
             this.actionsFrame.Margin = new System.Windows.Forms.Padding(2);
             this.actionsFrame.Name = "actionsFrame";
             this.actionsFrame.Padding = new System.Windows.Forms.Padding(8);
-            this.actionsFrame.Size = new System.Drawing.Size(584, 57);
+            this.actionsFrame.Size = new System.Drawing.Size(818, 57);
             this.actionsFrame.TabIndex = 1;
             this.actionsFrame.TabStop = false;
             this.actionsFrame.Text = "Actions";
@@ -213,7 +213,7 @@
             this.actionsLayout.Location = new System.Drawing.Point(8, 21);
             this.actionsLayout.Margin = new System.Windows.Forms.Padding(2);
             this.actionsLayout.Name = "actionsLayout";
-            this.actionsLayout.Size = new System.Drawing.Size(568, 28);
+            this.actionsLayout.Size = new System.Drawing.Size(802, 28);
             this.actionsLayout.TabIndex = 0;
             // 
             // discoverButton
@@ -285,7 +285,7 @@
             this.ipFrame.Margin = new System.Windows.Forms.Padding(2);
             this.ipFrame.Name = "ipFrame";
             this.ipFrame.Padding = new System.Windows.Forms.Padding(8);
-            this.ipFrame.Size = new System.Drawing.Size(584, 130);
+            this.ipFrame.Size = new System.Drawing.Size(818, 130);
             this.ipFrame.TabIndex = 0;
             this.ipFrame.TabStop = false;
             this.ipFrame.Text = "BACnet/IP Configuration";
@@ -320,7 +320,7 @@
             this.ipLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.ipLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.ipLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.ipLayout.Size = new System.Drawing.Size(568, 101);
+            this.ipLayout.Size = new System.Drawing.Size(802, 101);
             this.ipLayout.TabIndex = 0;
             // 
             // labelTargetIP
@@ -341,14 +341,14 @@
             this.ipAddressComboBox.Location = new System.Drawing.Point(92, 2);
             this.ipAddressComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.ipAddressComboBox.Name = "ipAddressComboBox";
-            this.ipAddressComboBox.Size = new System.Drawing.Size(186, 21);
+            this.ipAddressComboBox.Size = new System.Drawing.Size(303, 21);
             this.ipAddressComboBox.TabIndex = 1;
             // 
             // labelInstance
             // 
             this.labelInstance.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.labelInstance.AutoSize = true;
-            this.labelInstance.Location = new System.Drawing.Point(282, 0);
+            this.labelInstance.Location = new System.Drawing.Point(399, 0);
             this.labelInstance.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelInstance.Name = "labelInstance";
             this.labelInstance.Size = new System.Drawing.Size(85, 25);
@@ -359,10 +359,10 @@
             // 
             this.instanceNumberComboBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.instanceNumberComboBox.FormattingEnabled = true;
-            this.instanceNumberComboBox.Location = new System.Drawing.Point(380, 2);
+            this.instanceNumberComboBox.Location = new System.Drawing.Point(497, 2);
             this.instanceNumberComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.instanceNumberComboBox.Name = "instanceNumberComboBox";
-            this.instanceNumberComboBox.Size = new System.Drawing.Size(186, 21);
+            this.instanceNumberComboBox.Size = new System.Drawing.Size(303, 21);
             this.instanceNumberComboBox.TabIndex = 3;
             // 
             // labelLocalInterface
@@ -385,7 +385,7 @@
             this.interfaceComboBox.Location = new System.Drawing.Point(92, 27);
             this.interfaceComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.interfaceComboBox.Name = "interfaceComboBox";
-            this.interfaceComboBox.Size = new System.Drawing.Size(474, 21);
+            this.interfaceComboBox.Size = new System.Drawing.Size(708, 21);
             this.interfaceComboBox.TabIndex = 5;
             // 
             // labelBbmdIp
@@ -406,14 +406,14 @@
             this.bbmdIpComboBox.Location = new System.Drawing.Point(92, 52);
             this.bbmdIpComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.bbmdIpComboBox.Name = "bbmdIpComboBox";
-            this.bbmdIpComboBox.Size = new System.Drawing.Size(186, 21);
+            this.bbmdIpComboBox.Size = new System.Drawing.Size(303, 21);
             this.bbmdIpComboBox.TabIndex = 7;
             // 
             // labelUdpPort
             // 
             this.labelUdpPort.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.labelUdpPort.AutoSize = true;
-            this.labelUdpPort.Location = new System.Drawing.Point(282, 56);
+            this.labelUdpPort.Location = new System.Drawing.Point(399, 56);
             this.labelUdpPort.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelUdpPort.Name = "labelUdpPort";
             this.labelUdpPort.Size = new System.Drawing.Size(84, 13);
@@ -424,10 +424,10 @@
             // 
             this.ipPortComboBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.ipPortComboBox.FormattingEnabled = true;
-            this.ipPortComboBox.Location = new System.Drawing.Point(380, 52);
+            this.ipPortComboBox.Location = new System.Drawing.Point(497, 52);
             this.ipPortComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.ipPortComboBox.Name = "ipPortComboBox";
-            this.ipPortComboBox.Size = new System.Drawing.Size(186, 21);
+            this.ipPortComboBox.Size = new System.Drawing.Size(303, 21);
             this.ipPortComboBox.TabIndex = 9;
             // 
             // labelApduTimeout
@@ -448,14 +448,14 @@
             this.apduTimeoutComboBox.Location = new System.Drawing.Point(92, 77);
             this.apduTimeoutComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.apduTimeoutComboBox.Name = "apduTimeoutComboBox";
-            this.apduTimeoutComboBox.Size = new System.Drawing.Size(186, 21);
+            this.apduTimeoutComboBox.Size = new System.Drawing.Size(303, 21);
             this.apduTimeoutComboBox.TabIndex = 11;
             // 
             // labelBbmdTtl
             // 
             this.labelBbmdTtl.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.labelBbmdTtl.AutoSize = true;
-            this.labelBbmdTtl.Location = new System.Drawing.Point(282, 81);
+            this.labelBbmdTtl.Location = new System.Drawing.Point(399, 81);
             this.labelBbmdTtl.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelBbmdTtl.Name = "labelBbmdTtl";
             this.labelBbmdTtl.Size = new System.Drawing.Size(78, 13);
@@ -466,10 +466,10 @@
             // 
             this.bbmdTtlComboBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.bbmdTtlComboBox.FormattingEnabled = true;
-            this.bbmdTtlComboBox.Location = new System.Drawing.Point(380, 77);
+            this.bbmdTtlComboBox.Location = new System.Drawing.Point(497, 77);
             this.bbmdTtlComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.bbmdTtlComboBox.Name = "bbmdTtlComboBox";
-            this.bbmdTtlComboBox.Size = new System.Drawing.Size(186, 21);
+            this.bbmdTtlComboBox.Size = new System.Drawing.Size(303, 21);
             this.bbmdTtlComboBox.TabIndex = 13;
             // 
             // BACnet_IP
@@ -479,7 +479,7 @@
             this.Controls.Add(this.mainPanel);
             this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "BACnet_IP";
-            this.Size = new System.Drawing.Size(600, 488);
+            this.Size = new System.Drawing.Size(834, 969);
             this.mainPanel.ResumeLayout(false);
             this.mainSplitContainer.Panel1.ResumeLayout(false);
             this.mainSplitContainer.Panel2.ResumeLayout(false);

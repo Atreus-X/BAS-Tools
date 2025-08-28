@@ -86,7 +86,7 @@
             this.mainPanel.Margin = new System.Windows.Forms.Padding(2);
             this.mainPanel.Name = "mainPanel";
             this.mainPanel.Padding = new System.Windows.Forms.Padding(8);
-            this.mainPanel.Size = new System.Drawing.Size(600, 488);
+            this.mainPanel.Size = new System.Drawing.Size(834, 969);
             this.mainPanel.TabIndex = 0;
             // 
             // mainSplitContainer
@@ -103,8 +103,8 @@
             // mainSplitContainer.Panel2
             // 
             this.mainSplitContainer.Panel2.Controls.Add(this.outputFrame);
-            this.mainSplitContainer.Size = new System.Drawing.Size(584, 366);
-            this.mainSplitContainer.SplitterDistance = 336;
+            this.mainSplitContainer.Size = new System.Drawing.Size(818, 847);
+            this.mainSplitContainer.SplitterDistance = 470;
             this.mainSplitContainer.SplitterWidth = 3;
             this.mainSplitContainer.TabIndex = 1;
             // 
@@ -116,7 +116,7 @@
             this.actionsFrame.Margin = new System.Windows.Forms.Padding(2);
             this.actionsFrame.Name = "actionsFrame";
             this.actionsFrame.Padding = new System.Windows.Forms.Padding(8);
-            this.actionsFrame.Size = new System.Drawing.Size(336, 366);
+            this.actionsFrame.Size = new System.Drawing.Size(470, 847);
             this.actionsFrame.TabIndex = 0;
             this.actionsFrame.TabStop = false;
             this.actionsFrame.Text = "Modbus Actions";
@@ -154,7 +154,7 @@
             this.actionsLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.actionsLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.actionsLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 24F));
-            this.actionsLayout.Size = new System.Drawing.Size(320, 337);
+            this.actionsLayout.Size = new System.Drawing.Size(454, 818);
             this.actionsLayout.TabIndex = 0;
             // 
             // labelStartAddress
@@ -171,10 +171,10 @@
             // startAddressTextBox
             // 
             this.startAddressTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.startAddressTextBox.Location = new System.Drawing.Point(162, 2);
+            this.startAddressTextBox.Location = new System.Drawing.Point(229, 2);
             this.startAddressTextBox.Margin = new System.Windows.Forms.Padding(2);
             this.startAddressTextBox.Name = "startAddressTextBox";
-            this.startAddressTextBox.Size = new System.Drawing.Size(156, 20);
+            this.startAddressTextBox.Size = new System.Drawing.Size(223, 20);
             this.startAddressTextBox.TabIndex = 1;
             // 
             // labelQuantity
@@ -191,10 +191,10 @@
             // quantityTextBox
             // 
             this.quantityTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.quantityTextBox.Location = new System.Drawing.Point(162, 26);
+            this.quantityTextBox.Location = new System.Drawing.Point(229, 26);
             this.quantityTextBox.Margin = new System.Windows.Forms.Padding(2);
             this.quantityTextBox.Name = "quantityTextBox";
-            this.quantityTextBox.Size = new System.Drawing.Size(156, 20);
+            this.quantityTextBox.Size = new System.Drawing.Size(223, 20);
             this.quantityTextBox.TabIndex = 3;
             // 
             // labelWriteValue
@@ -211,10 +211,10 @@
             // writeValueTextBox
             // 
             this.writeValueTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.writeValueTextBox.Location = new System.Drawing.Point(162, 50);
+            this.writeValueTextBox.Location = new System.Drawing.Point(229, 50);
             this.writeValueTextBox.Margin = new System.Windows.Forms.Padding(2);
             this.writeValueTextBox.Name = "writeValueTextBox";
-            this.writeValueTextBox.Size = new System.Drawing.Size(156, 20);
+            this.writeValueTextBox.Size = new System.Drawing.Size(223, 20);
             this.writeValueTextBox.TabIndex = 5;
             // 
             // readCoilsButton
@@ -223,7 +223,7 @@
             this.readCoilsButton.Location = new System.Drawing.Point(2, 74);
             this.readCoilsButton.Margin = new System.Windows.Forms.Padding(2);
             this.readCoilsButton.Name = "readCoilsButton";
-            this.readCoilsButton.Size = new System.Drawing.Size(156, 62);
+            this.readCoilsButton.Size = new System.Drawing.Size(223, 176);
             this.readCoilsButton.TabIndex = 6;
             this.readCoilsButton.Text = "Read Coils";
             this.readCoilsButton.UseVisualStyleBackColor = true;
@@ -231,10 +231,10 @@
             // readDiscreteInputsButton
             // 
             this.readDiscreteInputsButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.readDiscreteInputsButton.Location = new System.Drawing.Point(162, 74);
+            this.readDiscreteInputsButton.Location = new System.Drawing.Point(229, 74);
             this.readDiscreteInputsButton.Margin = new System.Windows.Forms.Padding(2);
             this.readDiscreteInputsButton.Name = "readDiscreteInputsButton";
-            this.readDiscreteInputsButton.Size = new System.Drawing.Size(156, 62);
+            this.readDiscreteInputsButton.Size = new System.Drawing.Size(223, 176);
             this.readDiscreteInputsButton.TabIndex = 7;
             this.readDiscreteInputsButton.Text = "Read Discrete Inputs";
             this.readDiscreteInputsButton.UseVisualStyleBackColor = true;
@@ -242,10 +242,10 @@
             // readHoldingRegistersButton
             // 
             this.readHoldingRegistersButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.readHoldingRegistersButton.Location = new System.Drawing.Point(2, 140);
+            this.readHoldingRegistersButton.Location = new System.Drawing.Point(2, 254);
             this.readHoldingRegistersButton.Margin = new System.Windows.Forms.Padding(2);
             this.readHoldingRegistersButton.Name = "readHoldingRegistersButton";
-            this.readHoldingRegistersButton.Size = new System.Drawing.Size(156, 62);
+            this.readHoldingRegistersButton.Size = new System.Drawing.Size(223, 176);
             this.readHoldingRegistersButton.TabIndex = 8;
             this.readHoldingRegistersButton.Text = "Read Holding Registers";
             this.readHoldingRegistersButton.UseVisualStyleBackColor = true;
@@ -253,10 +253,10 @@
             // readInputRegistersButton
             // 
             this.readInputRegistersButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.readInputRegistersButton.Location = new System.Drawing.Point(162, 140);
+            this.readInputRegistersButton.Location = new System.Drawing.Point(229, 254);
             this.readInputRegistersButton.Margin = new System.Windows.Forms.Padding(2);
             this.readInputRegistersButton.Name = "readInputRegistersButton";
-            this.readInputRegistersButton.Size = new System.Drawing.Size(156, 62);
+            this.readInputRegistersButton.Size = new System.Drawing.Size(223, 176);
             this.readInputRegistersButton.TabIndex = 9;
             this.readInputRegistersButton.Text = "Read Input Registers";
             this.readInputRegistersButton.UseVisualStyleBackColor = true;
@@ -264,10 +264,10 @@
             // writeSingleCoilButton
             // 
             this.writeSingleCoilButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.writeSingleCoilButton.Location = new System.Drawing.Point(2, 206);
+            this.writeSingleCoilButton.Location = new System.Drawing.Point(2, 434);
             this.writeSingleCoilButton.Margin = new System.Windows.Forms.Padding(2);
             this.writeSingleCoilButton.Name = "writeSingleCoilButton";
-            this.writeSingleCoilButton.Size = new System.Drawing.Size(156, 62);
+            this.writeSingleCoilButton.Size = new System.Drawing.Size(223, 176);
             this.writeSingleCoilButton.TabIndex = 10;
             this.writeSingleCoilButton.Text = "Write Single Coil";
             this.writeSingleCoilButton.UseVisualStyleBackColor = true;
@@ -275,10 +275,10 @@
             // writeSingleRegisterButton
             // 
             this.writeSingleRegisterButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.writeSingleRegisterButton.Location = new System.Drawing.Point(162, 206);
+            this.writeSingleRegisterButton.Location = new System.Drawing.Point(229, 434);
             this.writeSingleRegisterButton.Margin = new System.Windows.Forms.Padding(2);
             this.writeSingleRegisterButton.Name = "writeSingleRegisterButton";
-            this.writeSingleRegisterButton.Size = new System.Drawing.Size(156, 62);
+            this.writeSingleRegisterButton.Size = new System.Drawing.Size(223, 176);
             this.writeSingleRegisterButton.TabIndex = 11;
             this.writeSingleRegisterButton.Text = "Write Single Register";
             this.writeSingleRegisterButton.UseVisualStyleBackColor = true;
@@ -286,10 +286,10 @@
             // writeMultipleCoilsButton
             // 
             this.writeMultipleCoilsButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.writeMultipleCoilsButton.Location = new System.Drawing.Point(2, 272);
+            this.writeMultipleCoilsButton.Location = new System.Drawing.Point(2, 614);
             this.writeMultipleCoilsButton.Margin = new System.Windows.Forms.Padding(2);
             this.writeMultipleCoilsButton.Name = "writeMultipleCoilsButton";
-            this.writeMultipleCoilsButton.Size = new System.Drawing.Size(156, 63);
+            this.writeMultipleCoilsButton.Size = new System.Drawing.Size(223, 176);
             this.writeMultipleCoilsButton.TabIndex = 12;
             this.writeMultipleCoilsButton.Text = "Write Multiple Coils";
             this.writeMultipleCoilsButton.UseVisualStyleBackColor = true;
@@ -297,10 +297,10 @@
             // writeMultipleRegistersButton
             // 
             this.writeMultipleRegistersButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.writeMultipleRegistersButton.Location = new System.Drawing.Point(162, 272);
+            this.writeMultipleRegistersButton.Location = new System.Drawing.Point(229, 614);
             this.writeMultipleRegistersButton.Margin = new System.Windows.Forms.Padding(2);
             this.writeMultipleRegistersButton.Name = "writeMultipleRegistersButton";
-            this.writeMultipleRegistersButton.Size = new System.Drawing.Size(156, 63);
+            this.writeMultipleRegistersButton.Size = new System.Drawing.Size(223, 176);
             this.writeMultipleRegistersButton.TabIndex = 13;
             this.writeMultipleRegistersButton.Text = "Write Multiple Registers";
             this.writeMultipleRegistersButton.UseVisualStyleBackColor = true;
@@ -309,10 +309,10 @@
             // 
             this.actionsLayout.SetColumnSpan(this.clearLogButton, 2);
             this.clearLogButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.clearLogButton.Location = new System.Drawing.Point(2, 339);
+            this.clearLogButton.Location = new System.Drawing.Point(2, 794);
             this.clearLogButton.Margin = new System.Windows.Forms.Padding(2);
             this.clearLogButton.Name = "clearLogButton";
-            this.clearLogButton.Size = new System.Drawing.Size(316, 20);
+            this.clearLogButton.Size = new System.Drawing.Size(450, 22);
             this.clearLogButton.TabIndex = 14;
             this.clearLogButton.Text = "Clear Log";
             this.clearLogButton.UseVisualStyleBackColor = true;
@@ -325,7 +325,7 @@
             this.outputFrame.Margin = new System.Windows.Forms.Padding(2);
             this.outputFrame.Name = "outputFrame";
             this.outputFrame.Padding = new System.Windows.Forms.Padding(8);
-            this.outputFrame.Size = new System.Drawing.Size(245, 366);
+            this.outputFrame.Size = new System.Drawing.Size(345, 847);
             this.outputFrame.TabIndex = 0;
             this.outputFrame.TabStop = false;
             this.outputFrame.Text = "Output";
@@ -339,7 +339,7 @@
             this.outputTextBox.Margin = new System.Windows.Forms.Padding(2);
             this.outputTextBox.Name = "outputTextBox";
             this.outputTextBox.ReadOnly = true;
-            this.outputTextBox.Size = new System.Drawing.Size(229, 337);
+            this.outputTextBox.Size = new System.Drawing.Size(329, 818);
             this.outputTextBox.TabIndex = 0;
             this.outputTextBox.Text = "";
             // 
@@ -351,7 +351,7 @@
             this.configFrame.Margin = new System.Windows.Forms.Padding(2);
             this.configFrame.Name = "configFrame";
             this.configFrame.Padding = new System.Windows.Forms.Padding(8);
-            this.configFrame.Size = new System.Drawing.Size(584, 106);
+            this.configFrame.Size = new System.Drawing.Size(818, 106);
             this.configFrame.TabIndex = 0;
             this.configFrame.TabStop = false;
             this.configFrame.Text = "Modbus RTU Configuration";
@@ -386,7 +386,7 @@
             this.configLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.configLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.configLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.configLayout.Size = new System.Drawing.Size(568, 77);
+            this.configLayout.Size = new System.Drawing.Size(802, 77);
             this.configLayout.TabIndex = 0;
             // 
             // labelSerialPort
@@ -408,14 +408,14 @@
             this.serialPortComboBox.Location = new System.Drawing.Point(77, 2);
             this.serialPortComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.serialPortComboBox.Name = "serialPortComboBox";
-            this.serialPortComboBox.Size = new System.Drawing.Size(212, 21);
+            this.serialPortComboBox.Size = new System.Drawing.Size(329, 21);
             this.serialPortComboBox.TabIndex = 1;
             // 
             // labelBaudRate
             // 
             this.labelBaudRate.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.labelBaudRate.AutoSize = true;
-            this.labelBaudRate.Location = new System.Drawing.Point(293, 0);
+            this.labelBaudRate.Location = new System.Drawing.Point(410, 0);
             this.labelBaudRate.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelBaudRate.Name = "labelBaudRate";
             this.labelBaudRate.Size = new System.Drawing.Size(35, 19);
@@ -427,10 +427,10 @@
             this.baudRateComboBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.baudRateComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.baudRateComboBox.FormattingEnabled = true;
-            this.baudRateComboBox.Location = new System.Drawing.Point(353, 2);
+            this.baudRateComboBox.Location = new System.Drawing.Point(470, 2);
             this.baudRateComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.baudRateComboBox.Name = "baudRateComboBox";
-            this.baudRateComboBox.Size = new System.Drawing.Size(213, 21);
+            this.baudRateComboBox.Size = new System.Drawing.Size(330, 21);
             this.baudRateComboBox.TabIndex = 3;
             // 
             // labelDataBits
@@ -452,14 +452,14 @@
             this.dataBitsComboBox.Location = new System.Drawing.Point(77, 21);
             this.dataBitsComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.dataBitsComboBox.Name = "dataBitsComboBox";
-            this.dataBitsComboBox.Size = new System.Drawing.Size(212, 21);
+            this.dataBitsComboBox.Size = new System.Drawing.Size(329, 21);
             this.dataBitsComboBox.TabIndex = 5;
             // 
             // labelParity
             // 
             this.labelParity.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.labelParity.AutoSize = true;
-            this.labelParity.Location = new System.Drawing.Point(293, 22);
+            this.labelParity.Location = new System.Drawing.Point(410, 22);
             this.labelParity.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelParity.Name = "labelParity";
             this.labelParity.Size = new System.Drawing.Size(36, 13);
@@ -471,10 +471,10 @@
             this.parityComboBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.parityComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.parityComboBox.FormattingEnabled = true;
-            this.parityComboBox.Location = new System.Drawing.Point(353, 21);
+            this.parityComboBox.Location = new System.Drawing.Point(470, 21);
             this.parityComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.parityComboBox.Name = "parityComboBox";
-            this.parityComboBox.Size = new System.Drawing.Size(213, 21);
+            this.parityComboBox.Size = new System.Drawing.Size(330, 21);
             this.parityComboBox.TabIndex = 7;
             // 
             // labelStopBits
@@ -496,14 +496,14 @@
             this.stopBitsComboBox.Location = new System.Drawing.Point(77, 40);
             this.stopBitsComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.stopBitsComboBox.Name = "stopBitsComboBox";
-            this.stopBitsComboBox.Size = new System.Drawing.Size(212, 21);
+            this.stopBitsComboBox.Size = new System.Drawing.Size(329, 21);
             this.stopBitsComboBox.TabIndex = 9;
             // 
             // labelUnitId
             // 
             this.labelUnitId.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.labelUnitId.AutoSize = true;
-            this.labelUnitId.Location = new System.Drawing.Point(293, 41);
+            this.labelUnitId.Location = new System.Drawing.Point(410, 41);
             this.labelUnitId.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelUnitId.Name = "labelUnitId";
             this.labelUnitId.Size = new System.Drawing.Size(43, 13);
@@ -514,15 +514,15 @@
             // 
             this.unitIdComboBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.unitIdComboBox.FormattingEnabled = true;
-            this.unitIdComboBox.Location = new System.Drawing.Point(353, 40);
+            this.unitIdComboBox.Location = new System.Drawing.Point(470, 40);
             this.unitIdComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.unitIdComboBox.Name = "unitIdComboBox";
-            this.unitIdComboBox.Size = new System.Drawing.Size(213, 21);
+            this.unitIdComboBox.Size = new System.Drawing.Size(330, 21);
             this.unitIdComboBox.TabIndex = 11;
             // 
             // connectButton
             // 
-            this.connectButton.Location = new System.Drawing.Point(293, 59);
+            this.connectButton.Location = new System.Drawing.Point(410, 59);
             this.connectButton.Margin = new System.Windows.Forms.Padding(2);
             this.connectButton.Name = "connectButton";
             this.connectButton.Size = new System.Drawing.Size(56, 14);
@@ -532,7 +532,7 @@
             // 
             // disconnectButton
             // 
-            this.disconnectButton.Location = new System.Drawing.Point(353, 59);
+            this.disconnectButton.Location = new System.Drawing.Point(470, 59);
             this.disconnectButton.Margin = new System.Windows.Forms.Padding(2);
             this.disconnectButton.Name = "disconnectButton";
             this.disconnectButton.Size = new System.Drawing.Size(60, 14);
@@ -547,7 +547,7 @@
             this.Controls.Add(this.mainPanel);
             this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "Modbus_RTU";
-            this.Size = new System.Drawing.Size(600, 488);
+            this.Size = new System.Drawing.Size(834, 969);
             this.mainPanel.ResumeLayout(false);
             this.mainSplitContainer.Panel1.ResumeLayout(false);
             this.mainSplitContainer.Panel2.ResumeLayout(false);
