@@ -51,7 +51,6 @@ namespace MainApp.Configuration
             localNetworkRadioButton.CheckedChanged += NetworkFilter_CheckedChanged;
             listNetworkRadioButton.CheckedChanged += NetworkFilter_CheckedChanged;
 
-            instanceNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(instanceNumberComboBox, "instanceNumber");
             bbmdIpComboBox.Leave += (s, args) => SaveComboBoxEntry(bbmdIpComboBox, "bbmdIp");
             networkNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(networkNumberComboBox, "networkNumber");
             apduTimeoutComboBox.Leave += (s, args) => SaveComboBoxEntry(apduTimeoutComboBox, "apduTimeout");
@@ -65,7 +64,6 @@ namespace MainApp.Configuration
             readPropertyButton.Click += ReadPropertyButton_Click;
             clearLogButton.Click += ClearLogButton_Click;
             deviceTreeView.AfterSelect += DeviceTreeView_AfterSelect;
-            instanceNumberComboBox.TextChanged += UpdateAllStates;
         }
 
         private void NetworkFilter_CheckedChanged(object sender, EventArgs e)
@@ -233,16 +231,16 @@ namespace MainApp.Configuration
 
         private void PingButton_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(instanceNumberComboBox.Text))
+            if (deviceTreeView.SelectedNode == null)
             {
-                MessageBox.Show("Instance number is required for Ping.", "Error");
+                MessageBox.Show("Please select a device to ping.", "Error");
                 return;
             }
 
             EnsureBacnetClientStarted();
             if (!_isClientStarted) return;
 
-            uint deviceId = uint.Parse(instanceNumberComboBox.Text);
+            uint deviceId = uint.Parse(deviceTreeView.SelectedNode.Name);
             Log($"Pinging Device ID: {deviceId}...");
             _bacnetClient.WhoIs(lowLimit: (int)deviceId, highLimit: (int)deviceId);
             _lastPingedDeviceId = deviceId;
@@ -325,7 +323,7 @@ namespace MainApp.Configuration
 
         private async void ReadPropertyButton_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(instanceNumberComboBox.Text))
+            if (deviceTreeView.SelectedNode == null)
             {
                 MessageBox.Show("Instance number is required to read.", "Error");
                 return;
@@ -336,7 +334,7 @@ namespace MainApp.Configuration
 
             try
             {
-                uint deviceId = uint.Parse(instanceNumberComboBox.Text);
+                uint deviceId = uint.Parse(deviceTreeView.SelectedNode.Name);
                 BacnetAddress deviceAddress = await FindDeviceAddressAsync(deviceId);
                 if (deviceAddress == null)
                 {
@@ -410,10 +408,10 @@ namespace MainApp.Configuration
 
         private void UpdateAllStates(object sender, EventArgs e)
         {
-            bool instanceExists = !string.IsNullOrWhiteSpace(instanceNumberComboBox.Text);
-            pingButton.Enabled = instanceExists;
-            readPropertyButton.Enabled = instanceExists;
-            writePropertyButton.Enabled = instanceExists;
+            bool deviceSelected = deviceTreeView.SelectedNode != null;
+            pingButton.Enabled = deviceSelected;
+            readPropertyButton.Enabled = deviceSelected;
+            writePropertyButton.Enabled = deviceSelected;
             discoverObjectsButton.Enabled = _lastPingedDeviceId.HasValue;
         }
 
@@ -421,7 +419,6 @@ namespace MainApp.Configuration
         {
             if (e.Node != null && uint.TryParse(e.Node.Name, out uint deviceId))
             {
-                instanceNumberComboBox.Text = deviceId.ToString();
                 _lastPingedDeviceId = deviceId;
                 UpdateAllStates(null, null);
                 DiscoverObjectsButton_Click(null, null);
@@ -475,14 +472,12 @@ namespace MainApp.Configuration
 
         private void LoadHistory()
         {
-            PopulateComboBoxWithHistory(instanceNumberComboBox, "instanceNumber");
             if (bbmdIpComboBox != null) PopulateComboBoxWithHistory(bbmdIpComboBox, "bbmdIp");
             if (networkNumberComboBox != null) PopulateComboBoxWithHistory(networkNumberComboBox, "networkNumber");
             if (apduTimeoutComboBox != null) PopulateComboBoxWithHistory(apduTimeoutComboBox, "apduTimeout");
             if (bbmdPortComboBox != null) PopulateComboBoxWithHistory(bbmdPortComboBox, "bbmdPort");
             if (bbmdTtlComboBox != null) PopulateComboBoxWithHistory(bbmdTtlComboBox, "bbmdTtl");
 
-            if (string.IsNullOrEmpty(instanceNumberComboBox.Text)) instanceNumberComboBox.Text = "100";
             if (networkNumberComboBox != null && string.IsNullOrEmpty(networkNumberComboBox.Text)) networkNumberComboBox.Text = "1";
             if (apduTimeoutComboBox != null && string.IsNullOrEmpty(apduTimeoutComboBox.Text)) apduTimeoutComboBox.Text = "5000";
             if (bbmdPortComboBox != null && string.IsNullOrEmpty(bbmdPortComboBox.Text)) bbmdPortComboBox.Text = "47808";
@@ -519,7 +514,6 @@ namespace MainApp.Configuration
         {
             if (_historyManager == null) return;
             _historyManager.ClearHistory();
-            instanceNumberComboBox.Items.Clear();
             bbmdIpComboBox.Items.Clear();
             networkNumberComboBox.Items.Clear();
             apduTimeoutComboBox.Items.Clear();

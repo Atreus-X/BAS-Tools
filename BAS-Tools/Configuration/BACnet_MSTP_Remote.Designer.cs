@@ -50,8 +50,6 @@
             this.localNetworkRadioButton = new System.Windows.Forms.RadioButton();
             this.listNetworkRadioButton = new System.Windows.Forms.RadioButton();
             this.networkNumberComboBox = new System.Windows.Forms.ComboBox();
-            this.label2 = new System.Windows.Forms.Label();
-            this.instanceNumberComboBox = new System.Windows.Forms.ComboBox();
             this.actionsFrame = new System.Windows.Forms.GroupBox();
             this.actionsLayout = new System.Windows.Forms.FlowLayoutPanel();
             this.startDiscoveryButton = new System.Windows.Forms.Button();
@@ -102,9 +100,9 @@
             this.mainPanel.Controls.Add(this.mainSplitContainer);
             this.mainPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainPanel.Location = new System.Drawing.Point(0, 0);
-            this.mainPanel.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.mainPanel.Margin = new System.Windows.Forms.Padding(2);
             this.mainPanel.Name = "mainPanel";
-            this.mainPanel.Padding = new System.Windows.Forms.Padding(8, 8, 8, 8);
+            this.mainPanel.Padding = new System.Windows.Forms.Padding(8);
             this.mainPanel.Size = new System.Drawing.Size(834, 939);
             this.mainPanel.TabIndex = 0;
             // 
@@ -112,7 +110,7 @@
             // 
             this.mainSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainSplitContainer.Location = new System.Drawing.Point(8, 8);
-            this.mainSplitContainer.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.mainSplitContainer.Margin = new System.Windows.Forms.Padding(2);
             this.mainSplitContainer.Name = "mainSplitContainer";
             this.mainSplitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
             // 
@@ -124,7 +122,7 @@
             // 
             this.mainSplitContainer.Panel2.Controls.Add(this.bottomPanelSplitContainer);
             this.mainSplitContainer.Size = new System.Drawing.Size(818, 923);
-            this.mainSplitContainer.SplitterDistance = 397;
+            this.mainSplitContainer.SplitterDistance = 225;
             this.mainSplitContainer.SplitterWidth = 3;
             this.mainSplitContainer.TabIndex = 3;
             // 
@@ -134,7 +132,7 @@
             this.topPanelSplitContainer.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
             this.topPanelSplitContainer.IsSplitterFixed = true;
             this.topPanelSplitContainer.Location = new System.Drawing.Point(0, 0);
-            this.topPanelSplitContainer.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.topPanelSplitContainer.Margin = new System.Windows.Forms.Padding(2);
             this.topPanelSplitContainer.Name = "topPanelSplitContainer";
             this.topPanelSplitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
             // 
@@ -152,13 +150,14 @@
             // 
             // mstpFrame
             // 
+            this.mstpFrame.AutoSize = true;
             this.mstpFrame.Controls.Add(this.remoteLayout);
-            this.mstpFrame.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.mstpFrame.Dock = System.Windows.Forms.DockStyle.Top;
             this.mstpFrame.Location = new System.Drawing.Point(0, 0);
-            this.mstpFrame.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.mstpFrame.Margin = new System.Windows.Forms.Padding(2);
             this.mstpFrame.Name = "mstpFrame";
-            this.mstpFrame.Padding = new System.Windows.Forms.Padding(8, 8, 8, 8);
-            this.mstpFrame.Size = new System.Drawing.Size(818, 323);
+            this.mstpFrame.Padding = new System.Windows.Forms.Padding(8);
+            this.mstpFrame.Size = new System.Drawing.Size(818, 126);
             this.mstpFrame.TabIndex = 0;
             this.mstpFrame.TabStop = false;
             this.mstpFrame.Text = "BACnet MS/TP Remote (BBMD) Configuration";
@@ -167,31 +166,28 @@
             // 
             this.remoteLayout.AutoSize = true;
             this.remoteLayout.ColumnCount = 2;
-            this.remoteLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 90F));
+            this.remoteLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.remoteLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.remoteLayout.Controls.Add(this.label6, 0, 0);
             this.remoteLayout.Controls.Add(this.localInterfaceComboBox, 1, 0);
             this.remoteLayout.Controls.Add(this.flowLayoutPanel2, 0, 1);
-            this.remoteLayout.Controls.Add(this.networkNumberGroupBox, 0, 3);
-            this.remoteLayout.Controls.Add(this.label2, 0, 2);
-            this.remoteLayout.Controls.Add(this.instanceNumberComboBox, 1, 2);
+            this.remoteLayout.Controls.Add(this.networkNumberGroupBox, 0, 2);
             this.remoteLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.remoteLayout.Location = new System.Drawing.Point(8, 21);
-            this.remoteLayout.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.remoteLayout.Margin = new System.Windows.Forms.Padding(2);
             this.remoteLayout.Name = "remoteLayout";
-            this.remoteLayout.RowCount = 4;
-            this.remoteLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 24F));
-            this.remoteLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 28F));
-            this.remoteLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 24F));
+            this.remoteLayout.RowCount = 3;
             this.remoteLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.remoteLayout.Size = new System.Drawing.Size(802, 294);
+            this.remoteLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.remoteLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.remoteLayout.Size = new System.Drawing.Size(802, 97);
             this.remoteLayout.TabIndex = 0;
             // 
             // label6
             // 
             this.label6.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(2, 5);
+            this.label6.Location = new System.Drawing.Point(2, 6);
             this.label6.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(81, 13);
@@ -203,14 +199,15 @@
             this.localInterfaceComboBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.localInterfaceComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.localInterfaceComboBox.FormattingEnabled = true;
-            this.localInterfaceComboBox.Location = new System.Drawing.Point(92, 2);
-            this.localInterfaceComboBox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.localInterfaceComboBox.Location = new System.Drawing.Point(87, 2);
+            this.localInterfaceComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.localInterfaceComboBox.Name = "localInterfaceComboBox";
-            this.localInterfaceComboBox.Size = new System.Drawing.Size(708, 21);
+            this.localInterfaceComboBox.Size = new System.Drawing.Size(713, 21);
             this.localInterfaceComboBox.TabIndex = 5;
             // 
             // flowLayoutPanel2
             // 
+            this.flowLayoutPanel2.AutoSize = true;
             this.remoteLayout.SetColumnSpan(this.flowLayoutPanel2, 2);
             this.flowLayoutPanel2.Controls.Add(this.label7);
             this.flowLayoutPanel2.Controls.Add(this.bbmdIpComboBox);
@@ -221,10 +218,10 @@
             this.flowLayoutPanel2.Controls.Add(this.label10);
             this.flowLayoutPanel2.Controls.Add(this.apduTimeoutComboBox);
             this.flowLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.flowLayoutPanel2.Location = new System.Drawing.Point(0, 24);
+            this.flowLayoutPanel2.Location = new System.Drawing.Point(0, 25);
             this.flowLayoutPanel2.Margin = new System.Windows.Forms.Padding(0);
             this.flowLayoutPanel2.Name = "flowLayoutPanel2";
-            this.flowLayoutPanel2.Size = new System.Drawing.Size(802, 28);
+            this.flowLayoutPanel2.Size = new System.Drawing.Size(802, 25);
             this.flowLayoutPanel2.TabIndex = 11;
             // 
             // label7
@@ -242,7 +239,7 @@
             // 
             this.bbmdIpComboBox.FormattingEnabled = true;
             this.bbmdIpComboBox.Location = new System.Drawing.Point(60, 2);
-            this.bbmdIpComboBox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.bbmdIpComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.bbmdIpComboBox.Name = "bbmdIpComboBox";
             this.bbmdIpComboBox.Size = new System.Drawing.Size(92, 21);
             this.bbmdIpComboBox.TabIndex = 6;
@@ -262,7 +259,7 @@
             // 
             this.bbmdPortComboBox.FormattingEnabled = true;
             this.bbmdPortComboBox.Location = new System.Drawing.Point(223, 2);
-            this.bbmdPortComboBox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.bbmdPortComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.bbmdPortComboBox.Name = "bbmdPortComboBox";
             this.bbmdPortComboBox.Size = new System.Drawing.Size(54, 21);
             this.bbmdPortComboBox.TabIndex = 7;
@@ -282,7 +279,7 @@
             // 
             this.bbmdTtlComboBox.FormattingEnabled = true;
             this.bbmdTtlComboBox.Location = new System.Drawing.Point(363, 2);
-            this.bbmdTtlComboBox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.bbmdTtlComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.bbmdTtlComboBox.Name = "bbmdTtlComboBox";
             this.bbmdTtlComboBox.Size = new System.Drawing.Size(38, 21);
             this.bbmdTtlComboBox.TabIndex = 8;
@@ -302,7 +299,7 @@
             // 
             this.apduTimeoutComboBox.FormattingEnabled = true;
             this.apduTimeoutComboBox.Location = new System.Drawing.Point(512, 2);
-            this.apduTimeoutComboBox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.apduTimeoutComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.apduTimeoutComboBox.Name = "apduTimeoutComboBox";
             this.apduTimeoutComboBox.Size = new System.Drawing.Size(54, 21);
             this.apduTimeoutComboBox.TabIndex = 9;
@@ -312,26 +309,27 @@
             this.remoteLayout.SetColumnSpan(this.networkNumberGroupBox, 2);
             this.networkNumberGroupBox.Controls.Add(this.flowLayoutPanel1);
             this.networkNumberGroupBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.networkNumberGroupBox.Location = new System.Drawing.Point(2, 78);
-            this.networkNumberGroupBox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.networkNumberGroupBox.Location = new System.Drawing.Point(2, 52);
+            this.networkNumberGroupBox.Margin = new System.Windows.Forms.Padding(2);
             this.networkNumberGroupBox.Name = "networkNumberGroupBox";
-            this.networkNumberGroupBox.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
-            this.networkNumberGroupBox.Size = new System.Drawing.Size(798, 214);
+            this.networkNumberGroupBox.Padding = new System.Windows.Forms.Padding(2);
+            this.networkNumberGroupBox.Size = new System.Drawing.Size(798, 43);
             this.networkNumberGroupBox.TabIndex = 10;
             this.networkNumberGroupBox.TabStop = false;
             this.networkNumberGroupBox.Text = "Network Filter";
             // 
             // flowLayoutPanel1
             // 
+            this.flowLayoutPanel1.AutoSize = true;
             this.flowLayoutPanel1.Controls.Add(this.anyNetworkRadioButton);
             this.flowLayoutPanel1.Controls.Add(this.localNetworkRadioButton);
             this.flowLayoutPanel1.Controls.Add(this.listNetworkRadioButton);
             this.flowLayoutPanel1.Controls.Add(this.networkNumberComboBox);
             this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel1.Location = new System.Drawing.Point(2, 15);
-            this.flowLayoutPanel1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.flowLayoutPanel1.Margin = new System.Windows.Forms.Padding(2);
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
-            this.flowLayoutPanel1.Size = new System.Drawing.Size(794, 197);
+            this.flowLayoutPanel1.Size = new System.Drawing.Size(794, 26);
             this.flowLayoutPanel1.TabIndex = 0;
             // 
             // anyNetworkRadioButton
@@ -340,7 +338,7 @@
             this.anyNetworkRadioButton.AutoSize = true;
             this.anyNetworkRadioButton.Checked = true;
             this.anyNetworkRadioButton.Location = new System.Drawing.Point(2, 4);
-            this.anyNetworkRadioButton.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.anyNetworkRadioButton.Margin = new System.Windows.Forms.Padding(2);
             this.anyNetworkRadioButton.Name = "anyNetworkRadioButton";
             this.anyNetworkRadioButton.Size = new System.Drawing.Size(43, 17);
             this.anyNetworkRadioButton.TabIndex = 0;
@@ -353,7 +351,7 @@
             this.localNetworkRadioButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.localNetworkRadioButton.AutoSize = true;
             this.localNetworkRadioButton.Location = new System.Drawing.Point(49, 4);
-            this.localNetworkRadioButton.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.localNetworkRadioButton.Margin = new System.Windows.Forms.Padding(2);
             this.localNetworkRadioButton.Name = "localNetworkRadioButton";
             this.localNetworkRadioButton.Size = new System.Drawing.Size(51, 17);
             this.localNetworkRadioButton.TabIndex = 1;
@@ -365,7 +363,7 @@
             this.listNetworkRadioButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.listNetworkRadioButton.AutoSize = true;
             this.listNetworkRadioButton.Location = new System.Drawing.Point(104, 4);
-            this.listNetworkRadioButton.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.listNetworkRadioButton.Margin = new System.Windows.Forms.Padding(2);
             this.listNetworkRadioButton.Name = "listNetworkRadioButton";
             this.listNetworkRadioButton.Size = new System.Drawing.Size(44, 17);
             this.listNetworkRadioButton.TabIndex = 2;
@@ -377,41 +375,21 @@
             this.networkNumberComboBox.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.networkNumberComboBox.FormattingEnabled = true;
             this.networkNumberComboBox.Location = new System.Drawing.Point(152, 2);
-            this.networkNumberComboBox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.networkNumberComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.networkNumberComboBox.Name = "networkNumberComboBox";
             this.networkNumberComboBox.Size = new System.Drawing.Size(188, 21);
             this.networkNumberComboBox.TabIndex = 3;
             this.networkNumberComboBox.Visible = false;
             // 
-            // label2
-            // 
-            this.label2.Anchor = System.Windows.Forms.AnchorStyles.Left;
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(2, 52);
-            this.label2.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(85, 24);
-            this.label2.TabIndex = 6;
-            this.label2.Text = "Device Instance #:";
-            // 
-            // instanceNumberComboBox
-            // 
-            this.instanceNumberComboBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.instanceNumberComboBox.FormattingEnabled = true;
-            this.instanceNumberComboBox.Location = new System.Drawing.Point(92, 54);
-            this.instanceNumberComboBox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
-            this.instanceNumberComboBox.Name = "instanceNumberComboBox";
-            this.instanceNumberComboBox.Size = new System.Drawing.Size(708, 21);
-            this.instanceNumberComboBox.TabIndex = 1;
-            // 
             // actionsFrame
             // 
+            this.actionsFrame.AutoSize = true;
             this.actionsFrame.Controls.Add(this.actionsLayout);
             this.actionsFrame.Dock = System.Windows.Forms.DockStyle.Fill;
             this.actionsFrame.Location = new System.Drawing.Point(0, 0);
-            this.actionsFrame.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.actionsFrame.Margin = new System.Windows.Forms.Padding(2);
             this.actionsFrame.Name = "actionsFrame";
-            this.actionsFrame.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.actionsFrame.Padding = new System.Windows.Forms.Padding(2);
             this.actionsFrame.Size = new System.Drawing.Size(818, 71);
             this.actionsFrame.TabIndex = 1;
             this.actionsFrame.TabStop = false;
@@ -419,6 +397,7 @@
             // 
             // actionsLayout
             // 
+            this.actionsLayout.AutoSize = true;
             this.actionsLayout.Controls.Add(this.startDiscoveryButton);
             this.actionsLayout.Controls.Add(this.cancelDiscoveryButton);
             this.actionsLayout.Controls.Add(this.discoveryStatusLabel);
@@ -429,27 +408,29 @@
             this.actionsLayout.Controls.Add(this.clearLogButton);
             this.actionsLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.actionsLayout.Location = new System.Drawing.Point(2, 15);
-            this.actionsLayout.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.actionsLayout.Margin = new System.Windows.Forms.Padding(2);
             this.actionsLayout.Name = "actionsLayout";
             this.actionsLayout.Size = new System.Drawing.Size(814, 54);
             this.actionsLayout.TabIndex = 0;
             // 
             // startDiscoveryButton
             // 
+            this.startDiscoveryButton.AutoSize = true;
             this.startDiscoveryButton.Location = new System.Drawing.Point(2, 2);
-            this.startDiscoveryButton.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.startDiscoveryButton.Margin = new System.Windows.Forms.Padding(2);
             this.startDiscoveryButton.Name = "startDiscoveryButton";
-            this.startDiscoveryButton.Size = new System.Drawing.Size(56, 19);
+            this.startDiscoveryButton.Size = new System.Drawing.Size(56, 23);
             this.startDiscoveryButton.TabIndex = 0;
             this.startDiscoveryButton.Text = "Discover";
             this.startDiscoveryButton.UseVisualStyleBackColor = true;
             // 
             // cancelDiscoveryButton
             // 
+            this.cancelDiscoveryButton.AutoSize = true;
             this.cancelDiscoveryButton.Location = new System.Drawing.Point(62, 2);
-            this.cancelDiscoveryButton.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.cancelDiscoveryButton.Margin = new System.Windows.Forms.Padding(2);
             this.cancelDiscoveryButton.Name = "cancelDiscoveryButton";
-            this.cancelDiscoveryButton.Size = new System.Drawing.Size(56, 19);
+            this.cancelDiscoveryButton.Size = new System.Drawing.Size(56, 23);
             this.cancelDiscoveryButton.TabIndex = 1;
             this.cancelDiscoveryButton.Text = "Cancel";
             this.cancelDiscoveryButton.UseVisualStyleBackColor = true;
@@ -459,7 +440,7 @@
             // 
             this.discoveryStatusLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.discoveryStatusLabel.AutoSize = true;
-            this.discoveryStatusLabel.Location = new System.Drawing.Point(122, 5);
+            this.discoveryStatusLabel.Location = new System.Drawing.Point(122, 7);
             this.discoveryStatusLabel.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.discoveryStatusLabel.Name = "discoveryStatusLabel";
             this.discoveryStatusLabel.Size = new System.Drawing.Size(49, 13);
@@ -469,50 +450,55 @@
             // 
             // pingButton
             // 
+            this.pingButton.AutoSize = true;
             this.pingButton.Location = new System.Drawing.Point(175, 2);
-            this.pingButton.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.pingButton.Margin = new System.Windows.Forms.Padding(2);
             this.pingButton.Name = "pingButton";
-            this.pingButton.Size = new System.Drawing.Size(71, 19);
+            this.pingButton.Size = new System.Drawing.Size(71, 23);
             this.pingButton.TabIndex = 3;
             this.pingButton.Text = "Ping Device";
             this.pingButton.UseVisualStyleBackColor = true;
             // 
             // discoverObjectsButton
             // 
+            this.discoverObjectsButton.AutoSize = true;
             this.discoverObjectsButton.Location = new System.Drawing.Point(250, 2);
-            this.discoverObjectsButton.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.discoverObjectsButton.Margin = new System.Windows.Forms.Padding(2);
             this.discoverObjectsButton.Name = "discoverObjectsButton";
-            this.discoverObjectsButton.Size = new System.Drawing.Size(90, 19);
+            this.discoverObjectsButton.Size = new System.Drawing.Size(90, 23);
             this.discoverObjectsButton.TabIndex = 4;
             this.discoverObjectsButton.Text = "Discover Objects";
             this.discoverObjectsButton.UseVisualStyleBackColor = true;
             // 
             // readPropertyButton
             // 
+            this.readPropertyButton.AutoSize = true;
             this.readPropertyButton.Location = new System.Drawing.Point(344, 2);
-            this.readPropertyButton.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.readPropertyButton.Margin = new System.Windows.Forms.Padding(2);
             this.readPropertyButton.Name = "readPropertyButton";
-            this.readPropertyButton.Size = new System.Drawing.Size(82, 19);
+            this.readPropertyButton.Size = new System.Drawing.Size(82, 23);
             this.readPropertyButton.TabIndex = 5;
             this.readPropertyButton.Text = "Read Property";
             this.readPropertyButton.UseVisualStyleBackColor = true;
             // 
             // writePropertyButton
             // 
+            this.writePropertyButton.AutoSize = true;
             this.writePropertyButton.Location = new System.Drawing.Point(430, 2);
-            this.writePropertyButton.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.writePropertyButton.Margin = new System.Windows.Forms.Padding(2);
             this.writePropertyButton.Name = "writePropertyButton";
-            this.writePropertyButton.Size = new System.Drawing.Size(82, 19);
+            this.writePropertyButton.Size = new System.Drawing.Size(82, 23);
             this.writePropertyButton.TabIndex = 6;
             this.writePropertyButton.Text = "Write Property";
             this.writePropertyButton.UseVisualStyleBackColor = true;
             // 
             // clearLogButton
             // 
+            this.clearLogButton.AutoSize = true;
             this.clearLogButton.Location = new System.Drawing.Point(516, 2);
-            this.clearLogButton.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.clearLogButton.Margin = new System.Windows.Forms.Padding(2);
             this.clearLogButton.Name = "clearLogButton";
-            this.clearLogButton.Size = new System.Drawing.Size(68, 19);
+            this.clearLogButton.Size = new System.Drawing.Size(68, 23);
             this.clearLogButton.TabIndex = 7;
             this.clearLogButton.Text = "Clear Log";
             this.clearLogButton.UseVisualStyleBackColor = true;
@@ -521,7 +507,7 @@
             // 
             this.bottomPanelSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
             this.bottomPanelSplitContainer.Location = new System.Drawing.Point(0, 0);
-            this.bottomPanelSplitContainer.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.bottomPanelSplitContainer.Margin = new System.Windows.Forms.Padding(2);
             this.bottomPanelSplitContainer.Name = "bottomPanelSplitContainer";
             // 
             // bottomPanelSplitContainer.Panel1
@@ -541,9 +527,9 @@
             this.browserFrame.Controls.Add(this.browserSplitContainer);
             this.browserFrame.Dock = System.Windows.Forms.DockStyle.Fill;
             this.browserFrame.Location = new System.Drawing.Point(0, 0);
-            this.browserFrame.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.browserFrame.Margin = new System.Windows.Forms.Padding(2);
             this.browserFrame.Name = "browserFrame";
-            this.browserFrame.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.browserFrame.Padding = new System.Windows.Forms.Padding(2);
             this.browserFrame.Size = new System.Drawing.Size(409, 523);
             this.browserFrame.TabIndex = 0;
             this.browserFrame.TabStop = false;
@@ -553,7 +539,7 @@
             // 
             this.browserSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
             this.browserSplitContainer.Location = new System.Drawing.Point(2, 15);
-            this.browserSplitContainer.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.browserSplitContainer.Margin = new System.Windows.Forms.Padding(2);
             this.browserSplitContainer.Name = "browserSplitContainer";
             this.browserSplitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
             // 
@@ -573,7 +559,7 @@
             // 
             this.deviceTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.deviceTreeView.Location = new System.Drawing.Point(0, 0);
-            this.deviceTreeView.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.deviceTreeView.Margin = new System.Windows.Forms.Padding(2);
             this.deviceTreeView.Name = "deviceTreeView";
             this.deviceTreeView.Size = new System.Drawing.Size(405, 248);
             this.deviceTreeView.TabIndex = 0;
@@ -582,7 +568,7 @@
             // 
             this.objectTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.objectTreeView.Location = new System.Drawing.Point(0, 0);
-            this.objectTreeView.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.objectTreeView.Margin = new System.Windows.Forms.Padding(2);
             this.objectTreeView.Name = "objectTreeView";
             this.objectTreeView.Size = new System.Drawing.Size(405, 255);
             this.objectTreeView.TabIndex = 0;
@@ -592,9 +578,9 @@
             this.outputFrame.Controls.Add(this.outputTextBox);
             this.outputFrame.Dock = System.Windows.Forms.DockStyle.Fill;
             this.outputFrame.Location = new System.Drawing.Point(0, 0);
-            this.outputFrame.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.outputFrame.Margin = new System.Windows.Forms.Padding(2);
             this.outputFrame.Name = "outputFrame";
-            this.outputFrame.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.outputFrame.Padding = new System.Windows.Forms.Padding(2);
             this.outputFrame.Size = new System.Drawing.Size(406, 523);
             this.outputFrame.TabIndex = 0;
             this.outputFrame.TabStop = false;
@@ -604,7 +590,7 @@
             // 
             this.outputTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.outputTextBox.Location = new System.Drawing.Point(2, 15);
-            this.outputTextBox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.outputTextBox.Margin = new System.Windows.Forms.Padding(2);
             this.outputTextBox.Name = "outputTextBox";
             this.outputTextBox.Size = new System.Drawing.Size(402, 506);
             this.outputTextBox.TabIndex = 0;
@@ -615,7 +601,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.mainPanel);
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "BACnet_MSTP_Remote";
             this.Size = new System.Drawing.Size(834, 939);
             this.mainPanel.ResumeLayout(false);
@@ -624,7 +610,9 @@
             ((System.ComponentModel.ISupportInitialize)(this.mainSplitContainer)).EndInit();
             this.mainSplitContainer.ResumeLayout(false);
             this.topPanelSplitContainer.Panel1.ResumeLayout(false);
+            this.topPanelSplitContainer.Panel1.PerformLayout();
             this.topPanelSplitContainer.Panel2.ResumeLayout(false);
+            this.topPanelSplitContainer.Panel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.topPanelSplitContainer)).EndInit();
             this.topPanelSplitContainer.ResumeLayout(false);
             this.mstpFrame.ResumeLayout(false);
@@ -634,9 +622,11 @@
             this.flowLayoutPanel2.ResumeLayout(false);
             this.flowLayoutPanel2.PerformLayout();
             this.networkNumberGroupBox.ResumeLayout(false);
+            this.networkNumberGroupBox.PerformLayout();
             this.flowLayoutPanel1.ResumeLayout(false);
             this.flowLayoutPanel1.PerformLayout();
             this.actionsFrame.ResumeLayout(false);
+            this.actionsFrame.PerformLayout();
             this.actionsLayout.ResumeLayout(false);
             this.actionsLayout.PerformLayout();
             this.bottomPanelSplitContainer.Panel1.ResumeLayout(false);

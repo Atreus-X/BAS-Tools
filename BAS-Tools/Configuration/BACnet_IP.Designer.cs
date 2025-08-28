@@ -190,6 +190,7 @@
             // 
             // actionsFrame
             // 
+            this.actionsFrame.AutoSize = true;
             this.actionsFrame.Controls.Add(this.actionsLayout);
             this.actionsFrame.Dock = System.Windows.Forms.DockStyle.Top;
             this.actionsFrame.Location = new System.Drawing.Point(8, 138);
@@ -203,6 +204,7 @@
             // 
             // actionsLayout
             // 
+            this.actionsLayout.AutoSize = true;
             this.actionsLayout.Controls.Add(this.discoverButton);
             this.actionsLayout.Controls.Add(this.pingButton);
             this.actionsLayout.Controls.Add(this.discoverObjectsButton);
@@ -218,67 +220,74 @@
             // 
             // discoverButton
             // 
+            this.discoverButton.AutoSize = true;
             this.discoverButton.Location = new System.Drawing.Point(2, 2);
             this.discoverButton.Margin = new System.Windows.Forms.Padding(2);
             this.discoverButton.Name = "discoverButton";
-            this.discoverButton.Size = new System.Drawing.Size(90, 19);
+            this.discoverButton.Size = new System.Drawing.Size(90, 23);
             this.discoverButton.TabIndex = 0;
             this.discoverButton.Text = "Discover Devices";
             this.discoverButton.UseVisualStyleBackColor = true;
             // 
             // pingButton
             // 
+            this.pingButton.AutoSize = true;
             this.pingButton.Location = new System.Drawing.Point(96, 2);
             this.pingButton.Margin = new System.Windows.Forms.Padding(2);
             this.pingButton.Name = "pingButton";
-            this.pingButton.Size = new System.Drawing.Size(90, 19);
+            this.pingButton.Size = new System.Drawing.Size(90, 23);
             this.pingButton.TabIndex = 1;
             this.pingButton.Text = "Ping Device";
             this.pingButton.UseVisualStyleBackColor = true;
             // 
             // discoverObjectsButton
             // 
+            this.discoverObjectsButton.AutoSize = true;
             this.discoverObjectsButton.Location = new System.Drawing.Point(190, 2);
             this.discoverObjectsButton.Margin = new System.Windows.Forms.Padding(2);
             this.discoverObjectsButton.Name = "discoverObjectsButton";
-            this.discoverObjectsButton.Size = new System.Drawing.Size(90, 19);
+            this.discoverObjectsButton.Size = new System.Drawing.Size(90, 23);
             this.discoverObjectsButton.TabIndex = 2;
             this.discoverObjectsButton.Text = "Discover Objects";
             this.discoverObjectsButton.UseVisualStyleBackColor = true;
             // 
             // readPropertyButton
             // 
+            this.readPropertyButton.AutoSize = true;
             this.readPropertyButton.Location = new System.Drawing.Point(284, 2);
             this.readPropertyButton.Margin = new System.Windows.Forms.Padding(2);
             this.readPropertyButton.Name = "readPropertyButton";
-            this.readPropertyButton.Size = new System.Drawing.Size(90, 19);
+            this.readPropertyButton.Size = new System.Drawing.Size(90, 23);
             this.readPropertyButton.TabIndex = 3;
             this.readPropertyButton.Text = "Read Property";
             this.readPropertyButton.UseVisualStyleBackColor = true;
             // 
             // writePropertyButton
             // 
+            this.writePropertyButton.AutoSize = true;
             this.writePropertyButton.Enabled = false;
             this.writePropertyButton.Location = new System.Drawing.Point(378, 2);
             this.writePropertyButton.Margin = new System.Windows.Forms.Padding(2);
             this.writePropertyButton.Name = "writePropertyButton";
-            this.writePropertyButton.Size = new System.Drawing.Size(90, 19);
+            this.writePropertyButton.Size = new System.Drawing.Size(90, 23);
             this.writePropertyButton.TabIndex = 4;
             this.writePropertyButton.Text = "Write Property";
             this.writePropertyButton.UseVisualStyleBackColor = true;
             // 
             // clearLogButton
             // 
+            this.clearLogButton.AutoSize = true;
             this.clearLogButton.Location = new System.Drawing.Point(472, 2);
             this.clearLogButton.Margin = new System.Windows.Forms.Padding(2);
             this.clearLogButton.Name = "clearLogButton";
-            this.clearLogButton.Size = new System.Drawing.Size(90, 19);
+            this.clearLogButton.Size = new System.Drawing.Size(90, 23);
             this.clearLogButton.TabIndex = 5;
             this.clearLogButton.Text = "Clear Log";
             this.clearLogButton.UseVisualStyleBackColor = true;
             // 
             // ipFrame
             // 
+            this.ipFrame.AutoSize = true;
             this.ipFrame.Controls.Add(this.ipLayout);
             this.ipFrame.Dock = System.Windows.Forms.DockStyle.Top;
             this.ipFrame.Location = new System.Drawing.Point(8, 8);
@@ -292,10 +301,11 @@
             // 
             // ipLayout
             // 
+            this.ipLayout.AutoSize = true;
             this.ipLayout.ColumnCount = 4;
-            this.ipLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 90F));
+            this.ipLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.ipLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.ipLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 98F));
+            this.ipLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.ipLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.ipLayout.Controls.Add(this.labelTargetIP, 0, 0);
             this.ipLayout.Controls.Add(this.ipAddressComboBox, 1, 0);
@@ -316,10 +326,10 @@
             this.ipLayout.Margin = new System.Windows.Forms.Padding(2);
             this.ipLayout.Name = "ipLayout";
             this.ipLayout.RowCount = 4;
-            this.ipLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.ipLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.ipLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.ipLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
+            this.ipLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.ipLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.ipLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.ipLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.ipLayout.Size = new System.Drawing.Size(802, 101);
             this.ipLayout.TabIndex = 0;
             // 
@@ -327,10 +337,10 @@
             // 
             this.labelTargetIP.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.labelTargetIP.AutoSize = true;
-            this.labelTargetIP.Location = new System.Drawing.Point(2, 0);
+            this.labelTargetIP.Location = new System.Drawing.Point(2, 6);
             this.labelTargetIP.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelTargetIP.Name = "labelTargetIP";
-            this.labelTargetIP.Size = new System.Drawing.Size(78, 25);
+            this.labelTargetIP.Size = new System.Drawing.Size(78, 13);
             this.labelTargetIP.TabIndex = 0;
             this.labelTargetIP.Text = "Target Device IP:";
             // 
@@ -338,20 +348,20 @@
             // 
             this.ipAddressComboBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.ipAddressComboBox.FormattingEnabled = true;
-            this.ipAddressComboBox.Location = new System.Drawing.Point(92, 2);
+            this.ipAddressComboBox.Location = new System.Drawing.Point(84, 2);
             this.ipAddressComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.ipAddressComboBox.Name = "ipAddressComboBox";
-            this.ipAddressComboBox.Size = new System.Drawing.Size(303, 21);
+            this.ipAddressComboBox.Size = new System.Drawing.Size(320, 21);
             this.ipAddressComboBox.TabIndex = 1;
             // 
             // labelInstance
             // 
             this.labelInstance.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.labelInstance.AutoSize = true;
-            this.labelInstance.Location = new System.Drawing.Point(399, 0);
+            this.labelInstance.Location = new System.Drawing.Point(408, 6);
             this.labelInstance.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelInstance.Name = "labelInstance";
-            this.labelInstance.Size = new System.Drawing.Size(85, 25);
+            this.labelInstance.Size = new System.Drawing.Size(85, 13);
             this.labelInstance.TabIndex = 2;
             this.labelInstance.Text = "Target Instance #:";
             // 
@@ -382,10 +392,10 @@
             this.interfaceComboBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.interfaceComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.interfaceComboBox.FormattingEnabled = true;
-            this.interfaceComboBox.Location = new System.Drawing.Point(92, 27);
+            this.interfaceComboBox.Location = new System.Drawing.Point(84, 27);
             this.interfaceComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.interfaceComboBox.Name = "interfaceComboBox";
-            this.interfaceComboBox.Size = new System.Drawing.Size(708, 21);
+            this.interfaceComboBox.Size = new System.Drawing.Size(716, 21);
             this.interfaceComboBox.TabIndex = 5;
             // 
             // labelBbmdIp
@@ -403,17 +413,17 @@
             // 
             this.bbmdIpComboBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.bbmdIpComboBox.FormattingEnabled = true;
-            this.bbmdIpComboBox.Location = new System.Drawing.Point(92, 52);
+            this.bbmdIpComboBox.Location = new System.Drawing.Point(84, 52);
             this.bbmdIpComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.bbmdIpComboBox.Name = "bbmdIpComboBox";
-            this.bbmdIpComboBox.Size = new System.Drawing.Size(303, 21);
+            this.bbmdIpComboBox.Size = new System.Drawing.Size(320, 21);
             this.bbmdIpComboBox.TabIndex = 7;
             // 
             // labelUdpPort
             // 
             this.labelUdpPort.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.labelUdpPort.AutoSize = true;
-            this.labelUdpPort.Location = new System.Drawing.Point(399, 56);
+            this.labelUdpPort.Location = new System.Drawing.Point(408, 56);
             this.labelUdpPort.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelUdpPort.Name = "labelUdpPort";
             this.labelUdpPort.Size = new System.Drawing.Size(84, 13);
@@ -434,10 +444,10 @@
             // 
             this.labelApduTimeout.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.labelApduTimeout.AutoSize = true;
-            this.labelApduTimeout.Location = new System.Drawing.Point(2, 75);
+            this.labelApduTimeout.Location = new System.Drawing.Point(2, 81);
             this.labelApduTimeout.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelApduTimeout.Name = "labelApduTimeout";
-            this.labelApduTimeout.Size = new System.Drawing.Size(81, 26);
+            this.labelApduTimeout.Size = new System.Drawing.Size(81, 13);
             this.labelApduTimeout.TabIndex = 10;
             this.labelApduTimeout.Text = "APDU Timeout (ms):";
             // 
@@ -445,17 +455,17 @@
             // 
             this.apduTimeoutComboBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.apduTimeoutComboBox.FormattingEnabled = true;
-            this.apduTimeoutComboBox.Location = new System.Drawing.Point(92, 77);
+            this.apduTimeoutComboBox.Location = new System.Drawing.Point(84, 77);
             this.apduTimeoutComboBox.Margin = new System.Windows.Forms.Padding(2);
             this.apduTimeoutComboBox.Name = "apduTimeoutComboBox";
-            this.apduTimeoutComboBox.Size = new System.Drawing.Size(303, 21);
+            this.apduTimeoutComboBox.Size = new System.Drawing.Size(320, 21);
             this.apduTimeoutComboBox.TabIndex = 11;
             // 
             // labelBbmdTtl
             // 
             this.labelBbmdTtl.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.labelBbmdTtl.AutoSize = true;
-            this.labelBbmdTtl.Location = new System.Drawing.Point(399, 81);
+            this.labelBbmdTtl.Location = new System.Drawing.Point(408, 81);
             this.labelBbmdTtl.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelBbmdTtl.Name = "labelBbmdTtl";
             this.labelBbmdTtl.Size = new System.Drawing.Size(78, 13);
@@ -481,6 +491,7 @@
             this.Name = "BACnet_IP";
             this.Size = new System.Drawing.Size(834, 969);
             this.mainPanel.ResumeLayout(false);
+            this.mainPanel.PerformLayout();
             this.mainSplitContainer.Panel1.ResumeLayout(false);
             this.mainSplitContainer.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.mainSplitContainer)).EndInit();
@@ -492,8 +503,11 @@
             this.browserSplitContainer.ResumeLayout(false);
             this.outputFrame.ResumeLayout(false);
             this.actionsFrame.ResumeLayout(false);
+            this.actionsFrame.PerformLayout();
             this.actionsLayout.ResumeLayout(false);
+            this.actionsLayout.PerformLayout();
             this.ipFrame.ResumeLayout(false);
+            this.ipFrame.PerformLayout();
             this.ipLayout.ResumeLayout(false);
             this.ipLayout.PerformLayout();
             this.ResumeLayout(false);

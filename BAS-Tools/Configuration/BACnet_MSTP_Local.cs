@@ -46,7 +46,6 @@ namespace MainApp.Configuration
             baudRateComboBox.Leave += (s, args) => SaveComboBoxEntry(baudRateComboBox, "baudRate");
             maxMastersComboBox.Leave += (s, args) => SaveComboBoxEntry(maxMastersComboBox, "maxMasters");
             maxInfoFramesComboBox.Leave += (s, args) => SaveComboBoxEntry(maxInfoFramesComboBox, "maxInfoFrames");
-            instanceNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(instanceNumberComboBox, "instanceNumber");
 
             startDiscoveryButton.Click += StartDiscoveryButton_Click;
             cancelDiscoveryButton.Click += CancelDiscoveryButton_Click;
@@ -55,7 +54,6 @@ namespace MainApp.Configuration
             readPropertyButton.Click += ReadPropertyButton_Click;
             clearLogButton.Click += ClearLogButton_Click;
             deviceTreeView.AfterSelect += DeviceTreeView_AfterSelect;
-            instanceNumberComboBox.TextChanged += UpdateAllStates;
         }
 
         private void ClearLogButton_Click(object sender, EventArgs e)
@@ -125,16 +123,16 @@ namespace MainApp.Configuration
 
         private void PingButton_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(instanceNumberComboBox.Text))
+            if (deviceTreeView.SelectedNode == null)
             {
-                MessageBox.Show("Instance number is required for Ping.", "Error");
+                MessageBox.Show("Please select a device to ping.", "Error");
                 return;
             }
 
             EnsureBacnetClientStarted();
             if (!_isClientStarted) return;
 
-            uint deviceId = uint.Parse(instanceNumberComboBox.Text);
+            uint deviceId = uint.Parse(deviceTreeView.SelectedNode.Name);
             Log($"Pinging Device ID: {deviceId}...");
             _bacnetClient.WhoIs(lowLimit: (int)deviceId, highLimit: (int)deviceId);
             _lastPingedDeviceId = deviceId;
@@ -217,9 +215,9 @@ namespace MainApp.Configuration
 
         private async void ReadPropertyButton_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(instanceNumberComboBox.Text))
+            if (deviceTreeView.SelectedNode == null)
             {
-                MessageBox.Show("Instance number is required to read.", "Error");
+                MessageBox.Show("Please select a device to read.", "Error");
                 return;
             }
 
@@ -228,7 +226,7 @@ namespace MainApp.Configuration
 
             try
             {
-                uint deviceId = uint.Parse(instanceNumberComboBox.Text);
+                uint deviceId = uint.Parse(deviceTreeView.SelectedNode.Name);
                 BacnetAddress deviceAddress = await FindDeviceAddressAsync(deviceId);
                 if (deviceAddress == null)
                 {
@@ -287,10 +285,10 @@ namespace MainApp.Configuration
 
         private void UpdateAllStates(object sender, EventArgs e)
         {
-            bool instanceExists = !string.IsNullOrWhiteSpace(instanceNumberComboBox.Text);
-            pingButton.Enabled = instanceExists;
-            readPropertyButton.Enabled = instanceExists;
-            writePropertyButton.Enabled = instanceExists;
+            bool deviceSelected = deviceTreeView.SelectedNode != null;
+            pingButton.Enabled = deviceSelected;
+            readPropertyButton.Enabled = deviceSelected;
+            writePropertyButton.Enabled = deviceSelected;
             discoverObjectsButton.Enabled = _lastPingedDeviceId.HasValue;
         }
 
@@ -298,7 +296,6 @@ namespace MainApp.Configuration
         {
             if (e.Node != null && uint.TryParse(e.Node.Name, out uint deviceId))
             {
-                instanceNumberComboBox.Text = deviceId.ToString();
                 _lastPingedDeviceId = deviceId;
                 UpdateAllStates(null, null);
                 DiscoverObjectsButton_Click(null, null);
@@ -356,14 +353,12 @@ namespace MainApp.Configuration
             PopulateComboBoxWithHistory(baudRateComboBox, "baudRate");
             PopulateComboBoxWithHistory(maxMastersComboBox, "maxMasters");
             PopulateComboBoxWithHistory(maxInfoFramesComboBox, "maxInfoFrames");
-            PopulateComboBoxWithHistory(instanceNumberComboBox, "instanceNumber");
 
             if (string.IsNullOrEmpty(serialPortComboBox.Text) && serialPortComboBox.Items.Count > 0)
                 serialPortComboBox.SelectedIndex = 0;
             if (string.IsNullOrEmpty(baudRateComboBox.Text)) baudRateComboBox.Text = "38400";
             if (string.IsNullOrEmpty(maxMastersComboBox.Text)) maxMastersComboBox.Text = "127";
             if (string.IsNullOrEmpty(maxInfoFramesComboBox.Text)) maxInfoFramesComboBox.Text = "1";
-            if (string.IsNullOrEmpty(instanceNumberComboBox.Text)) instanceNumberComboBox.Text = "100";
         }
 
         private void PopulateComboBoxWithHistory(ComboBox comboBox, string key)
@@ -411,7 +406,6 @@ namespace MainApp.Configuration
             baudRateComboBox.Items.Clear();
             maxMastersComboBox.Items.Clear();
             maxInfoFramesComboBox.Items.Clear();
-            instanceNumberComboBox.Items.Clear();
 
             PopulateDefaultValues();
             LoadHistory();
@@ -422,21 +416,6 @@ namespace MainApp.Configuration
         {
             _historyManager?.SaveHistory();
             _bacnetClient?.Dispose();
-        }
-
-        private void label5_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void mstpLayout_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
-
-        private void mstpFrame_Enter(object sender, EventArgs e)
-        {
-
         }
     }
 }
