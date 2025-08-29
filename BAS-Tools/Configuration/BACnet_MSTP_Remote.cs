@@ -8,22 +8,22 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace MainApp.Configuration
 {
     public partial class BACnet_MSTP_Remote : UserControl, IHistorySupport
     {
         private BacnetClient _bacnetClient;
-        private HistoryManager _historyManager;
-        private uint? _lastPingedDeviceId = null;
-        private bool _isClientStarted = false;
-        private System.Windows.Forms.Timer _discoveryTimer;
+        private readonly HistoryManager _historyManager;
+        private uint? _lastPingedDeviceId;
+        private readonly System.Windows.Forms.Timer _discoveryTimer;
 
         public BACnet_MSTP_Remote()
         {
             InitializeComponent();
             this.Load += BACnet_MSTP_Remote_Load;
+            _historyManager = new HistoryManager("BACnet_MSTP_Remote_");
+            _discoveryTimer = new System.Windows.Forms.Timer { Interval = 10000 };
         }
 
         private void BACnet_MSTP_Remote_Load(object sender, EventArgs e)
@@ -31,14 +31,11 @@ namespace MainApp.Configuration
             if (this.DesignMode || LicenseManager.UsageMode == LicenseUsageMode.Designtime)
                 return;
 
-            _historyManager = new HistoryManager("BACnet_MSTP_Remote_");
-
             PopulateDefaultValues();
             LoadHistory();
             UpdateAllStates(null, null);
             WireUpEventHandlers();
 
-            _discoveryTimer = new System.Windows.Forms.Timer { Interval = 10000 };
             _discoveryTimer.Tick += DiscoveryTimer_Tick;
 
             anyNetworkRadioButton.Checked = true;
@@ -79,8 +76,6 @@ namespace MainApp.Configuration
 
         private void EnsureBacnetClientStarted()
         {
-            if (_isClientStarted && _bacnetClient != null) return;
-
             if (_bacnetClient != null)
             {
                 _bacnetClient.Dispose();
@@ -110,8 +105,8 @@ namespace MainApp.Configuration
                     bbmdPort = parsedPort;
                 }
 
-                Log("Transport 'donotfragment' flag set to FALSE.");
-                var transport = new BacnetIpUdpProtocolTransport(bbmdPort, false, false, 1472, localIp);
+                var transport = new BacnetIpUdpProtocolTransport(bbmdPort, true, true, 1472, localIp);
+                Log("Transport 'donotfragment' flag set to TRUE.");
 
                 _bacnetClient = new BacnetClient(transport) { Timeout = apduTimeout };
                 _bacnetClient.OnIam += OnIamHandler;
@@ -119,30 +114,129 @@ namespace MainApp.Configuration
                 _bacnetClient.Start();
                 Log("BACnet client transport started.");
 
-                if (!string.IsNullOrWhiteSpace(bbmdIpComboBox.Text))
+                string bbmdIpText = bbmdIpComboBox.Text.Trim();
+
+                if (!string.IsNullOrWhiteSpace(bbmdIpText))
                 {
                     if (!short.TryParse(bbmdTtlComboBox.Text, out short ttl))
                     {
                         Log("--- ERROR: Invalid BBMD TTL value. ---");
                         return;
                     }
-                    Log($"Attempting to register as Foreign Device with BBMD at {bbmdIpComboBox.Text}:{bbmdPort} with TTL {ttl}...");
-                    _bacnetClient.RegisterAsForeignDevice(bbmdIpComboBox.Text, ttl, bbmdPort);
+                    Log($"Attempting to register as Foreign Device with BBMD at {bbmdIpText}:{bbmdPort} with TTL {ttl}...");
+                    _bacnetClient.RegisterAsForeignDevice(bbmdIpText, ttl, bbmdPort);
                     Log("Foreign Device Registration message sent.");
 
                     Log("Waiting 2 seconds for BBMD to process registration...");
                     Thread.Sleep(2000);
                 }
 
-                _isClientStarted = true;
                 Log("BACnet client initialization complete.");
             }
             catch (Exception ex)
             {
-                _isClientStarted = false;
                 Log($"--- ERROR initializing BACnet client: {ex.Message} ---");
                 MessageBox.Show($"Error during BACnet initialization: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void StartDiscoveryButton_Click(object sender, EventArgs e)
+        {
+            EnsureBacnetClientStarted();
+
+            if (_bacnetClient == null)
+            {
+                Log("--- ERROR: BACnet client is not initialized. Cannot start discovery. ---");
+                return;
+            }
+
+            deviceTreeView.Nodes.Clear();
+            Log("Discovering devices...");
+
+            startDiscoveryButton.Enabled = false;
+            cancelDiscoveryButton.Visible = true;
+            discoveryStatusLabel.Text = "Found: 0";
+            discoveryStatusLabel.Visible = true;
+
+            _discoveryTimer.Start();
+
+            string bbmdIpText = bbmdIpComboBox.Text.Trim();
+            if (string.IsNullOrEmpty(bbmdIpText))
+            {
+                Log("Sending global Who-Is broadcast for discovery.");
+                _bacnetClient.WhoIs(-1, -1);
+                return;
+            }
+
+            BacnetAddress destination;
+
+            if (listNetworkRadioButton.Checked && ushort.TryParse(networkNumberComboBox.Text, out ushort netNum))
+            {
+                // This creates a unicast address pointing to the BBMD, but with the NPDU
+                // (Network Protocol Data Unit) specifying the target remote network number.
+                // This is the correct way to ask a BBMD to broadcast on a specific remote network.
+                Log($"Sending Who-Is for remote network {netNum} via BBMD.");
+                destination = new BacnetAddress(BacnetAddressTypes.IP, bbmdIpText, netNum);
+            }
+            else
+            {
+                // If "Any" or "Local" is selected, we send a request to the BBMD's local network.
+                Log($"Sending directed Who-Is to BBMD at {bbmdIpText}");
+                destination = new BacnetAddress(BacnetAddressTypes.IP, bbmdIpText);
+            }
+
+            // Send the Who-Is request to the constructed destination address.
+            _bacnetClient.WhoIs(-1, -1, destination);
+        }
+
+        private void OnIamHandler(BacnetClient _sender, BacnetAddress adr, uint deviceId, uint _maxApdu, BacnetSegmentations _segmentation, ushort vendorId)
+        {
+            Log($"--- I-AM HANDLER FIRED --- from {adr}, Device ID: {deviceId}, Vendor: {vendorId}");
+
+            this.Invoke((MethodInvoker)delegate
+            {
+                bool shouldAddDevice = false;
+
+                if (anyNetworkRadioButton.Checked)
+                {
+                    shouldAddDevice = true;
+                }
+                else if (listNetworkRadioButton.Checked)
+                {
+                    var targetNetworks = ParseNetworkNumbers(networkNumberComboBox.Text);
+                    if (targetNetworks.Contains(adr.net))
+                    {
+                        shouldAddDevice = true;
+                    }
+                }
+                else if (localNetworkRadioButton.Checked)
+                {
+                    if (adr.net == 0)
+                    {
+                        shouldAddDevice = true;
+                    }
+                }
+
+                if (shouldAddDevice)
+                {
+                    string deviceDisplay = $"{deviceId} ({adr})";
+                    if (!deviceTreeView.Nodes.ContainsKey(deviceId.ToString()))
+                    {
+                        Log($"Adding new device to tree: {deviceDisplay}");
+                        var node = new TreeNode(deviceDisplay) { Name = deviceId.ToString(), Tag = adr };
+                        deviceTreeView.Nodes.Add(node);
+                        discoveryStatusLabel.Text = $"Found: {deviceTreeView.Nodes.Count}";
+                    }
+                    else
+                    {
+                        Log($"Device already in tree: {deviceDisplay}");
+                    }
+                }
+                else
+                {
+                    Log($"Skipping device {deviceId} on network {adr.net} (Filter does not match).");
+                }
+            });
         }
 
         private List<ushort> ParseNetworkNumbers(string text)
@@ -176,99 +270,12 @@ namespace MainApp.Configuration
                     Log($"Error parsing network number '{part}': {ex.Message}");
                 }
             }
-            return networks.Distinct().ToList();
+            return networks;
         }
-
-        private void OnIamHandler(BacnetClient sender, BacnetAddress adr, uint deviceId, uint maxApdu, BacnetSegmentations segmentation, ushort vendorId)
-        {
-            Log($"--- I-AM HANDLER FIRED --- from {adr}, Device ID: {deviceId}, Vendor: {vendorId}");
-
-            this.Invoke((MethodInvoker)delegate
-            {
-                bool shouldAddDevice = false;
-
-                if (anyNetworkRadioButton.Checked)
-                {
-                    shouldAddDevice = true;
-                }
-                else if (localNetworkRadioButton.Checked)
-                {
-                    if (adr.net == 0)
-                    {
-                        shouldAddDevice = true;
-                    }
-                }
-                else if (listNetworkRadioButton.Checked)
-                {
-                    var targetNetworks = ParseNetworkNumbers(networkNumberComboBox.Text);
-                    if (targetNetworks.Contains(adr.net))
-                    {
-                        shouldAddDevice = true;
-                    }
-                }
-
-                if (shouldAddDevice)
-                {
-                    string deviceDisplay = $"{deviceId} ({adr})";
-                    if (!deviceTreeView.Nodes.ContainsKey(deviceId.ToString()))
-                    {
-                        Log($"Adding new device to tree: {deviceDisplay}");
-                        var node = new TreeNode(deviceDisplay) { Name = deviceId.ToString(), Tag = adr };
-                        deviceTreeView.Nodes.Add(node);
-                        discoveryStatusLabel.Text = $"Found: {deviceTreeView.Nodes.Count}";
-                    }
-                    else
-                    {
-                        Log($"Device already in tree: {deviceDisplay}");
-                    }
-                }
-                else
-                {
-                    Log($"Skipping device {deviceId} on network {adr.net} (Filter does not match).");
-                }
-            });
-        }
-
-        private void PingButton_Click(object sender, EventArgs e)
-        {
-            if (deviceTreeView.SelectedNode == null)
-            {
-                MessageBox.Show("Please select a device to ping.", "Error");
-                return;
-            }
-
-            EnsureBacnetClientStarted();
-            if (!_isClientStarted) return;
-
-            uint deviceId = uint.Parse(deviceTreeView.SelectedNode.Name);
-            Log($"Pinging Device ID: {deviceId}...");
-            _bacnetClient.WhoIs(lowLimit: (int)deviceId, highLimit: (int)deviceId);
-            _lastPingedDeviceId = deviceId;
-            UpdateAllStates(null, null);
-        }
-
-        private void StartDiscoveryButton_Click(object sender, EventArgs e)
-        {
-            EnsureBacnetClientStarted();
-            if (!_isClientStarted) return;
-
-            deviceTreeView.Nodes.Clear();
-            Log("Discovering devices...");
-
-            startDiscoveryButton.Enabled = false;
-            cancelDiscoveryButton.Visible = true;
-            discoveryStatusLabel.Text = "Found: 0";
-            discoveryStatusLabel.Visible = true;
-
-            _discoveryTimer.Start();
-            Log("Sending Who-Is broadcast for discovery.");
-            _bacnetClient.WhoIs();
-        }
-
 
         private void CancelDiscoveryButton_Click(object sender, EventArgs e)
         {
-            DiscoveryTimer_Tick(sender, e); // Stop the timer and reset the UI
+            DiscoveryTimer_Tick(sender, e);
         }
 
         private void DiscoveryTimer_Tick(object sender, EventArgs e)
@@ -280,16 +287,29 @@ namespace MainApp.Configuration
             discoveryStatusLabel.Visible = false;
         }
 
+        private void PingButton_Click(object sender, EventArgs e)
+        {
+            EnsureBacnetClientStarted();
+            if (deviceTreeView.SelectedNode == null)
+            {
+                MessageBox.Show("Please select a device to ping.", "Error");
+                return;
+            }
+            uint deviceId = uint.Parse(deviceTreeView.SelectedNode.Name);
+            Log($"Pinging Device ID: {deviceId}...");
+            _bacnetClient.WhoIs(lowLimit: (int)deviceId, highLimit: (int)deviceId);
+            _lastPingedDeviceId = deviceId;
+            UpdateAllStates(null, null);
+        }
+
         private async void DiscoverObjectsButton_Click(object sender, EventArgs e)
         {
+            EnsureBacnetClientStarted();
             if (_lastPingedDeviceId == null)
             {
                 MessageBox.Show("Please successfully Ping a device first to select it for object discovery.", "Device Not Selected");
                 return;
             }
-
-            EnsureBacnetClientStarted();
-            if (!_isClientStarted) return;
 
             try
             {
@@ -305,15 +325,19 @@ namespace MainApp.Configuration
                 var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
                 var propertyId = BacnetPropertyIds.PROP_OBJECT_LIST;
 
-                if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, propertyId, out IList<BacnetValue> objectList))
-                {
-                    Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
-                    PopulateObjectTree(objectList);
-                }
-                else
-                {
-                    Log("--- ERROR: Failed to read object list. ---");
-                }
+                await Task.Run(() => {
+                    if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, propertyId, out IList<BacnetValue> objectList))
+                    {
+                        Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
+                        this.Invoke((MethodInvoker)delegate {
+                            PopulateObjectTree(objectList);
+                        });
+                    }
+                    else
+                    {
+                        Log("--- ERROR: Failed to read object list. ---");
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -323,14 +347,12 @@ namespace MainApp.Configuration
 
         private async void ReadPropertyButton_Click(object sender, EventArgs e)
         {
+            EnsureBacnetClientStarted();
             if (deviceTreeView.SelectedNode == null)
             {
                 MessageBox.Show("Instance number is required to read.", "Error");
                 return;
             }
-
-            EnsureBacnetClientStarted();
-            if (!_isClientStarted) return;
 
             try
             {
@@ -372,7 +394,7 @@ namespace MainApp.Configuration
         {
             if (this.InvokeRequired)
             {
-                this.Invoke(new Action<string>(Log), message);
+                this.Invoke(new Action<string>(Log), new object[] { message });
                 return;
             }
             outputTextBox.AppendText(DateTime.Now.ToLongTimeString() + ": " + message + Environment.NewLine);
@@ -401,7 +423,7 @@ namespace MainApp.Configuration
                 localInterfaceComboBox.SelectedIndex = 0;
             }
 
-            apduTimeoutComboBox.Items.AddRange(new object[] { "3000", "5000", "10000" });
+            apduTimeoutComboBox.Items.AddRange(new object[] { "3000", "5000", "10000", "25000" });
             bbmdPortComboBox.Items.AddRange(new object[] { "47808" });
             bbmdTtlComboBox.Items.AddRange(new object[] { "60", "3600" });
         }
@@ -455,7 +477,7 @@ namespace MainApp.Configuration
 
             Log($"Address for Device {deviceId} not cached. Sending targeted WhoIs...");
             var tcs = new TaskCompletionSource<BacnetAddress>();
-            void handler(BacnetClient s, BacnetAddress a, uint d, uint m, BacnetSegmentations seg, ushort v)
+            void handler(BacnetClient _s, BacnetAddress a, uint d, uint _m, BacnetSegmentations _seg, ushort _v)
             {
                 if (d == deviceId) tcs.TrySetResult(a);
             }

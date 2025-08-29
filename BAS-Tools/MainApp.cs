@@ -41,8 +41,8 @@ namespace MainApp
                 control.Dock = DockStyle.Fill;
             }
 
-            // Show the BACnet MS/TP Local control by default
-            ShowProtocolControl("BACnet MS/TP Local");
+            // Show the BACnet MS/TP Remote control by default
+            ShowProtocolControl("BACnet MS/TP Remote");
 
             this.FormClosing += MainApp_FormClosing;
         }
