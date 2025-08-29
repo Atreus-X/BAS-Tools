@@ -63,12 +63,12 @@ namespace MainApp.Configuration
             deviceTreeView.AfterSelect += DeviceTreeView_AfterSelect;
         }
 
-        private void NetworkFilter_CheckedChanged(object sender, EventArgs e)
+        private void NetworkFilter_CheckedChanged(object _sender, EventArgs _e)
         {
             networkNumberComboBox.Visible = listNetworkRadioButton.Checked;
         }
 
-        private void ClearLogButton_Click(object sender, EventArgs e)
+        private void ClearLogButton_Click(object _sender, EventArgs _e)
         {
             outputTextBox.Clear();
             Log("Log cleared.");
@@ -85,7 +85,7 @@ namespace MainApp.Configuration
 
             try
             {
-                int apduTimeout = 5000;
+                int apduTimeout = 25000;
                 if (int.TryParse(apduTimeoutComboBox.Text, out int parsedTimeout))
                 {
                     apduTimeout = parsedTimeout;
@@ -99,14 +99,9 @@ namespace MainApp.Configuration
                     if (match.Success) localIp = match.Groups[1].Value;
                 }
 
-                int bbmdPort = 47808;
-                if (int.TryParse(bbmdPortComboBox.Text, out int parsedPort))
-                {
-                    bbmdPort = parsedPort;
-                }
-
-                var transport = new BacnetIpUdpProtocolTransport(bbmdPort, true, true, 1472, localIp);
-                Log("Transport 'donotfragment' flag set to TRUE.");
+                // By passing 0 as the port, we let the OS choose an available ephemeral port, mirroring YABE's behavior.
+                var transport = new BacnetIpUdpProtocolTransport(0, true, true, 1472, localIp);
+                Log("Transport created on a dynamic local port.");
 
                 _bacnetClient = new BacnetClient(transport) { Timeout = apduTimeout };
                 _bacnetClient.OnIam += OnIamHandler;
@@ -115,6 +110,11 @@ namespace MainApp.Configuration
                 Log("BACnet client transport started.");
 
                 string bbmdIpText = bbmdIpComboBox.Text.Trim();
+                int bbmdPort = 47808;
+                if (int.TryParse(bbmdPortComboBox.Text, out int parsedPort))
+                {
+                    bbmdPort = parsedPort;
+                }
 
                 if (!string.IsNullOrWhiteSpace(bbmdIpText))
                 {
@@ -160,32 +160,26 @@ namespace MainApp.Configuration
 
             _discoveryTimer.Start();
 
-            string bbmdIpText = bbmdIpComboBox.Text.Trim();
-            if (string.IsNullOrEmpty(bbmdIpText))
-            {
-                Log("Sending global Who-Is broadcast for discovery.");
-                _bacnetClient.WhoIs(-1, -1);
-                return;
-            }
-
             BacnetAddress destination;
 
             if (listNetworkRadioButton.Checked && ushort.TryParse(networkNumberComboBox.Text, out ushort netNum))
             {
-                // This creates a unicast address pointing to the BBMD, but with the NPDU
-                // (Network Protocol Data Unit) specifying the target remote network number.
-                // This is the correct way to ask a BBMD to broadcast on a specific remote network.
-                Log($"Sending Who-Is for remote network {netNum} via BBMD.");
-                destination = new BacnetAddress(BacnetAddressTypes.IP, bbmdIpText, netNum);
+                // This creates a broadcast address for a SPECIFIC REMOTE NETWORK.
+                // Using the global broadcast IP with a specific network number is the
+                // correct way to trigger the library to create a Distribute-Broadcast-To-Network
+                // message that the BBMD will forward. This precisely mimics YABE's behavior.
+                Log($"Sending Who-Is for remote network {netNum}.");
+                destination = new BacnetAddress(BacnetAddressTypes.IP, "255.255.255.255", netNum);
             }
             else
             {
-                // If "Any" or "Local" is selected, we send a request to the BBMD's local network.
-                Log($"Sending directed Who-Is to BBMD at {bbmdIpText}");
-                destination = new BacnetAddress(BacnetAddressTypes.IP, bbmdIpText);
+                // This creates a global broadcast address for all networks.
+                Log("Sending global Who-Is broadcast for discovery.");
+                destination = new BacnetAddress(BacnetAddressTypes.IP, "255.255.255.255");
             }
 
-            // Send the Who-Is request to the constructed destination address.
+            // Send the Who-Is request. The transport, knowing it's a Foreign Device,
+            // will route this packet to the BBMD, which will then forward it to the specified network.
             _bacnetClient.WhoIs(-1, -1, destination);
         }
 
@@ -273,12 +267,12 @@ namespace MainApp.Configuration
             return networks;
         }
 
-        private void CancelDiscoveryButton_Click(object sender, EventArgs e)
+        private void CancelDiscoveryButton_Click(object _sender, EventArgs _e)
         {
-            DiscoveryTimer_Tick(sender, e);
+            DiscoveryTimer_Tick(_sender, _e);
         }
 
-        private void DiscoveryTimer_Tick(object sender, EventArgs e)
+        private void DiscoveryTimer_Tick(object _sender, EventArgs _e)
         {
             _discoveryTimer.Stop();
             Log("Discovery finished.");
@@ -287,7 +281,7 @@ namespace MainApp.Configuration
             discoveryStatusLabel.Visible = false;
         }
 
-        private void PingButton_Click(object sender, EventArgs e)
+        private void PingButton_Click(object _sender, EventArgs _e)
         {
             EnsureBacnetClientStarted();
             if (deviceTreeView.SelectedNode == null)
@@ -297,12 +291,12 @@ namespace MainApp.Configuration
             }
             uint deviceId = uint.Parse(deviceTreeView.SelectedNode.Name);
             Log($"Pinging Device ID: {deviceId}...");
-            _bacnetClient.WhoIs(lowLimit: (int)deviceId, highLimit: (int)deviceId);
+            _bacnetClient.WhoIs((int)deviceId, (int)deviceId);
             _lastPingedDeviceId = deviceId;
             UpdateAllStates(null, null);
         }
 
-        private async void DiscoverObjectsButton_Click(object sender, EventArgs e)
+        private async void DiscoverObjectsButton_Click(object _sender, EventArgs _e)
         {
             EnsureBacnetClientStarted();
             if (_lastPingedDeviceId == null)
@@ -345,7 +339,7 @@ namespace MainApp.Configuration
             }
         }
 
-        private async void ReadPropertyButton_Click(object sender, EventArgs e)
+        private async void ReadPropertyButton_Click(object _sender, EventArgs _e)
         {
             EnsureBacnetClientStarted();
             if (deviceTreeView.SelectedNode == null)
@@ -428,7 +422,7 @@ namespace MainApp.Configuration
             bbmdTtlComboBox.Items.AddRange(new object[] { "60", "3600" });
         }
 
-        private void UpdateAllStates(object sender, EventArgs e)
+        private void UpdateAllStates(object _sender, EventArgs _e)
         {
             bool deviceSelected = deviceTreeView.SelectedNode != null;
             pingButton.Enabled = deviceSelected;
@@ -437,7 +431,7 @@ namespace MainApp.Configuration
             discoverObjectsButton.Enabled = _lastPingedDeviceId.HasValue;
         }
 
-        private void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e)
+        private void DeviceTreeView_AfterSelect(object _sender, TreeViewEventArgs e)
         {
             if (e.Node != null && uint.TryParse(e.Node.Name, out uint deviceId))
             {

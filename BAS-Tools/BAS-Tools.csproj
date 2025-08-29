@@ -50,9 +50,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BACnet, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\BACnet.3.0.1\lib\net48\BACnet.dll</HintPath>
-    </Reference>
     <Reference Include="Common.Logging, Version=3.4.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
       <HintPath>..\packages\Common.Logging.3.4.1\lib\net40\Common.Logging.dll</HintPath>
     </Reference>
@@ -127,6 +124,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BACnet\BACnetBase.cs" />
+    <Compile Include="BACnet\BACnetClient.cs" />
+    <Compile Include="BACnet\BacnetIpUdpProtocolTransport.cs" />
+    <Compile Include="BACnet\BacnetMstpProtocolTransport.cs" />
+    <Compile Include="BACnet\BACnetTransport.cs" />
     <Compile Include="Configuration\BACnet_MSTP_Local.cs">
       <SubType>UserControl</SubType>
     </Compile>
