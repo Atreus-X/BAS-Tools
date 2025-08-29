@@ -81,7 +81,7 @@ namespace MainApp.Configuration
                     if (match.Success) localIp = match.Groups[1].Value;
                 }
 
-                var transport = new BacnetIpUdpProtocolTransport(int.Parse(ipPortComboBox.Text), true, false, 1472, localIp);
+                var transport = new BacnetIpUdpProtocolTransport(int.Parse(ipPortComboBox.Text), false, false, 1472, localIp);
                 _bacnetClient = new BacnetClient(transport) { Timeout = int.Parse(apduTimeoutComboBox.Text) };
                 _bacnetClient.OnIam += OnIamHandler;
 

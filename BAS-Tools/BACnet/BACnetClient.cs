@@ -50,8 +50,6 @@ namespace System.IO.BACnet
         private LastSegmentACK m_last_segment_ack = new LastSegmentACK();
         private bool m_force_window_size = false;
         private uint m_writepriority = 0;
-        private BacnetAddress _receiver;
-
 
         public IBacnetTransport Transport { get { return m_client; } }
         public int Timeout { get { return m_timeout; } set { m_timeout = value; } }
@@ -115,7 +113,6 @@ namespace System.IO.BACnet
             m_timeout = timeout;
             Retries = retries;
             DefaultSegmentationHandling = true;
-            _receiver = null;
         }
 
         public override bool Equals(object obj)
@@ -893,37 +890,45 @@ namespace System.IO.BACnet
             }
         }
 
-        public void RemoteWhoIs(String BBMD_IP, int Port = 0xbac0, int low_limit = -1, int high_limit = -1)
-        {
+        // In file: BAS-Tools/BACnet/BACnetClient.cs
 
+        public void RemoteWhoIs(string BBMD_IP, int Port = 0xbac0, int low_limit = -1, int high_limit = -1, ushort network_number = 0xFFFF)
+        {
             try
             {
-                System.Net.IPEndPoint ep = new Net.IPEndPoint(Net.IPAddress.Parse(BBMD_IP), Port);
+                System.Net.IPEndPoint ep = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(BBMD_IP), Port);
 
                 EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
-                BacnetAddress broadcast = m_client.GetBroadcastAddress();
-                NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage, broadcast);
+
+                // The logical destination for the NPDU is a broadcast on the specified remote network.
+                // A network number of 0xFFFF means broadcast on all networks behind the BBMD.
+                BacnetAddress remoteBroadcast = new BacnetAddress(BacnetAddressTypes.IP, network_number, new byte[] { 255, 255, 255, 255 });
+
+                // NPDU encoding for a remote broadcast. The DNET, DLEN, and DADR will be set.
+                NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.DestinationSpecified, remoteBroadcast);
+
+                // APDU encoding for Who-Is
                 APDU.EncodeUnconfirmedServiceRequest(b, BacnetPduTypes.PDU_TYPE_UNCONFIRMED_SERVICE_REQUEST, BacnetUnconfirmedServices.SERVICE_UNCONFIRMED_WHO_IS);
                 Services.EncodeWhoIsBroadcast(b, low_limit, high_limit);
 
                 bool sent = false;
 
-                // dynamic avoid reference to BacnetIpUdpProtocolTransport or BacnetIpV6UdpProtocolTransport classes
-                if (m_client is BacnetIpUdpProtocolTransport)
-                    sent = (m_client as BacnetIpUdpProtocolTransport).SendRemoteWhois(b.buffer, ep, b.offset);
-                else
-                //  sent = (m_client as BacnetIpV6UdpProtocolTransport).SendRemoteWhois(b.buffer, ep, b.offset);
+                // The transport's SendRemoteWhois method will wrap this NPDU/APDU in a BVLC message
+                // of type Distribute-Broadcast-To-Network and send it to the BBMD's IP address (ep).
+                if (m_client is BacnetIpUdpProtocolTransport transport)
+                {
+                    sent = transport.SendRemoteWhois(b.buffer, ep, b.offset);
+                }
 
-                if (sent == false)
-                    Trace.TraceWarning("The given address do not match with the IP version");
-                else
+                if (sent)
                     Trace.WriteLine("Sending Remote Whois ... ", null);
+                else
+                    Trace.TraceWarning("Could not send Remote Who-Is. Transport might not be IP.");
             }
             catch (Exception ex)
             {
-                Trace.TraceError("Error on Sending Whois to remote BBMD (Wrong Transport, not IP ?)" + ex.Message);
+                Trace.TraceError("Error on Sending Who-Is to remote BBMD: " + ex.Message);
             }
-
         }
         public void WhoIs(int lowLimit = -1, int highLimit = -1, BacnetAddress adr = null)
         {
@@ -932,10 +937,9 @@ namespace System.IO.BACnet
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             BacnetAddress receiver;
 
-            // _receiver could be an unicast @ : for direct acces 
-            // usefull on BIP for a known IP:Port, unknown device Id
-            if (_receiver != null)
-                receiver = _receiver;
+            // Use the provided address if it's not null, otherwise use the broadcast address
+            if (adr != null)
+                receiver = adr;
             else
                 receiver = m_client.GetBroadcastAddress();
 
@@ -943,7 +947,7 @@ namespace System.IO.BACnet
             APDU.EncodeUnconfirmedServiceRequest(b, BacnetPduTypes.PDU_TYPE_UNCONFIRMED_SERVICE_REQUEST, BacnetUnconfirmedServices.SERVICE_UNCONFIRMED_WHO_IS);
             Services.EncodeWhoIsBroadcast(b, lowLimit, highLimit);
 
-            m_client.Send(b.buffer, m_client.HeaderLength, b.offset - m_client.HeaderLength, receiver, false, 0);
+            m_client.Send(b.buffer, m_client.HeaderLength, b.offset - m_client.HeaderLength, receiver, true, 0);
         }
 
         public void Iam(uint device_id, BacnetSegmentations segmentation = BacnetSegmentations.SEGMENTATION_BOTH, ushort vendor_id = 260, BacnetAddress source = null)

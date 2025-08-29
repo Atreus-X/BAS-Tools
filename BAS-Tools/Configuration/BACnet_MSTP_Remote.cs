@@ -159,19 +159,30 @@ namespace MainApp.Configuration
 
             _discoveryTimer.Start();
 
-            BacnetAddress destination;
+            string bbmdIp = bbmdIpComboBox.Text.Trim();
+            int.TryParse(bbmdPortComboBox.Text, out int bbmdPort);
 
-            if (listNetworkRadioButton.Checked && ushort.TryParse(networkNumberComboBox.Text, out ushort netNum))
+            if (!string.IsNullOrWhiteSpace(bbmdIp))
             {
-                Log($"Sending Who-Is for remote network {netNum}.");
-                destination = new BacnetAddress(BacnetAddressTypes.IP, netNum, new byte[] { 255, 255, 255, 255 });
+                // Remote discovery via BBMD
+                ushort netNum = 0; // 0 is a global broadcast to all networks behind the BBMD
+                if (listNetworkRadioButton.Checked && ushort.TryParse(networkNumberComboBox.Text, out ushort parsedNetNum))
+                {
+                    netNum = parsedNetNum;
+                    Log($"Sending Who-Is for remote network {netNum} via BBMD {bbmdIp}:{bbmdPort}.");
+                }
+                else
+                {
+                    Log($"Sending global Who-Is via BBMD {bbmdIp}:{bbmdPort}.");
+                }
+                _bacnetClient.RemoteWhoIs(bbmdIp, bbmdPort, -1, -1, netNum);
             }
             else
             {
-                Log("Sending global Who-Is broadcast for discovery.");
-                destination = new BacnetAddress(BacnetAddressTypes.IP, "255.255.255.255");
+                // Local discovery
+                Log("Sending local Who-Is broadcast for discovery.");
+                _bacnetClient.WhoIs(-1, -1, _bacnetClient.Transport.GetBroadcastAddress());
             }
-            _bacnetClient.WhoIs(-1, -1, destination);
         }
 
         private void OnIamHandler(BacnetClient _sender, BacnetAddress adr, uint deviceId, uint _maxApdu, BacnetSegmentations _segmentation, ushort vendorId)
