@@ -2359,6 +2359,26 @@ namespace System.IO.BACnet
         // Modif FC
         public BacnetAddress RoutedSource = null;
 
+        public BacnetAddress(BacnetAddressTypes type, string host, ushort net)
+        {
+            this.type = type;
+            this.net = net;
+            try
+            {
+                // Simple IP address parsing for this specific case
+                string[] parts = host.Split('.');
+                this.adr = new byte[4];
+                for (int i = 0; i < 4; i++)
+                {
+                    this.adr[i] = byte.Parse(parts[i]);
+                }
+            }
+            catch
+            {
+                this.adr = new byte[0];
+            }
+        }
+
         public BacnetAddress(BacnetAddressTypes type, UInt16 net, byte[] adr)
         {
             this.type = type;
@@ -8623,5 +8643,6 @@ namespace System.IO.BACnet.Serialize
 
             return len;
         }
+
     }
 }

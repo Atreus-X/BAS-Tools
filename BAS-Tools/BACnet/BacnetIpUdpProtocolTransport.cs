@@ -9,6 +9,9 @@ namespace System.IO.BACnet
         private UdpClient m_client;
         private int m_port;
         private string m_local_endpoint_ip;
+        private bool m_dont_fragment;
+        private int m_max_payload;
+        private bool m_is_foreign_device;
 
         public event MessageRecievedHandler MessageRecieved;
         public BacnetAddressTypes Type { get { return BacnetAddressTypes.IP; } }
@@ -17,10 +20,12 @@ namespace System.IO.BACnet
         public int MaxBufferLength { get { return 1472; } }
         public byte MaxInfoFrames { get; set; } = 0xFF;
 
-        // Corrected constructor to match BAS-Tools
-        public BacnetIpUdpProtocolTransport(int port, int timeout_not_used, bool exclusive_not_used, int retries_not_used, string local_endpoint_ip = "")
+        public BacnetIpUdpProtocolTransport(int port, bool dont_fragment = false, bool is_foreign_device = false, int max_payload = 1472, string local_endpoint_ip = "")
         {
             m_port = port;
+            m_dont_fragment = dont_fragment;
+            m_max_payload = max_payload;
+            m_is_foreign_device = is_foreign_device;
             m_local_endpoint_ip = local_endpoint_ip;
         }
 
@@ -72,6 +77,27 @@ namespace System.IO.BACnet
             catch
             {
                 return 0;
+            }
+        }
+
+        public bool SendRegisterAsForeignDevice(IPEndPoint ep, short ttl)
+        {
+            byte[] buffer = new byte[10];
+            buffer[0] = 0x81; // BVLC_TYPE_BACNET_IP
+            buffer[1] = 0x05; // BVLC_FUNCTION_REGISTER_FOREIGN_DEVICE
+            buffer[2] = 0; // Length
+            buffer[3] = 10;
+            buffer[4] = (byte)(ttl >> 8);
+            buffer[5] = (byte)(ttl & 0xFF);
+            try
+            {
+                m_client.Send(buffer, 10, ep);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("Error sending register as foreign device: " + ex.Message);
+                return false;
             }
         }
 

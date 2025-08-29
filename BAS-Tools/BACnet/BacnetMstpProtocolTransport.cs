@@ -7,8 +7,11 @@ namespace System.IO.BACnet
     // It does not contain a functional MSTP implementation.
     public class BacnetMstpProtocolTransport : IBacnetTransport
     {
-        public BacnetMstpProtocolTransport(string portName, int slaveId) { /* Placeholder */ }
+#pragma warning disable 0067 // Event is never used
         public event MessageRecievedHandler MessageRecieved;
+#pragma warning restore 0067
+
+        public BacnetMstpProtocolTransport(string portName, int baudRate, byte nodeAddress, byte maxMasters, byte maxInfoFrames) { /* Placeholder */ }
         public int HeaderLength => 0;
         public BacnetAddressTypes Type => BacnetAddressTypes.MSTP;
         public BacnetMaxAdpu MaxAdpuLength => BacnetMaxAdpu.MAX_APDU480;

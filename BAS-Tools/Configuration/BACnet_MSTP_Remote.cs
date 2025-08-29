@@ -99,8 +99,7 @@ namespace MainApp.Configuration
                     if (match.Success) localIp = match.Groups[1].Value;
                 }
 
-                // By passing 0 as the port, we let the OS choose an available ephemeral port, mirroring YABE's behavior.
-                var transport = new BacnetIpUdpProtocolTransport(0, true, true, 1472, localIp);
+                var transport = new BacnetIpUdpProtocolTransport(0, false, true, 1472, localIp);
                 Log("Transport created on a dynamic local port.");
 
                 _bacnetClient = new BacnetClient(transport) { Timeout = apduTimeout };
@@ -164,22 +163,14 @@ namespace MainApp.Configuration
 
             if (listNetworkRadioButton.Checked && ushort.TryParse(networkNumberComboBox.Text, out ushort netNum))
             {
-                // This creates a broadcast address for a SPECIFIC REMOTE NETWORK.
-                // Using the global broadcast IP with a specific network number is the
-                // correct way to trigger the library to create a Distribute-Broadcast-To-Network
-                // message that the BBMD will forward. This precisely mimics YABE's behavior.
                 Log($"Sending Who-Is for remote network {netNum}.");
-                destination = new BacnetAddress(BacnetAddressTypes.IP, "255.255.255.255", netNum);
+                destination = new BacnetAddress(BacnetAddressTypes.IP, netNum, new byte[] { 255, 255, 255, 255 });
             }
             else
             {
-                // This creates a global broadcast address for all networks.
                 Log("Sending global Who-Is broadcast for discovery.");
                 destination = new BacnetAddress(BacnetAddressTypes.IP, "255.255.255.255");
             }
-
-            // Send the Who-Is request. The transport, knowing it's a Foreign Device,
-            // will route this packet to the BBMD, which will then forward it to the specified network.
             _bacnetClient.WhoIs(-1, -1, destination);
         }
 

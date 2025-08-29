@@ -1,7 +1,6 @@
 ﻿/**************************************************************************
-*                           MIT License
-* 
-* Copyright (C) 2014 Morten Kvistgaard <mk@pch-engineering.dk>
+* MIT License
+* * Copyright (C) 2014 Morten Kvistgaard <mk@pch-engineering.dk>
 *
 * Permission is hereby granted, free of charge, to any person obtaining
 * a copy of this software and associated documentation files (the
@@ -51,6 +50,8 @@ namespace System.IO.BACnet
         private LastSegmentACK m_last_segment_ack = new LastSegmentACK();
         private bool m_force_window_size = false;
         private uint m_writepriority = 0;
+        private BacnetAddress _receiver;
+
 
         public IBacnetTransport Transport { get { return m_client; } }
         public int Timeout { get { return m_timeout; } set { m_timeout = value; } }
@@ -114,6 +115,7 @@ namespace System.IO.BACnet
             m_timeout = timeout;
             Retries = retries;
             DefaultSegmentationHandling = true;
+            _receiver = null;
         }
 
         public override bool Equals(object obj)
@@ -939,7 +941,7 @@ namespace System.IO.BACnet
 
             NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage, receiver);
             APDU.EncodeUnconfirmedServiceRequest(b, BacnetPduTypes.PDU_TYPE_UNCONFIRMED_SERVICE_REQUEST, BacnetUnconfirmedServices.SERVICE_UNCONFIRMED_WHO_IS);
-            Services.EncodeWhoIsBroadcast(b, low_limit, high_limit);
+            Services.EncodeWhoIsBroadcast(b, lowLimit, highLimit);
 
             m_client.Send(b.buffer, m_client.HeaderLength, b.offset - m_client.HeaderLength, receiver, false, 0);
         }
