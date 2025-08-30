@@ -124,11 +124,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-	  <Compile Include="BACnet\BACnetBase.cs" />
-	  <Compile Include="BACnet\BACnetClient.cs" />
-	  <Compile Include="BACnet\BacnetIpUdpProtocolTransport.cs" />
-	  <Compile Include="BACnet\BacnetMstpProtocolTransport.cs" />
-	  <Compile Include="BACnet\BACnetTransport.cs" />
+    <Compile Include="BACnet\BACnetBase.cs" />
+    <Compile Include="BACnet\BACnetClient.cs" />
+    <Compile Include="BACnet\BacnetIpUdpProtocolTransport.cs" />
+    <Compile Include="BACnet\BacnetMstpProtocolTransport.cs" />
+    <Compile Include="BACnet\BACnetTransport.cs" />
     <Compile Include="Configuration\BACnet_MSTP_Local.cs">
       <SubType>UserControl</SubType>
     </Compile>
