@@ -203,134 +203,82 @@ namespace MainApp.Configuration
             }
             // *** MODIFICATION END ***
         }
-        //private void OnIamHandler(BacnetClient _sender, BacnetAddress adr, uint deviceId, uint _maxApdu, BacnetSegmentations _segmentation, ushort vendorId)
-        //{
-        //    // Enhanced diagnostic logging
-        //    string routedInfo = (adr.RoutedSource != null)
-        //        ? $"Routed from NET {adr.RoutedSource.net}"
-        //        : "Not routed";
-        //    Log($"--- I-AM HANDLER FIRED --- Device ID: {deviceId}, From Address: {adr} (NET {adr.net}), {routedInfo}");
 
-        //    if (this.IsDisposed || !this.IsHandleCreated) return;
-
-        //    this.Invoke((MethodInvoker)delegate
-        //    {
-        //        ushort deviceNetwork = (adr.RoutedSource != null) ? adr.RoutedSource.net : adr.net;
-
-        //        bool shouldAddDevice = false;
-
-        //        if (anyNetworkRadioButton.Checked)
-        //        {
-        //            shouldAddDevice = true;
-        //        }
-        //        else if (listNetworkRadioButton.Checked)
-        //        {
-        //            var targetNetworks = ParseNetworkNumbers(networkNumberComboBox.Text);
-        //            if (targetNetworks.Contains(deviceNetwork))
-        //            {
-        //                shouldAddDevice = true;
-        //            }
-        //        }
-        //        else if (localNetworkRadioButton.Checked)
-        //        {
-        //            if (deviceNetwork == 0)
-        //            {
-        //                shouldAddDevice = true;
-        //            }
-        //        }
-
-        //        if (shouldAddDevice)
-        //        {
-        //            string deviceDisplay = $"{deviceId} (NET {deviceNetwork})";
-        //            if (!deviceTreeView.Nodes.ContainsKey(deviceId.ToString()))
-        //            {
-        //                Log($"Adding new device to tree: {deviceDisplay}");
-        //                var node = new TreeNode(deviceDisplay) { Name = deviceId.ToString(), Tag = adr };
-        //                deviceTreeView.Nodes.Add(node);
-        //                discoveryStatusLabel.Text = $"Found: {deviceTreeView.Nodes.Count}";
-        //            }
-        //            else
-        //            {
-        //                Log($"Device already in tree: {deviceDisplay}");
-        //            }
-        //        }
-        //        else
-        //        {
-        //            Log($"Skipping device {deviceId} on network {deviceNetwork} (Filter does not match).");
-        //        }
-        //    });
-        //}
-
-        private async void OnIamHandler(BacnetClient _sender, BacnetAddress adr, uint deviceId, uint _maxApdu, BacnetSegmentations _segmentation, ushort vendorId)
+        private void OnIamHandler(BacnetClient _sender, BacnetAddress adr, uint deviceId, uint _maxApdu, BacnetSegmentations _segmentation, ushort vendorId)
         {
-            // Log that the handler was triggered
-            GlobalLogger.Log($"I-Am packet decoded for Device ID {deviceId}.");
-
             if (this.IsDisposed || !this.IsHandleCreated) return;
 
-            // A copy of the address is needed for the async task
+            // A copy of the address is needed for the background task
             var deviceAddress = adr;
 
-            // Add a placeholder node to the UI immediately
-            TreeNode placeholderNode = null;
+            // The UI part must be done on the UI thread
             this.Invoke((MethodInvoker)delegate
             {
+                // Check if the node already exists before proceeding
+                if (deviceTreeView.Nodes.ContainsKey(deviceId.ToString()))
+                {
+                    Log($"Device {deviceId} is already in the tree. Ignoring I-Am.");
+                    return;
+                }
+
+                // 1. Create and add a placeholder node to the UI immediately
                 ushort deviceNetwork = (deviceAddress.RoutedSource != null) ? deviceAddress.RoutedSource.net : deviceAddress.net;
                 string initialText = $"{deviceId} (NET {deviceNetwork}) - Reading name...";
 
-                if (!deviceTreeView.Nodes.ContainsKey(deviceId.ToString()))
+                Log($"Adding placeholder for device: {initialText}");
+                TreeNode placeholderNode = new TreeNode(initialText) { Name = deviceId.ToString(), Tag = deviceAddress };
+                deviceTreeView.Nodes.Add(placeholderNode);
+                discoveryStatusLabel.Text = $"Found: {deviceTreeView.Nodes.Count}";
+
+                // 2. Start a background Task to read the properties without blocking the UI
+                Task.Run(() =>
                 {
-                    Log($"Adding placeholder for device: {initialText}");
-                    placeholderNode = new TreeNode(initialText) { Name = deviceId.ToString(), Tag = deviceAddress };
-                    deviceTreeView.Nodes.Add(placeholderNode);
-                    discoveryStatusLabel.Text = $"Found: {deviceTreeView.Nodes.Count}";
-                }
+                    string finalDeviceName = deviceId.ToString(); // Fallback name is the ID
+                    string finalMacAddress = "N/A";
+                    string errorText = null;
+
+                    try
+                    {
+                        // Read the Object Name property
+                        var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
+                        if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, BacnetPropertyIds.PROP_OBJECT_NAME, out IList<BacnetValue> values) && values?.Count > 0)
+                        {
+                            finalDeviceName = values[0].Value.ToString();
+                        }
+                        else
+                        {
+                            // This can happen if the device doesn't respond or provides no value
+                            errorText = " - (Name not available)";
+                        }
+
+                        // Format the MAC address
+                        if (deviceAddress.RoutedSource != null && deviceAddress.RoutedSource.adr != null)
+                        {
+                            finalMacAddress = string.Join(":", deviceAddress.RoutedSource.adr.Select(b => b.ToString("X2")));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // This will catch timeouts or specific BACnet errors (e.g., Access Denied)
+                        Log($"Error reading name for device {deviceId}: {ex.Message}");
+                        errorText = $" - (Error: {ex.Message})";
+                    }
+                    finally
+                    {
+                        // 3. Update the UI node with the final text on the UI thread
+                        if (!this.IsDisposed && this.IsHandleCreated)
+                        {
+                            this.Invoke((MethodInvoker)delegate
+                            {
+                                ushort net = (deviceAddress.RoutedSource != null) ? deviceAddress.RoutedSource.net : deviceAddress.net;
+                                placeholderNode.Text = $"{finalDeviceName} - {deviceId} (NET {net}) ({finalMacAddress}){errorText ?? ""}";
+                            });
+                        }
+                    }
+                });
             });
-
-            // If a new node was added, fetch its properties in the background
-            if (placeholderNode != null)
-            {
-                try
-                {
-                    // Read the Object Name property
-                    var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
-
-                    // *** FIX: Initialize variable to null ***
-                    IList<BacnetValue> values = null;
-                    // Use the async version to avoid blocking
-                    await Task.Run(() => _bacnetClient.ReadPropertyRequest(deviceAddress, objectId, BacnetPropertyIds.PROP_OBJECT_NAME, out values));
-
-                    string deviceName = deviceId.ToString(); // Fallback to device ID
-                    if (values != null && values.Count > 0)
-                    {
-                        deviceName = values[0].Value.ToString();
-                    }
-
-                    // Format the MAC address
-                    string macAddress = "";
-                    if (deviceAddress.RoutedSource != null && deviceAddress.RoutedSource.adr != null)
-                    {
-                        macAddress = string.Join(":", deviceAddress.RoutedSource.adr.Select(b => b.ToString("X2")));
-                    }
-
-                    // Update the UI with the full information
-                    this.Invoke((MethodInvoker)delegate
-                    {
-                        ushort deviceNetwork = (deviceAddress.RoutedSource != null) ? deviceAddress.RoutedSource.net : deviceAddress.net;
-                        placeholderNode.Text = $"{deviceName} - {deviceId} (NET {deviceNetwork}) ({macAddress})";
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Log($"Error reading name for device {deviceId}: {ex.Message}");
-                    // Update UI to show the error
-                    this.Invoke((MethodInvoker)delegate
-                    {
-                        placeholderNode.Text = $"{deviceId} - (Error reading name)";
-                    });
-                }
-            }
         }
+
         private List<ushort> ParseNetworkNumbers(string text)
         {
             var networks = new List<ushort>();
@@ -420,28 +368,28 @@ namespace MainApp.Configuration
                 var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
                 var propertyId = BacnetPropertyIds.PROP_OBJECT_LIST;
 
-                // Using the async Begin/End pattern to get detailed exception info on failure
-                var result = _bacnetClient.BeginReadPropertyRequest(deviceAddress, objectId, propertyId, true);
-
+                // Using Task.Run to execute the synchronous BACnet call on a background thread
                 await Task.Run(() =>
                 {
                     try
                     {
-                        _bacnetClient.EndReadPropertyRequest(result, out IList<BacnetValue> objectList, out Exception ex);
-                        if (ex != null)
+                        // The synchronous ReadPropertyRequest will throw an exception on timeout or BACnet error
+                        if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, propertyId, out IList<BacnetValue> objectList))
                         {
-                            // This will now throw the specific BACnet error
-                            throw ex;
+                            Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
+                            this.Invoke((MethodInvoker)delegate {
+                                PopulateObjectTree(objectList);
+                            });
                         }
-
-                        Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
-                        this.Invoke((MethodInvoker)delegate {
-                            PopulateObjectTree(objectList);
-                        });
+                        else
+                        {
+                            // This case is unlikely if an exception isn't thrown, but we log it just in case.
+                            Log($"--- ERROR: Failed to read object list for device {deviceId}. The request may have timed out. ---");
+                        }
                     }
                     catch (Exception ex)
                     {
-                        // Log the specific error message from the device
+                        // This will now catch and log the specific BACnet error (e.g., "Error from device: ...")
                         Log($"--- ERROR reading object list for device {deviceId}: {ex.Message} ---");
                     }
                 });

@@ -826,16 +826,16 @@ namespace System.IO.BACnet
         {
             try
             {
-                GlobalLogger.Log($"Transport Received {msg_length} bytes from {remote_address}.");
                 if (m_client == null) return;
 
                 if (sender.Type == BacnetAddressTypes.IP)
                 {
-                    // The 'remote_address' is now passed by 'ref' to be updated by the BVLC decoder if it's a forwarded packet
-                    int bvlc_length = Bvlc.Decode(buffer, offset, out var bvlc_function, out var bvlc_msg_length, ref remote_address);
-                    if (bvlc_length < 0) { GlobalLogger.Log("BVLC Header decoding error."); return; }
-
-                    GlobalLogger.Log($"BVLC decoded: function {bvlc_function}, length {bvlc_msg_length}. Header size: {bvlc_length} bytes.");
+                    int bvlc_length = Bvlc.Decode(buffer, offset, out _, out _, ref remote_address);
+                    if (bvlc_length < 0)
+                    {
+                        // This is not a critical error, could be other UDP traffic on the port.
+                        return;
+                    }
                     offset += bvlc_length;
                     msg_length -= bvlc_length;
                 }
@@ -848,8 +848,6 @@ namespace System.IO.BACnet
                 BacnetNetworkMessageTypes nmt;
                 ushort vendor_id;
                 int npdu_len = NPDU.Decode(buffer, offset, out npdu_function, out destination, out source, out hop_count, out nmt, out vendor_id);
-
-                GlobalLogger.Log($"NPDU decoded: length {npdu_len}, function {npdu_function}");
 
                 if (source != null)
                     remote_address.RoutedSource = source;
@@ -870,7 +868,6 @@ namespace System.IO.BACnet
             catch (Exception ex)
             {
                 Trace.TraceError("Error in OnReceive: " + ex.ToString());
-                GlobalLogger.Log("Exception in OnReceive: " + ex.Message);
             }
         }
         public void RegisterAsForeignDevice(String BBMD_IP, short TTL, int Port = 0xbac0)
@@ -2757,25 +2754,24 @@ namespace System.IO.BACnet
             function = 0;
             msg_length = 0;
 
-            if (buffer[offset] != 0x81) return -1; // Not a BACnet/IP packet
+            if (buffer[offset] != 0x81) return -1;
 
             function = (BacnetBvlcFunctions)buffer[offset + 1];
             msg_length = (buffer[offset + 2] << 8) | buffer[offset + 3];
 
-            if (msg_length > buffer.Length) return -1; // Invalid length
+            if (msg_length > buffer.Length) return -1;
 
             if (function == BacnetBvlcFunctions.BVLC_FORWARDED_NPDU)
             {
-                // Forwarded NPDU has an additional 6 bytes for the original source IP and port
                 byte[] ip = new byte[4];
                 Array.Copy(buffer, offset + 4, ip, 0, 4);
                 ushort port = (ushort)((buffer[offset + 8] << 8) | buffer[offset + 9]);
                 remote_address = new BacnetAddress(BacnetAddressTypes.IP, port, ip);
-                return 10; // Total BVLC header length for forwarded NPDU
+                return 10;
             }
             else
             {
-                return 4; // Standard BVLC header length
+                return 4;
             }
         }
     }
