@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MainApp;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO.BACnet;
@@ -17,6 +18,7 @@ namespace MainApp.Configuration
         private readonly HistoryManager _historyManager;
         private uint? _lastPingedDeviceId;
         private readonly System.Windows.Forms.Timer _discoveryTimer;
+        private string _lastBBMD_IP = ""; // Tracks the last BBMD IP to prevent unnecessary re-registration
 
         public BACnet_MSTP_Remote()
         {
@@ -32,7 +34,6 @@ namespace MainApp.Configuration
                 return;
 
             GlobalLogger.Register(outputTextBox);
-
             PopulateDefaultValues();
             LoadHistory();
             UpdateAllStates(null, null);
@@ -78,6 +79,15 @@ namespace MainApp.Configuration
 
         private void EnsureBacnetClientStarted()
         {
+            string currentBBMD_IP = bbmdIpComboBox.Text.Trim();
+
+            // If client is running and BBMD IP is unchanged, do nothing.
+            if (_bacnetClient != null && currentBBMD_IP == _lastBBMD_IP)
+            {
+                return;
+            }
+
+            // Otherwise, re-initialize
             if (_bacnetClient != null)
             {
                 _bacnetClient.Dispose();
@@ -94,17 +104,13 @@ namespace MainApp.Configuration
                 }
 
                 Log("Initializing BACnet/IP client for remote MS/TP (BBMD)...");
-                /*                string localIp = "0.0.0.0";
-                                if (localInterfaceComboBox.SelectedIndex > 0 && localInterfaceComboBox.SelectedItem != null)
-                                {
-                                    var match = System.Text.RegularExpressions.Regex.Match(localInterfaceComboBox.SelectedItem.ToString(), @"\((.*?)\)");
-                                    if (match.Success) localIp = match.Groups[1].Value;
-                                }
-                */
-                string localIp = "0.0.0.0"; // Force listening on ALL network interfaces
+                string localIp = "0.0.0.0";
+                if (localInterfaceComboBox.SelectedIndex > 0 && localInterfaceComboBox.SelectedItem != null)
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(localInterfaceComboBox.SelectedItem.ToString(), @"\((.*?)\)");
+                    if (match.Success) localIp = match.Groups[1].Value;
+                }
 
-                // --- Start of Corrected Code ---
-                // Use the BBMD port as the local port to ensure symmetric communication
                 int localPort = 47808;
                 if (int.TryParse(bbmdPortComboBox.Text, out int parsedBBMDPort))
                 {
@@ -113,7 +119,6 @@ namespace MainApp.Configuration
 
                 var transport = new BacnetIpUdpProtocolTransport(localPort, false, true, 1472, localIp);
                 Log($"Transport created on local port {localPort}.");
-                // --- End of Corrected Code ---
 
                 _bacnetClient = new BacnetClient(transport) { Timeout = apduTimeout };
                 _bacnetClient.OnIam += OnIamHandler;
@@ -121,24 +126,23 @@ namespace MainApp.Configuration
                 _bacnetClient.Start();
                 Log("BACnet client transport started.");
 
-                string bbmdIpText = bbmdIpComboBox.Text.Trim();
+                _lastBBMD_IP = currentBBMD_IP; // Store the current BBMD IP
 
                 int bbmdPort = 47808;
-                // This variable name is changed to avoid the compiler error from before
-                if (int.TryParse(bbmdPortComboBox.Text, out int parsedPortFromBox))
+                if (int.TryParse(bbmdPortComboBox.Text, out int parsedPort))
                 {
-                    bbmdPort = parsedPortFromBox;
+                    bbmdPort = parsedPort;
                 }
 
-                if (!string.IsNullOrWhiteSpace(bbmdIpText))
+                if (!string.IsNullOrWhiteSpace(currentBBMD_IP))
                 {
                     if (!short.TryParse(bbmdTtlComboBox.Text, out short ttl))
                     {
                         Log("--- ERROR: Invalid BBMD TTL value. ---");
                         return;
                     }
-                    Log($"Attempting to register as Foreign Device with BBMD at {bbmdIpText}:{bbmdPort} with TTL {ttl}...");
-                    _bacnetClient.RegisterAsForeignDevice(bbmdIpText, ttl, bbmdPort);
+                    Log($"Attempting to register as Foreign Device with BBMD at {currentBBMD_IP}:{bbmdPort} with TTL {ttl}...");
+                    _bacnetClient.RegisterAsForeignDevice(currentBBMD_IP, ttl, bbmdPort);
                     Log("Foreign Device Registration message sent.");
 
                     Log("Waiting 2 seconds for BBMD to process registration...");
@@ -153,6 +157,7 @@ namespace MainApp.Configuration
                 MessageBox.Show($"Error during BACnet initialization: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void StartDiscoveryButton_Click(object sender, EventArgs e)
         {
             EnsureBacnetClientStarted();
@@ -176,12 +181,9 @@ namespace MainApp.Configuration
             string bbmdIp = bbmdIpComboBox.Text.Trim();
             int.TryParse(bbmdPortComboBox.Text, out int bbmdPort);
 
-            // *** MODIFICATION START ***
-            // Check if a remote discovery is explicitly requested via the "List" filter
             if (listNetworkRadioButton.Checked && !string.IsNullOrWhiteSpace(bbmdIp))
             {
-                // Remote discovery via BBMD
-                ushort netNum = 0;
+                ushort netNum;
                 if (ushort.TryParse(networkNumberComboBox.Text, out ushort parsedNetNum))
                 {
                     netNum = parsedNetNum;
@@ -189,39 +191,31 @@ namespace MainApp.Configuration
                 }
                 else
                 {
-                    netNum = 0xFFFF; // Fallback to broadcast all remote networks if parsing fails
-                    Log($"Sending global Who-Is via BBMD {bbmdIp}:{bbmdPort} (network number parse failed).");
+                    netNum = 0xFFFF;
+                    Log($"Sending global Who-Is via BBMD {bbmdIp}:{bbmdPort}.");
                 }
                 _bacnetClient.RemoteWhoIs(bbmdIp, bbmdPort, -1, -1, netNum);
             }
             else
             {
-                // Local discovery for "Any" or "Local" network selections,
-                // or if no BBMD is specified.
                 Log("Sending local Who-Is broadcast for discovery.");
                 _bacnetClient.WhoIs(-1, -1, _bacnetClient.Transport.GetBroadcastAddress());
             }
-            // *** MODIFICATION END ***
         }
 
         private void OnIamHandler(BacnetClient _sender, BacnetAddress adr, uint deviceId, uint _maxApdu, BacnetSegmentations _segmentation, ushort vendorId)
         {
             if (this.IsDisposed || !this.IsHandleCreated) return;
 
-            // A copy of the address is needed for the background task
             var deviceAddress = adr;
 
-            // The UI part must be done on the UI thread
             this.Invoke((MethodInvoker)delegate
             {
-                // Check if the node already exists before proceeding
                 if (deviceTreeView.Nodes.ContainsKey(deviceId.ToString()))
                 {
-                    Log($"Device {deviceId} is already in the tree. Ignoring I-Am.");
                     return;
                 }
 
-                // 1. Create and add a placeholder node to the UI immediately
                 ushort deviceNetwork = (deviceAddress.RoutedSource != null) ? deviceAddress.RoutedSource.net : deviceAddress.net;
                 string initialText = $"{deviceId} (NET {deviceNetwork}) - Reading name...";
 
@@ -230,16 +224,14 @@ namespace MainApp.Configuration
                 deviceTreeView.Nodes.Add(placeholderNode);
                 discoveryStatusLabel.Text = $"Found: {deviceTreeView.Nodes.Count}";
 
-                // 2. Start a background Task to read the properties without blocking the UI
                 Task.Run(() =>
                 {
-                    string finalDeviceName = deviceId.ToString(); // Fallback name is the ID
+                    string finalDeviceName = deviceId.ToString();
                     string finalMacAddress = "N/A";
                     string errorText = null;
 
                     try
                     {
-                        // Read the Object Name property
                         var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
                         if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, BacnetPropertyIds.PROP_OBJECT_NAME, out IList<BacnetValue> values) && values?.Count > 0)
                         {
@@ -247,11 +239,9 @@ namespace MainApp.Configuration
                         }
                         else
                         {
-                            // This can happen if the device doesn't respond or provides no value
                             errorText = " - (Name not available)";
                         }
 
-                        // Format the MAC address
                         if (deviceAddress.RoutedSource != null && deviceAddress.RoutedSource.adr != null)
                         {
                             finalMacAddress = string.Join(":", deviceAddress.RoutedSource.adr.Select(b => b.ToString("X2")));
@@ -259,13 +249,11 @@ namespace MainApp.Configuration
                     }
                     catch (Exception ex)
                     {
-                        // This will catch timeouts or specific BACnet errors (e.g., Access Denied)
                         Log($"Error reading name for device {deviceId}: {ex.Message}");
                         errorText = $" - (Error: {ex.Message})";
                     }
                     finally
                     {
-                        // 3. Update the UI node with the final text on the UI thread
                         if (!this.IsDisposed && this.IsHandleCreated)
                         {
                             this.Invoke((MethodInvoker)delegate
@@ -368,12 +356,10 @@ namespace MainApp.Configuration
                 var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
                 var propertyId = BacnetPropertyIds.PROP_OBJECT_LIST;
 
-                // Using Task.Run to execute the synchronous BACnet call on a background thread
                 await Task.Run(() =>
                 {
                     try
                     {
-                        // The synchronous ReadPropertyRequest will throw an exception on timeout or BACnet error
                         if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, propertyId, out IList<BacnetValue> objectList))
                         {
                             Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
@@ -383,13 +369,11 @@ namespace MainApp.Configuration
                         }
                         else
                         {
-                            // This case is unlikely if an exception isn't thrown, but we log it just in case.
                             Log($"--- ERROR: Failed to read object list for device {deviceId}. The request may have timed out. ---");
                         }
                     }
                     catch (Exception ex)
                     {
-                        // This will now catch and log the specific BACnet error (e.g., "Error from device: ...")
                         Log($"--- ERROR reading object list for device {deviceId}: {ex.Message} ---");
                     }
                 });
@@ -399,6 +383,7 @@ namespace MainApp.Configuration
                 Log($"--- General Discover Objects Error: {ex.Message} ---");
             }
         }
+
         private async void ReadPropertyButton_Click(object _sender, EventArgs _e)
         {
             EnsureBacnetClientStarted();
