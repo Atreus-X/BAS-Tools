@@ -218,6 +218,10 @@ namespace MainApp.Configuration
                             Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
                             this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
                         }
+                        else
+                        {
+                            if (!token.IsCancellationRequested) Log($"--- ERROR: Failed to read object list for device {deviceId} (timeout). ---");
+                        }
                     }
                 }
                 catch (Exception ex)

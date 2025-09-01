@@ -45,10 +45,11 @@ namespace MainApp.Configuration
             this.deviceTreeView.AfterSelect += this.DeviceTreeView_AfterSelect;
             this.instanceNumberComboBox.TextChanged += this.UpdateAllStates;
             this.discoverButton.Click += this.DiscoverButton_Click;
+            this.pingButton.Click += this.PingButton_Click;
             this.discoverObjectsButton.Click += this.DiscoverObjectsButton_Click;
             this.readPropertyButton.Click += this.ReadPropertyButton_Click;
             this.clearLogButton.Click += this.ClearLogButton_Click;
-
+            this.networkNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(networkNumberComboBox, "networkNumber");
             ipAddressComboBox.Leave += (s, args) => SaveComboBoxEntry(ipAddressComboBox, "ipAddress");
             instanceNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(instanceNumberComboBox, "instanceNumber");
             ipPortComboBox.Leave += (s, args) => SaveComboBoxEntry(ipPortComboBox, "ipPort");
@@ -154,7 +155,26 @@ namespace MainApp.Configuration
             if (!_isClientStarted) return;
             deviceTreeView.Nodes.Clear();
             Log("Sending Global Who-Is broadcast...");
-            _bacnetClient.WhoIs();
+
+            ushort.TryParse(networkNumberComboBox.Text, out ushort net);
+            var adr = _bacnetClient.Transport.GetBroadcastAddress(); // Corrected Line
+            adr.net = net;
+
+            _bacnetClient.WhoIs(-1, -1, adr);
+        }
+
+        private void PingButton_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(instanceNumberComboBox.Text))
+            {
+                MessageBox.Show("Instance number is required for Ping.", "Error");
+                return;
+            }
+            EnsureBacnetClientStarted();
+            if (!_isClientStarted) return;
+            uint deviceId = uint.Parse(instanceNumberComboBox.Text);
+            Log($"Pinging Device ID: {deviceId}...");
+            _bacnetClient.WhoIs(lowLimit: (int)deviceId, highLimit: (int)deviceId);
         }
 
         private void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e)
@@ -169,7 +189,6 @@ namespace MainApp.Configuration
 
             _lastPingedDeviceId = uint.Parse(e.Node.Name);
             UpdateAllStates(null, null);
-
             LoadDeviceDetails(e.Node);
         }
 
@@ -204,13 +223,11 @@ namespace MainApp.Configuration
 
             Task.Run(() =>
             {
-                // STEP 1: READ DEVICE NAME (if needed)
                 if (selectedNode.Text.Contains("(Name not read)"))
                 {
                     this.Invoke((MethodInvoker)delegate {
                         selectedNode.Text = $"(Reading name...) ({deviceInfo["MAC"]}) ({deviceId}) ({deviceInfo["VendorName"]})";
                     });
-
                     string finalDeviceName = deviceId.ToString();
                     string errorText = null;
                     try
@@ -245,7 +262,6 @@ namespace MainApp.Configuration
                     }
                 }
 
-                // STEP 2: READ OBJECT LIST
                 try
                 {
                     lock (_bacnetLock)
@@ -255,10 +271,6 @@ namespace MainApp.Configuration
                         {
                             Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
                             this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
-                        }
-                        else
-                        {
-                            Log($"--- ERROR: Failed to read object list for device {deviceId} (timeout). ---");
                         }
                     }
                 }
@@ -360,6 +372,7 @@ namespace MainApp.Configuration
         private void UpdateAllStates(object sender, EventArgs e)
         {
             bool instanceExists = !string.IsNullOrWhiteSpace(instanceNumberComboBox.Text);
+            pingButton.Enabled = instanceExists;
             readPropertyButton.Enabled = instanceExists;
             writePropertyButton.Enabled = instanceExists;
             discoverObjectsButton.Enabled = _lastPingedDeviceId.HasValue;
@@ -445,6 +458,7 @@ namespace MainApp.Configuration
             PopulateComboBoxWithHistory(apduTimeoutComboBox, "apduTimeout");
             PopulateComboBoxWithHistory(bbmdIpComboBox, "bbmdIp");
             PopulateComboBoxWithHistory(bbmdTtlComboBox, "bbmdTtl");
+            PopulateComboBoxWithHistory(networkNumberComboBox, "networkNumber");
 
             if (string.IsNullOrEmpty(ipAddressComboBox.Text)) ipAddressComboBox.Text = "192.168.1.200";
             if (string.IsNullOrEmpty(instanceNumberComboBox.Text)) instanceNumberComboBox.Text = "100";
@@ -452,6 +466,7 @@ namespace MainApp.Configuration
             if (string.IsNullOrEmpty(apduTimeoutComboBox.Text)) apduTimeoutComboBox.Text = "5000";
             if (string.IsNullOrEmpty(bbmdIpComboBox.Text)) bbmdIpComboBox.Text = "";
             if (string.IsNullOrEmpty(bbmdTtlComboBox.Text)) bbmdTtlComboBox.Text = "3600";
+            if (string.IsNullOrEmpty(networkNumberComboBox.Text)) networkNumberComboBox.Text = "0";
         }
 
         private void PopulateComboBoxWithHistory(ComboBox comboBox, string key)
@@ -486,6 +501,7 @@ namespace MainApp.Configuration
             apduTimeoutComboBox?.Items.Clear();
             bbmdIpComboBox?.Items.Clear();
             bbmdTtlComboBox?.Items.Clear();
+            networkNumberComboBox?.Items.Clear();
             PopulateDefaultValues();
             LoadHistory();
             Log("BACnet/IP history cleared.");
