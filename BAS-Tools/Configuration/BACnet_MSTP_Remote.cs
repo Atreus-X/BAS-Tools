@@ -64,6 +64,10 @@ namespace MainApp.Configuration
             objectTreeView.AfterSelect += ObjectTreeView_AfterSelect;
             expandAllButton.Click += (s, args) => deviceTreeView.ExpandAll();
             collapseAllButton.Click += (s, args) => deviceTreeView.CollapseAll();
+            clearBrowserButton.Click += (s, e) => {
+                deviceTreeView.Nodes.Clear();
+                objectTreeView.Nodes.Clear();
+            };
         }
 
         private void CancelActionButton_Click(object sender, EventArgs e)
@@ -99,12 +103,51 @@ namespace MainApp.Configuration
                         TreeNode deviceNode = new TreeNode(deviceText) { Name = deviceId.ToString(), Tag = deviceInfo };
                         networkNode.Nodes.Add(deviceNode);
                         networkNode.Expand();
+                        ReadDeviceName(deviceNode, deviceId, adr);
                     }
                 }
                 catch (Exception ex) { Log($"Error in OnIamHandler: {ex.Message}"); }
             });
         }
-
+        private void ReadDeviceName(TreeNode deviceNode, uint deviceId, BacnetAddress adr)
+        {
+            Task.Run(() =>
+            {
+                string finalDeviceName = deviceId.ToString();
+                string errorText = null;
+                try
+                {
+                    lock (_bacnetLock)
+                    {
+                        var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
+                        if (_bacnetClient.ReadPropertyRequest(adr, objectId, BacnetPropertyIds.PROP_OBJECT_NAME, out IList<BacnetValue> values) && values?.Count > 0)
+                        {
+                            finalDeviceName = values[0].Value.ToString();
+                        }
+                        else
+                        {
+                            errorText = " (Name not available)";
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log($"Error reading name for device {deviceId}: {ex.Message}");
+                    errorText = " (Error reading name)";
+                }
+                finally
+                {
+                    if (!this.IsDisposed && this.IsHandleCreated)
+                    {
+                        this.Invoke((MethodInvoker)delegate
+                        {
+                            var deviceInfo = deviceNode.Tag as Dictionary<string, object>;
+                            deviceNode.Text = $"{finalDeviceName} ({deviceInfo["MAC"]}) ({deviceId}) ({deviceInfo["VendorName"]}){errorText ?? ""}";
+                        });
+                    }
+                }
+            });
+        }
         private void DeviceTreeView_AfterSelect(object _sender, TreeViewEventArgs e)
         {
             if (e.Node == null || e.Node.Tag == null || e.Node.Tag.ToString() == "NETWORK_NODE")
@@ -165,47 +208,6 @@ namespace MainApp.Configuration
             {
                 try
                 {
-                    // STEP 1: READ DEVICE NAME
-                    if (selectedNode.Text.Contains("(Name not read)") && !token.IsCancellationRequested)
-                    {
-                        this.Invoke((MethodInvoker)delegate {
-                            selectedNode.Text = $"(Reading name...) ({deviceInfo["MAC"]}) ({deviceId}) ({deviceInfo["VendorName"]})";
-                        });
-                        string finalDeviceName = deviceId.ToString();
-                        string errorText = null;
-                        try
-                        {
-                            if (token.IsCancellationRequested) return;
-                            lock (_bacnetLock)
-                            {
-                                var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
-                                if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, BacnetPropertyIds.PROP_OBJECT_NAME, out IList<BacnetValue> values) && values?.Count > 0)
-                                {
-                                    finalDeviceName = values[0].Value.ToString();
-                                }
-                                else
-                                {
-                                    errorText = " (Name not available)";
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            if (!token.IsCancellationRequested) Log($"Error reading name for device {deviceId}: {ex.Message}");
-                            errorText = " (Error reading name)";
-                        }
-                        finally
-                        {
-                            if (!this.IsDisposed && this.IsHandleCreated && !token.IsCancellationRequested)
-                            {
-                                this.Invoke((MethodInvoker)delegate
-                                {
-                                    selectedNode.Text = $"{finalDeviceName} ({deviceInfo["MAC"]}) ({deviceId}) ({deviceInfo["VendorName"]}){errorText ?? ""}";
-                                });
-                            }
-                        }
-                    }
-
                     if (token.IsCancellationRequested) return;
 
                     // STEP 2: READ OBJECT LIST

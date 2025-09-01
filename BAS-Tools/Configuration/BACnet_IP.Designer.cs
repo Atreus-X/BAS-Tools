@@ -37,6 +37,7 @@
             this.browserButtonsPanel = new System.Windows.Forms.TableLayoutPanel();
             this.expandAllButton = new System.Windows.Forms.Button();
             this.collapseAllButton = new System.Windows.Forms.Button();
+            this.clearBrowserButton = new System.Windows.Forms.Button();
             this.objectDiscoveryProgressBar = new System.Windows.Forms.ProgressBar();
             this.objectCountLabel = new System.Windows.Forms.Label();
             this.outputFrame = new System.Windows.Forms.GroupBox();
@@ -165,15 +166,17 @@
             // browserButtonsPanel
             // 
             this.browserButtonsPanel.AutoSize = true;
-            this.browserButtonsPanel.ColumnCount = 4;
+            this.browserButtonsPanel.ColumnCount = 5;
+            this.browserButtonsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.browserButtonsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.browserButtonsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.browserButtonsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.browserButtonsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.browserButtonsPanel.Controls.Add(this.expandAllButton, 0, 0);
             this.browserButtonsPanel.Controls.Add(this.collapseAllButton, 1, 0);
-            this.browserButtonsPanel.Controls.Add(this.objectDiscoveryProgressBar, 3, 0);
-            this.browserButtonsPanel.Controls.Add(this.objectCountLabel, 2, 0);
+            this.browserButtonsPanel.Controls.Add(this.clearBrowserButton, 2, 0);
+            this.browserButtonsPanel.Controls.Add(this.objectDiscoveryProgressBar, 4, 0);
+            this.browserButtonsPanel.Controls.Add(this.objectCountLabel, 3, 0);
             this.browserButtonsPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this.browserButtonsPanel.Location = new System.Drawing.Point(3, 16);
             this.browserButtonsPanel.Name = "browserButtonsPanel";
@@ -199,6 +202,15 @@
             this.collapseAllButton.TabIndex = 1;
             this.collapseAllButton.Text = "Collapse All";
             this.collapseAllButton.UseVisualStyleBackColor = true;
+            // 
+            // clearBrowserButton
+            // 
+            this.clearBrowserButton.Location = new System.Drawing.Point(165, 3);
+            this.clearBrowserButton.Name = "clearBrowserButton";
+            this.clearBrowserButton.Size = new System.Drawing.Size(75, 23);
+            this.clearBrowserButton.TabIndex = 2;
+            this.clearBrowserButton.Text = "Clear";
+            this.clearBrowserButton.UseVisualStyleBackColor = true;
             // 
             // objectDiscoveryProgressBar
             // 
@@ -567,6 +579,7 @@
             this.ipLayout.ResumeLayout(false);
             this.ipLayout.PerformLayout();
             this.ResumeLayout(false);
+
         }
         #endregion
 
@@ -605,6 +618,7 @@
         private System.Windows.Forms.TableLayoutPanel browserButtonsPanel;
         private System.Windows.Forms.Button expandAllButton;
         private System.Windows.Forms.Button collapseAllButton;
+        private System.Windows.Forms.Button clearBrowserButton;
         private System.Windows.Forms.ProgressBar objectDiscoveryProgressBar;
         private System.Windows.Forms.Label objectCountLabel;
         private System.Windows.Forms.Label labelNetworkNumber;
