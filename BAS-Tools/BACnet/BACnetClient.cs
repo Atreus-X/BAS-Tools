@@ -903,7 +903,7 @@ namespace System.IO.BACnet
             {
                 System.Net.IPEndPoint ep = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(BBMD_IP), Port);
 
-                EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
+                EncodeBuffer b = new EncodeBuffer(new byte[m_client.MaxBufferLength], 0);
 
                 // The logical destination for the NPDU is a broadcast on the specified remote network.
                 // A network number of 0xFFFF means broadcast on all networks behind the BBMD.
@@ -941,6 +941,7 @@ namespace System.IO.BACnet
 
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             BacnetAddress receiver;
+            bool broadcast = (adr == null);
 
             // Use the provided address if it's not null, otherwise use the broadcast address
             if (adr != null)
@@ -952,9 +953,8 @@ namespace System.IO.BACnet
             APDU.EncodeUnconfirmedServiceRequest(b, BacnetPduTypes.PDU_TYPE_UNCONFIRMED_SERVICE_REQUEST, BacnetUnconfirmedServices.SERVICE_UNCONFIRMED_WHO_IS);
             Services.EncodeWhoIsBroadcast(b, lowLimit, highLimit);
 
-            m_client.Send(b.buffer, m_client.HeaderLength, b.offset - m_client.HeaderLength, receiver, true, 0);
+            m_client.Send(b.buffer, m_client.HeaderLength, b.offset - m_client.HeaderLength, receiver, broadcast, 0);
         }
-
         public void Iam(uint device_id, BacnetSegmentations segmentation = BacnetSegmentations.SEGMENTATION_BOTH, ushort vendor_id = 260, BacnetAddress source = null)
         {
             Trace.WriteLine("Sending Iam ... ", null);

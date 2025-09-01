@@ -20,6 +20,7 @@ namespace MainApp.Configuration
         private uint? _lastPingedDeviceId = null;
         private bool _isClientStarted = false;
         private readonly object _bacnetLock = new object();
+        private string _lastBBMDIp = "";
 
         public BACnet_IP()
         {
@@ -54,7 +55,10 @@ namespace MainApp.Configuration
             instanceNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(instanceNumberComboBox, "instanceNumber");
             ipPortComboBox.Leave += (s, args) => SaveComboBoxEntry(ipPortComboBox, "ipPort");
             apduTimeoutComboBox.Leave += (s, args) => SaveComboBoxEntry(apduTimeoutComboBox, "apduTimeout");
-            bbmdIpComboBox.Leave += (s, args) => SaveComboBoxEntry(bbmdIpComboBox, "bbmdIp");
+            bbmdIpComboBox.Leave += (s, args) => {
+                SaveComboBoxEntry(bbmdIpComboBox, "bbmdIp");
+                EnsureBacnetClientStarted(); // Re-check connection on BBMD IP change
+            };
             bbmdTtlComboBox.Leave += (s, args) => SaveComboBoxEntry(bbmdTtlComboBox, "bbmdTtl");
 
             expandAllButton.Click += (s, e) => deviceTreeView.ExpandAll();
@@ -73,11 +77,14 @@ namespace MainApp.Configuration
 
         private void EnsureBacnetClientStarted()
         {
-            if (_isClientStarted && _bacnetClient != null) return;
+            string currentBBMDIp = bbmdIpComboBox.Text.Trim();
+
+            if (_isClientStarted && _bacnetClient != null && _lastBBMDIp == currentBBMDIp) return;
             if (_bacnetClient != null)
             {
                 _bacnetClient.Dispose();
                 _bacnetClient = null;
+                _isClientStarted = false;
                 Thread.Sleep(200);
             }
 
@@ -98,7 +105,7 @@ namespace MainApp.Configuration
                 _bacnetClient.Start();
                 Log("BACnet client transport started.");
 
-                if (!string.IsNullOrWhiteSpace(bbmdIpComboBox.Text))
+                if (!string.IsNullOrWhiteSpace(currentBBMDIp))
                 {
                     int bbmdPort = int.Parse(ipPortComboBox.Text);
                     if (!short.TryParse(bbmdTtlComboBox.Text, out short ttl))
@@ -106,12 +113,14 @@ namespace MainApp.Configuration
                         Log("--- ERROR: Invalid BBMD TTL value. ---");
                         return;
                     }
-                    Log($"Attempting to register as Foreign Device with BBMD at {bbmdIpComboBox.Text}:{bbmdPort} with TTL {ttl}...");
-                    _bacnetClient.RegisterAsForeignDevice(bbmdIpComboBox.Text, ttl, bbmdPort);
+                    Log($"Attempting to register as Foreign Device with BBMD at {currentBBMDIp}:{bbmdPort} with TTL {ttl}...");
+                    _bacnetClient.RegisterAsForeignDevice(currentBBMDIp, ttl, bbmdPort);
                     Log("Foreign Device Registration message sent.");
+                    Thread.Sleep(2000); // Added delay to allow BBMD to process registration
                 }
 
                 _isClientStarted = true;
+                _lastBBMDIp = currentBBMDIp;
                 Log("BACnet client initialization complete.");
             }
             catch (Exception ex)
@@ -121,7 +130,6 @@ namespace MainApp.Configuration
                 MessageBox.Show($"Error during BACnet initialization: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
         private void OnIamHandler(BacnetClient sender, BacnetAddress adr, uint deviceId, uint maxApdu, BacnetSegmentations segmentation, ushort vendorId)
         {
             this.Invoke((MethodInvoker)delegate
@@ -217,9 +225,9 @@ namespace MainApp.Configuration
 
         private void PingButton_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(instanceNumberComboBox.Text))
+            if (string.IsNullOrWhiteSpace(instanceNumberComboBox.Text) || string.IsNullOrWhiteSpace(ipAddressComboBox.Text))
             {
-                MessageBox.Show("Instance number is required for Ping.", "Error");
+                MessageBox.Show("IP Address and Instance number are required for Ping.", "Error");
                 return;
             }
             EnsureBacnetClientStarted();
@@ -236,10 +244,20 @@ namespace MainApp.Configuration
             }
             else
             {
-                _bacnetClient.WhoIs(lowLimit: (int)deviceId, highLimit: (int)deviceId);
+                try
+                {
+                    // Unicast Who-Is directly to the device IP
+                    var port = ushort.Parse(ipPortComboBox.Text);
+                    var adr = new BacnetAddress(BacnetAddressTypes.IP, ipAddressComboBox.Text, port);
+                    _bacnetClient.WhoIs(lowLimit: (int)deviceId, highLimit: (int)deviceId, adr: adr);
+                }
+                catch (Exception ex)
+                {
+                    Log($"--- ERROR during Ping: {ex.Message} ---");
+                    MessageBox.Show($"Error during Ping: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
-
         private void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e)
         {
             if (e.Node == null || e.Node.Tag == null || e.Node.Tag.ToString() == "NETWORK_NODE")

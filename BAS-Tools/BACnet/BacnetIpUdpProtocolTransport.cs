@@ -117,7 +117,16 @@ namespace System.IO.BACnet
 
         public bool SendRegisterAsForeignDevice(IPEndPoint ep, short ttl)
         {
-            byte[] buffer = { 0x81, 0x05, 0x00, 0x0A, (byte)(ttl >> 8), (byte)(ttl & 0xFF) };
+            // BVLC Type (1 byte) + BVLC Function (1 byte) + BVLC Length (2 bytes) + TTL (2 bytes) = 6 bytes.
+            // The spec requires a 10-byte frame for this message.
+            byte[] buffer = new byte[10];
+            buffer[0] = 0x81; // BACnet/IP
+            buffer[1] = 0x05; // Register-Foreign-Device
+            buffer[2] = 0x00; // Length (High Byte)
+            buffer[3] = 0x0A; // Length (Low Byte) = 10
+            buffer[4] = (byte)(ttl >> 8);
+            buffer[5] = (byte)(ttl & 0xFF);
+
             try
             {
                 return m_client.Send(buffer, buffer.Length, ep) == buffer.Length;
@@ -128,17 +137,24 @@ namespace System.IO.BACnet
                 return false;
             }
         }
-
         public bool SendRemoteWhois(byte[] buffer, IPEndPoint ep, int msg_length)
         {
             try
             {
-                // Note: The buffer passed here already has space reserved for the BVLC
-                buffer[0] = 0x81;
-                buffer[1] = 0x09; // Distribute-Broadcast-To-Network
-                buffer[2] = (byte)((msg_length >> 8) & 0xFF);
-                buffer[3] = (byte)(msg_length & 0xFF);
-                return m_client.Send(buffer, msg_length, ep) == msg_length;
+                int bvlc_length = 4;
+                int full_length = msg_length + bvlc_length;
+                byte[] full_buffer = new byte[full_length];
+
+                // BVLC Header for Distribute-Broadcast-To-Network
+                full_buffer[0] = 0x81;
+                full_buffer[1] = 0x09;
+                full_buffer[2] = (byte)((full_length >> 8) & 0xFF);
+                full_buffer[3] = (byte)(full_length & 0xFF);
+
+                // Copy the NPDU/APDU payload
+                Array.Copy(buffer, 0, full_buffer, bvlc_length, msg_length);
+
+                return m_client.Send(full_buffer, full_buffer.Length, ep) == full_buffer.Length;
             }
             catch (Exception ex)
             {
@@ -146,7 +162,6 @@ namespace System.IO.BACnet
                 return false;
             }
         }
-
         public BacnetAddress GetBroadcastAddress()
         {
             return new BacnetAddress(BacnetAddressTypes.IP, (ushort)m_port, new byte[] { 255, 255, 255, 255 });
