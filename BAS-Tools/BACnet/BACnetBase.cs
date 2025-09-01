@@ -1,7 +1,6 @@
 /**************************************************************************
-*                           MIT License
-* 
-* Copyright (C) 2014 Morten Kvistgaard <mk@pch-engineering.dk>
+* MIT License
+* * Copyright (C) 2014 Morten Kvistgaard <mk@pch-engineering.dk>
 *
 * Permission is hereby granted, free of charge, to any person obtaining
 * a copy of this software and associated documentation files (the
@@ -30,12 +29,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
+using System.Text;
 using System.IO.BACnet.Serialize;
 using System.Net;
-using System.Text;
+using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 namespace System.IO.BACnet
 {
@@ -8678,5 +8677,59 @@ namespace System.IO.BACnet.Serialize
             return len;
         }
 
+        public static class BacnetVendorInfo
+        {
+            private static readonly Dictionary<ushort, string> VendorList = new Dictionary<ushort, string>();
+            private static bool _isInitialized = false;
+
+            private static void Initialize()
+            {
+                if (_isInitialized) return;
+
+                try
+                {
+                    string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bacnet_vendor_ids.txt");
+
+                    if (File.Exists(filePath))
+                    {
+                        var lines = File.ReadAllLines(filePath);
+                        foreach (var line in lines)
+                        {
+                            if (string.IsNullOrWhiteSpace(line)) continue;
+                            var parts = line.Split(new[] { ',' }, 2);
+                            if (parts.Length == 2 && ushort.TryParse(parts[0], out ushort vendorId))
+                            {
+                                if (!VendorList.ContainsKey(vendorId))
+                                {
+                                    VendorList.Add(vendorId, parts[1].Trim());
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Trace.TraceError("Could not load BACnet Vendor ID file: " + ex.Message);
+                }
+                finally
+                {
+                    _isInitialized = true;
+                }
+            }
+
+            public static string GetVendorName(ushort vendorId)
+            {
+                if (!_isInitialized)
+                {
+                    Initialize();
+                }
+
+                if (VendorList.TryGetValue(vendorId, out string vendorName))
+                {
+                    return vendorName;
+                }
+                return $"Unknown Vendor ({vendorId})";
+            }
+        }
     }
 }

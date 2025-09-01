@@ -2649,7 +2649,7 @@ namespace System.IO.BACnet
         {
             try
             {
-                if (m_comm.Transport.Send(m_transmit_buffer, m_comm.Transport.HeaderLength, m_transmit_length, m_adr, m_wait_for_transmit, m_transmit_timeout) < 0)
+                if (m_comm.Transport.Send(m_transmit_buffer, m_comm.Transport.HeaderLength, m_transmit_length, m_adr, false, m_transmit_timeout) < 0)
                 {
                     Error = new System.IO.IOException("Write Timeout");
                 }

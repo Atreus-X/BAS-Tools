@@ -1,14 +1,15 @@
-﻿using System;
+﻿using MainApp;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO.BACnet;
 using System.Linq;
-using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static System.IO.BACnet.Serialize.Services;
 
 namespace MainApp.Configuration
 {
@@ -18,6 +19,7 @@ namespace MainApp.Configuration
         private HistoryManager _historyManager;
         private uint? _lastPingedDeviceId = null;
         private bool _isClientStarted = false;
+        private readonly object _bacnetLock = new object();
 
         public BACnet_IP()
         {
@@ -30,6 +32,7 @@ namespace MainApp.Configuration
             if (this.DesignMode || LicenseManager.UsageMode == LicenseUsageMode.Designtime)
                 return;
 
+            GlobalLogger.Register(outputTextBox);
             _historyManager = new HistoryManager("BACnet_IP_");
             PopulateDefaultValues();
             LoadHistory();
@@ -42,7 +45,6 @@ namespace MainApp.Configuration
             this.deviceTreeView.AfterSelect += this.DeviceTreeView_AfterSelect;
             this.instanceNumberComboBox.TextChanged += this.UpdateAllStates;
             this.discoverButton.Click += this.DiscoverButton_Click;
-            this.pingButton.Click += this.PingButton_Click;
             this.discoverObjectsButton.Click += this.DiscoverObjectsButton_Click;
             this.readPropertyButton.Click += this.ReadPropertyButton_Click;
             this.clearLogButton.Click += this.ClearLogButton_Click;
@@ -53,6 +55,9 @@ namespace MainApp.Configuration
             apduTimeoutComboBox.Leave += (s, args) => SaveComboBoxEntry(apduTimeoutComboBox, "apduTimeout");
             bbmdIpComboBox.Leave += (s, args) => SaveComboBoxEntry(bbmdIpComboBox, "bbmdIp");
             bbmdTtlComboBox.Leave += (s, args) => SaveComboBoxEntry(bbmdTtlComboBox, "bbmdTtl");
+
+            expandAllButton.Click += (s, e) => deviceTreeView.ExpandAll();
+            collapseAllButton.Click += (s, e) => deviceTreeView.CollapseAll();
         }
 
         private void ClearLogButton_Click(object sender, EventArgs e)
@@ -114,38 +119,33 @@ namespace MainApp.Configuration
 
         private void OnIamHandler(BacnetClient sender, BacnetAddress adr, uint deviceId, uint maxApdu, BacnetSegmentations segmentation, ushort vendorId)
         {
-            Log($"--- I-AM RECEIVED --- from {adr}, Device ID: {deviceId}, Vendor: {vendorId}");
-
-            if (this.IsDisposed || !this.IsHandleCreated) return;
-            this.Invoke((MethodInvoker)delegate {
-                string deviceDisplay = $"{deviceId} ({adr})";
-                if (!deviceTreeView.Nodes.ContainsKey(deviceId.ToString()))
-                {
-                    Log($"Adding new device to tree: {deviceDisplay}");
-                    var node = new TreeNode(deviceDisplay) { Name = deviceId.ToString(), Tag = adr };
-                    deviceTreeView.Nodes.Add(node);
-                }
-                else
-                {
-                    Log($"Device already in tree: {deviceDisplay}");
-                }
-            });
-        }
-
-        private void PingButton_Click(object sender, EventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(instanceNumberComboBox.Text))
+            this.Invoke((MethodInvoker)delegate
             {
-                MessageBox.Show("Instance number is required for Ping.", "Error");
-                return;
-            }
-            EnsureBacnetClientStarted();
-            if (!_isClientStarted) return;
-            uint deviceId = uint.Parse(instanceNumberComboBox.Text);
-            Log($"Pinging Device ID: {deviceId}...");
-            _bacnetClient.WhoIs(lowLimit: (int)deviceId, highLimit: (int)deviceId);
-            _lastPingedDeviceId = deviceId;
-            UpdateAllStates(null, null);
+                try
+                {
+                    ushort deviceNetwork = (adr.RoutedSource != null) ? adr.RoutedSource.net : adr.net;
+                    string macAddress = adr.ToString(true);
+                    string vendorName = BacnetVendorInfo.GetVendorName(vendorId);
+
+                    string networkNodeKey = $"NET-{deviceNetwork}";
+                    TreeNode networkNode = deviceTreeView.Nodes.Cast<TreeNode>().FirstOrDefault(n => n.Name == networkNodeKey);
+                    if (networkNode == null)
+                    {
+                        networkNode = new TreeNode($"Network {deviceNetwork}") { Name = networkNodeKey, Tag = "NETWORK_NODE" };
+                        deviceTreeView.Nodes.Add(networkNode);
+                    }
+
+                    if (!networkNode.Nodes.ContainsKey(deviceId.ToString()))
+                    {
+                        var deviceInfo = new Dictionary<string, object> { { "Address", adr }, { "VendorName", vendorName }, { "MAC", macAddress } };
+                        string deviceText = $"(Name not read) ({macAddress}) ({deviceId}) ({vendorName})";
+                        TreeNode deviceNode = new TreeNode(deviceText) { Name = deviceId.ToString(), Tag = deviceInfo };
+                        networkNode.Nodes.Add(deviceNode);
+                        networkNode.Expand();
+                    }
+                }
+                catch (Exception ex) { Log($"Error in OnIamHandler: {ex.Message}"); }
+            });
         }
 
         private void DiscoverButton_Click(object sender, EventArgs e)
@@ -157,40 +157,127 @@ namespace MainApp.Configuration
             _bacnetClient.WhoIs();
         }
 
-        private async void DiscoverObjectsButton_Click(object sender, EventArgs e)
+        private void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e)
         {
-            if (_lastPingedDeviceId == null)
+            if (e.Node == null || e.Node.Tag == null || e.Node.Tag.ToString() == "NETWORK_NODE")
             {
-                MessageBox.Show("Please successfully Ping a device first.", "Device Not Selected");
+                _lastPingedDeviceId = null;
+                UpdateAllStates(null, null);
+                objectTreeView.Nodes.Clear();
                 return;
             }
-            EnsureBacnetClientStarted();
-            if (!_isClientStarted) return;
-            try
+
+            _lastPingedDeviceId = uint.Parse(e.Node.Name);
+            UpdateAllStates(null, null);
+
+            LoadDeviceDetails(e.Node);
+        }
+
+        private void DiscoverObjectsButton_Click(object sender, EventArgs e)
+        {
+            if (deviceTreeView.SelectedNode != null)
             {
-                uint deviceId = _lastPingedDeviceId.Value;
-                Log($"Discovering objects for Device {deviceId}...");
-                BacnetAddress deviceAddress = await FindDeviceAddressAsync(deviceId);
-                if (deviceAddress == null)
-                {
-                    Log($"--- ERROR: Could not resolve address for Device {deviceId}. It may be offline. ---");
-                    return;
-                }
-                var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
-                if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> objectList))
-                {
-                    Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
-                    PopulateObjectTree(objectList);
-                }
-                else
-                {
-                    Log("--- ERROR: Failed to read object list. ---");
-                }
+                LoadDeviceDetails(deviceTreeView.SelectedNode);
             }
-            catch (Exception ex)
+            else
             {
-                Log($"--- Discover Objects Error: {ex.Message} ---");
+                MessageBox.Show("Please select a device from the list first.", "Device Not Selected");
             }
+        }
+
+        private void LoadDeviceDetails(TreeNode selectedNode)
+        {
+            if (selectedNode == null || selectedNode.Tag == null || selectedNode.Tag.ToString() == "NETWORK_NODE") return;
+
+            uint deviceId = uint.Parse(selectedNode.Name);
+            var deviceInfo = selectedNode.Tag as Dictionary<string, object>;
+            if (deviceInfo == null) return;
+            BacnetAddress deviceAddress = deviceInfo["Address"] as BacnetAddress;
+
+            this.Invoke((MethodInvoker)delegate {
+                objectTreeView.Nodes.Clear();
+                objectDiscoveryProgressBar.Visible = true;
+                objectCountLabel.Visible = true;
+                objectCountLabel.Text = "Reading details...";
+                objectDiscoveryProgressBar.Value = 0;
+            });
+
+            Task.Run(() =>
+            {
+                // STEP 1: READ DEVICE NAME (if needed)
+                if (selectedNode.Text.Contains("(Name not read)"))
+                {
+                    this.Invoke((MethodInvoker)delegate {
+                        selectedNode.Text = $"(Reading name...) ({deviceInfo["MAC"]}) ({deviceId}) ({deviceInfo["VendorName"]})";
+                    });
+
+                    string finalDeviceName = deviceId.ToString();
+                    string errorText = null;
+                    try
+                    {
+                        lock (_bacnetLock)
+                        {
+                            var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
+                            if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, BacnetPropertyIds.PROP_OBJECT_NAME, out IList<BacnetValue> values) && values?.Count > 0)
+                            {
+                                finalDeviceName = values[0].Value.ToString();
+                            }
+                            else
+                            {
+                                errorText = " (Name not available)";
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"Error reading name for device {deviceId}: {ex.Message}");
+                        errorText = " (Error reading name)";
+                    }
+                    finally
+                    {
+                        if (!this.IsDisposed && this.IsHandleCreated)
+                        {
+                            this.Invoke((MethodInvoker)delegate
+                            {
+                                selectedNode.Text = $"{finalDeviceName} ({deviceInfo["MAC"]}) ({deviceId}) ({deviceInfo["VendorName"]}){errorText ?? ""}";
+                            });
+                        }
+                    }
+                }
+
+                // STEP 2: READ OBJECT LIST
+                try
+                {
+                    lock (_bacnetLock)
+                    {
+                        Log($"Requesting object list for Device {deviceId}...");
+                        if (_bacnetClient.ReadPropertyRequest(deviceAddress, new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId), BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> objectList))
+                        {
+                            Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
+                            this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
+                        }
+                        else
+                        {
+                            Log($"--- ERROR: Failed to read object list for device {deviceId} (timeout). ---");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log($"--- ERROR reading object list for device {deviceId}: {ex.Message} ---");
+                }
+                finally
+                {
+                    if (!this.IsDisposed && this.IsHandleCreated)
+                    {
+                        this.Invoke((MethodInvoker)delegate
+                        {
+                            objectDiscoveryProgressBar.Visible = false;
+                            objectCountLabel.Visible = false;
+                        });
+                    }
+                }
+            });
         }
 
         private async void ReadPropertyButton_Click(object sender, EventArgs e)
@@ -215,14 +302,17 @@ namespace MainApp.Configuration
                 var propertyId = BacnetPropertyIds.PROP_OBJECT_NAME;
                 Log($"Reading {propertyId} from Device {deviceId}...");
                 await Task.Run(() => {
-                    if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, propertyId, out IList<BacnetValue> values))
+                    lock (_bacnetLock)
                     {
-                        Log($"--- SUCCESS: Read ACK for {propertyId} ---");
-                        foreach (var val in values) Log($"  Value: {val.Value}");
-                    }
-                    else
-                    {
-                        Log($"--- ERROR: Failed to read property {propertyId}. ---");
+                        if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, propertyId, out IList<BacnetValue> values))
+                        {
+                            Log($"--- SUCCESS: Read ACK for {propertyId} ---");
+                            foreach (var val in values) Log($"  Value: {val.Value}");
+                        }
+                        else
+                        {
+                            Log($"--- ERROR: Failed to read property {propertyId}. ---");
+                        }
                     }
                 });
             }
@@ -270,67 +360,79 @@ namespace MainApp.Configuration
         private void UpdateAllStates(object sender, EventArgs e)
         {
             bool instanceExists = !string.IsNullOrWhiteSpace(instanceNumberComboBox.Text);
-            pingButton.Enabled = instanceExists;
             readPropertyButton.Enabled = instanceExists;
             writePropertyButton.Enabled = instanceExists;
             discoverObjectsButton.Enabled = _lastPingedDeviceId.HasValue;
         }
 
-        private void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e)
-        {
-            if (e.Node != null)
-            {
-                uint deviceId = uint.Parse(e.Node.Name);
-                instanceNumberComboBox.Text = deviceId.ToString();
-                if (e.Node.Tag is BacnetAddress bacnetAddress)
-                {
-                    ipAddressComboBox.Text = string.Join(".", bacnetAddress.adr.Take(4));
-                }
-                _lastPingedDeviceId = deviceId;
-                UpdateAllStates(null, null);
-                DiscoverObjectsButton_Click(null, null);
-            }
-        }
-
         private void PopulateObjectTree(IList<BacnetValue> objectList)
         {
             objectTreeView.Nodes.Clear();
+            if (objectList == null) return;
+
+            objectDiscoveryProgressBar.Value = 0;
+            objectDiscoveryProgressBar.Maximum = objectList.Count;
+            objectCountLabel.Text = $"Found 0 of {objectList.Count}";
+
             var objectGroups = objectList
                 .Select(val => (BacnetObjectId)val.Value)
                 .GroupBy(objId => objId.type)
                 .OrderBy(g => g.Key.ToString());
-            foreach (var group in objectGroups)
+
+            int count = 0;
+            objectTreeView.BeginUpdate();
+            try
             {
-                var parentNode = new TreeNode(group.Key.ToString());
-                objectTreeView.Nodes.Add(parentNode);
-                foreach (var objId in group.OrderBy(o => o.instance))
+                foreach (var group in objectGroups)
                 {
-                    var childNode = new TreeNode(objId.instance.ToString()) { Tag = objId };
-                    parentNode.Nodes.Add(childNode);
+                    var parentNode = new TreeNode(group.Key.ToString());
+                    objectTreeView.Nodes.Add(parentNode);
+                    foreach (var objId in group.OrderBy(o => o.instance))
+                    {
+                        var childNode = new TreeNode(objId.instance.ToString()) { Tag = objId };
+                        parentNode.Nodes.Add(childNode);
+                        count++;
+                    }
+                    this.Invoke((MethodInvoker)delegate {
+                        objectDiscoveryProgressBar.Value = count;
+                        objectCountLabel.Text = $"Found {count} of {objectList.Count}";
+                    });
                 }
+            }
+            finally
+            {
+                objectTreeView.EndUpdate();
+                objectDiscoveryProgressBar.Value = count;
+                objectCountLabel.Text = $"Found {count} of {objectList.Count}";
             }
         }
 
         private async Task<BacnetAddress> FindDeviceAddressAsync(uint deviceId)
         {
-            var nodes = deviceTreeView.Nodes.Find(deviceId.ToString(), true);
-            if (nodes.Length > 0 && nodes[0].Tag is BacnetAddress adr) return adr;
+            foreach (TreeNode networkNode in deviceTreeView.Nodes)
+            {
+                foreach (TreeNode deviceNode in networkNode.Nodes)
+                {
+                    if (deviceNode.Name == deviceId.ToString() && deviceNode.Tag is Dictionary<string, object> deviceInfo)
+                    {
+                        return deviceInfo["Address"] as BacnetAddress;
+                    }
+                }
+            }
 
             Log($"Address for Device {deviceId} not cached. Sending targeted WhoIs...");
             var tcs = new TaskCompletionSource<BacnetAddress>();
-            void handler(BacnetClient s, BacnetAddress a, uint d, uint m, BacnetSegmentations seg, ushort v)
+            void handler(BacnetClient _s, BacnetAddress a, uint d, uint _m, BacnetSegmentations _seg, ushort _v)
             {
                 if (d == deviceId) tcs.TrySetResult(a);
             }
             _bacnetClient.OnIam += handler;
             _bacnetClient.WhoIs((int)deviceId, (int)deviceId);
             var timeoutTask = Task.Delay(2000);
-            if (await Task.WhenAny(tcs.Task, timeoutTask) == tcs.Task)
-            {
-                _bacnetClient.OnIam -= handler;
-                return await tcs.Task;
-            }
+            var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
             _bacnetClient.OnIam -= handler;
+            if (completedTask == tcs.Task) return await tcs.Task;
+
             Log($"--- Timeout: No I-Am response from Device {deviceId}. ---");
             return null;
         }
@@ -354,12 +456,8 @@ namespace MainApp.Configuration
 
         private void PopulateComboBoxWithHistory(ComboBox comboBox, string key)
         {
-            if (comboBox == null) return;
-
-            if (comboBox.Name == "interfaceComboBox") return;
-
+            if (comboBox == null || comboBox.Name == "interfaceComboBox") return;
             comboBox.Items.Clear();
-
             var historyList = _historyManager.GetHistoryForPrefixedKey(key);
             if (historyList.Any())
             {

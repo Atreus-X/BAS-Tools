@@ -88,13 +88,25 @@ namespace System.IO.BACnet
         {
             try
             {
+                // Prepend the BVLC header to the NPDU/APDU payload
+                int bvlc_length = 4;
+                int full_length = data_length + bvlc_length;
+                byte[] full_buffer = new byte[full_length];
+
+                // BVLC Header
+                full_buffer[0] = 0x81; // BACnet/IP
+                full_buffer[1] = broadcast ? (byte)0x0B : (byte)0x0A; // Original-Broadcast-NPDU or Original-Unicast-NPDU
+                full_buffer[2] = (byte)((full_length >> 8) & 0xFF);
+                full_buffer[3] = (byte)(full_length & 0xFF);
+
+                // Copy the NPDU/APDU payload
+                Array.Copy(buffer, offset, full_buffer, bvlc_length, data_length);
+
                 IPEndPoint ep = broadcast
                     ? new IPEndPoint(IPAddress.Broadcast, address.net)
                     : new IPEndPoint(new IPAddress(address.adr), address.net != 0 ? address.net : m_port);
 
-                byte[] payload = new byte[data_length];
-                Array.Copy(buffer, offset, payload, 0, data_length);
-                return m_client.Send(payload, payload.Length, ep);
+                return m_client.Send(full_buffer, full_buffer.Length, ep);
             }
             catch (Exception ex)
             {
@@ -121,8 +133,9 @@ namespace System.IO.BACnet
         {
             try
             {
+                // Note: The buffer passed here already has space reserved for the BVLC
                 buffer[0] = 0x81;
-                buffer[1] = 0x09;
+                buffer[1] = 0x09; // Distribute-Broadcast-To-Network
                 buffer[2] = (byte)((msg_length >> 8) & 0xFF);
                 buffer[3] = (byte)(msg_length & 0xFF);
                 return m_client.Send(buffer, msg_length, ep) == msg_length;
