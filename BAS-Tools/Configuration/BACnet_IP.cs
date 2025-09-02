@@ -1,14 +1,15 @@
-﻿using MainApp;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO.BACnet;
+using System.IO.BACnet.Serialize;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MainApp;
 using static System.IO.BACnet.Serialize.Services;
 
 namespace MainApp.Configuration
@@ -132,6 +133,7 @@ namespace MainApp.Configuration
         }
         private void OnIamHandler(BacnetClient sender, BacnetAddress adr, uint deviceId, uint maxApdu, BacnetSegmentations segmentation, ushort vendorId)
         {
+            Log($"OnIam from {adr} for device {deviceId}. Segmentation support: {segmentation}");
             this.Invoke((MethodInvoker)delegate
             {
                 try
@@ -150,7 +152,7 @@ namespace MainApp.Configuration
 
                     if (!networkNode.Nodes.ContainsKey(deviceId.ToString()))
                     {
-                        var deviceInfo = new Dictionary<string, object> { { "Address", adr }, { "VendorName", vendorName }, { "MAC", macAddress } };
+                        var deviceInfo = new Dictionary<string, object> { { "Address", adr }, { "VendorName", vendorName }, { "MAC", macAddress }, { "Segmentation", segmentation } };
                         string deviceText = $"(Name not read) ({macAddress}) ({deviceId}) ({vendorName})";
                         TreeNode deviceNode = new TreeNode(deviceText) { Name = deviceId.ToString(), Tag = deviceInfo };
                         networkNode.Nodes.Add(deviceNode);
@@ -167,6 +169,7 @@ namespace MainApp.Configuration
             {
                 string finalDeviceName = deviceId.ToString();
                 string errorText = null;
+                bool supportsReadPropertyMultiple = false;
                 try
                 {
                     lock (_bacnetLock)
@@ -179,6 +182,16 @@ namespace MainApp.Configuration
                         else
                         {
                             errorText = " (Name not available)";
+                        }
+
+                        // Check for ReadPropertyMultiple support
+                        if (_bacnetClient.ReadPropertyRequest(adr, objectId, BacnetPropertyIds.PROP_PROTOCOL_SERVICES_SUPPORTED, out values) && values?.Count > 0)
+                        {
+                            var servicesSupported = (BacnetBitString)values[0].Value;
+                            if (servicesSupported.value.Length > 1 && (servicesSupported.value[1] & 0x40) > 0) // Bit 14 is ReadPropertyMultiple
+                            {
+                                supportsReadPropertyMultiple = true;
+                            }
                         }
                     }
                 }
@@ -194,6 +207,7 @@ namespace MainApp.Configuration
                         this.Invoke((MethodInvoker)delegate
                         {
                             var deviceInfo = deviceNode.Tag as Dictionary<string, object>;
+                            deviceInfo["SupportsReadPropertyMultiple"] = supportsReadPropertyMultiple;
                             deviceNode.Text = $"{finalDeviceName} ({deviceInfo["MAC"]}) ({deviceId}) ({deviceInfo["VendorName"]}){errorText ?? ""}";
                         });
                     }
@@ -291,8 +305,32 @@ namespace MainApp.Configuration
 
             uint deviceId = uint.Parse(selectedNode.Name);
             var deviceInfo = selectedNode.Tag as Dictionary<string, object>;
-            if (deviceInfo == null) return;
+            if (deviceInfo == null)
+            {
+                Log($"Error: deviceInfo is null for device {deviceId}");
+                return;
+            }
             BacnetAddress deviceAddress = deviceInfo["Address"] as BacnetAddress;
+
+            BacnetSegmentations segmentation = BacnetSegmentations.SEGMENTATION_BOTH; // Default to supported
+            if (deviceInfo.ContainsKey("Segmentation"))
+            {
+                segmentation = (BacnetSegmentations)deviceInfo["Segmentation"];
+            }
+            else
+            {
+                Log($"Warning: Segmentation support not found for device {deviceId}. Assuming none.");
+                segmentation = BacnetSegmentations.SEGMENTATION_NONE;
+            }
+            Log($"Device {deviceId} segmentation support: {segmentation}");
+
+            var old_segments = _bacnetClient.MaxSegments;
+            if (segmentation == BacnetSegmentations.SEGMENTATION_NONE)
+            {
+                _bacnetClient.MaxSegments = BacnetMaxSegments.MAX_SEG0;
+            }
+            Log($"BacnetClient.MaxSegments set to: {_bacnetClient.MaxSegments}");
+
 
             this.Invoke((MethodInvoker)delegate {
                 objectTreeView.Nodes.Clear();
@@ -309,10 +347,32 @@ namespace MainApp.Configuration
                     lock (_bacnetLock)
                     {
                         Log($"Requesting object list for Device {deviceId}...");
-                        if (_bacnetClient.ReadPropertyRequest(deviceAddress, new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId), BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> objectList))
+                        if (deviceInfo.ContainsKey("SupportsReadPropertyMultiple") && (bool)deviceInfo["SupportsReadPropertyMultiple"])
                         {
-                            Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
-                            this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
+                            Log("Device supports ReadPropertyMultiple. Using it to discover objects.");
+                            var objectList = new List<BacnetReadAccessResult>();
+                            var propertyReferences = new List<BacnetPropertyReference>
+                            {
+                                new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_NAME, ASN1.BACNET_ARRAY_ALL),
+                                new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_TYPE, ASN1.BACNET_ARRAY_ALL),
+                                new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, ASN1.BACNET_ARRAY_ALL)
+                            };
+                            var request = new BacnetReadAccessSpecification(new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId), propertyReferences);
+                            if (_bacnetClient.ReadPropertyMultipleRequest(deviceAddress, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results))
+                            {
+                                Log($"--- SUCCESS: Found {results.Count} objects. ---");
+                                var values = results.SelectMany(r => r.values.Select(v => new BacnetValue(v.value.First().Value))).ToList();
+                                this.Invoke((MethodInvoker)delegate { PopulateObjectTree(values); });
+                            }
+                        }
+                        else
+                        {
+                            Log("Device does not support ReadPropertyMultiple. Using ReadProperty for object list.");
+                            if (_bacnetClient.ReadPropertyRequest(deviceAddress, new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId), BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> objectList))
+                            {
+                                Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
+                                this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
+                            }
                         }
                     }
                 }
@@ -322,6 +382,9 @@ namespace MainApp.Configuration
                 }
                 finally
                 {
+                    // Restore the original segmentation setting
+                    _bacnetClient.MaxSegments = old_segments;
+
                     if (!this.IsDisposed && this.IsHandleCreated)
                     {
                         this.Invoke((MethodInvoker)delegate

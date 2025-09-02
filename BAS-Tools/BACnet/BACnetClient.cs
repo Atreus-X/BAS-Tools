@@ -1,29 +1,4 @@
-﻿/**************************************************************************
-* MIT License
-* * Copyright (C) 2014 Morten Kvistgaard <mk@pch-engineering.dk>
-*
-* Permission is hereby granted, free of charge, to any person obtaining
-* a copy of this software and associated documentation files (the
-* "Software"), to deal in the Software without restriction, including
-* without limitation the rights to use, copy, modify, merge, publish,
-* distribute, sublicense, and/or sell copies of the Software, and to
-* permit persons to whom the Software is furnished to do so, subject to
-* the following conditions:
-*
-* The above copyright notice and this permission notice shall be included
-* in all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*
-*********************************************************************/
-
-using MainApp;
+﻿using MainApp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -1389,7 +1364,15 @@ namespace System.IO.BACnet
 
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.ExpectingReply, adr.RoutedSource);
-            APDU.EncodeConfirmedServiceRequest(b, BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST | (m_max_segments != BacnetMaxSegments.MAX_SEG0 ? BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED : 0), BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROPERTY, m_max_segments, m_client.MaxAdpuLength, invoke_id);
+
+            // Conditionally add the SEGMENTED_RESPONSE_ACCEPTED flag
+            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST;
+            if (m_max_segments != BacnetMaxSegments.MAX_SEG0)
+            {
+                pduType |= BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED;
+            }
+
+            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROPERTY, m_max_segments, m_client.MaxAdpuLength, invoke_id);
             Services.EncodeReadProperty(b, object_id, (uint)property_id, array_index);
 
             //send
@@ -1586,7 +1569,14 @@ namespace System.IO.BACnet
 
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.ExpectingReply, adr.RoutedSource);
-            APDU.EncodeConfirmedServiceRequest(b, BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST | (m_max_segments != BacnetMaxSegments.MAX_SEG0 ? BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED : 0), BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, m_max_segments, m_client.MaxAdpuLength, invoke_id);
+
+            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST;
+            if (m_max_segments != BacnetMaxSegments.MAX_SEG0)
+            {
+                pduType |= BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED;
+            }
+
+            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, m_max_segments, m_client.MaxAdpuLength, invoke_id);
             Services.EncodeReadPropertyMultiple(b, object_id, property_id_and_array_index);
 
             //send
@@ -1625,7 +1615,14 @@ namespace System.IO.BACnet
 
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.ExpectingReply, adr.RoutedSource);
-            APDU.EncodeConfirmedServiceRequest(b, BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST | (m_max_segments != BacnetMaxSegments.MAX_SEG0 ? BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED : 0), BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, m_max_segments, m_client.MaxAdpuLength, invoke_id);
+
+            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST;
+            if (m_max_segments != BacnetMaxSegments.MAX_SEG0)
+            {
+                pduType |= BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED;
+            }
+
+            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, m_max_segments, m_client.MaxAdpuLength, invoke_id);
             Services.EncodeReadPropertyMultiple(b, properties);
 
             //send

@@ -2443,8 +2443,8 @@ namespace System.IO.BACnet
             switch (type)
             {
                 case BacnetAddressTypes.IP:
-                    if (adr == null || adr.Length < 6) return "0.0.0.0";
-                    return adr[0] + "." + adr[1] + "." + adr[2] + "." + adr[3] + ":" + ((adr[4] << 8) | (adr[5] << 0));
+                    if (adr == null || adr.Length < 4) return "0.0.0.0";
+                    return adr[0] + "." + adr[1] + "." + adr[2] + "." + adr[3] + ":" + net;
                 case BacnetAddressTypes.MSTP:
                     if (adr == null || adr.Length < 1) return "-1";
                     return adr[0].ToString();
@@ -2485,7 +2485,6 @@ namespace System.IO.BACnet
                     return sb2.ToString();
             }
         }
-
         public String ToString(bool SourceOnly)
         {
             if (this.RoutedSource == null)
@@ -7893,24 +7892,21 @@ namespace System.IO.BACnet.Serialize
                 len++;
 
                 BacnetValue value;
-                while ((apdu_len - len) > 1)
+                while (!ASN1.decode_is_closing_tag_number(buffer, offset + len, 3))
                 {
                     tag_len = ASN1.bacapp_decode_application_data(buffer, offset + len, apdu_len + offset, object_id.type, (BacnetPropertyIds)property.propertyIdentifier, out value);
                     if (tag_len < 0) return -1;
                     len += tag_len;
                     value_list.Add(value);
                 }
+
+                len++; // Consume the closing tag
             }
             else
                 return -1;
 
-            if (!ASN1.decode_is_closing_tag_number(buffer, offset + len, 3))
-                return -1;
-            len++;
-
             return len;
         }
-
         public static void EncodeReadPropertyMultiple(EncodeBuffer buffer, IList<BacnetReadAccessSpecification> properties)
         {
             foreach (BacnetReadAccessSpecification value in properties)
