@@ -19,10 +19,13 @@ namespace MainApp.Configuration
         private bool _isClientStarted = false;
         private readonly object _bacnetLock = new object();
         private System.Windows.Forms.Timer _discoveryTimer;
+        private readonly System.Windows.Forms.Timer _propertyPollingTimer;
+        private BacnetObjectId _selectedObjectId;
 
         public BACnet_MSTP_Local()
         {
             InitializeComponent();
+            _propertyPollingTimer = new System.Windows.Forms.Timer();
             this.Load += BACnet_MSTP_Local_Load;
         }
 
@@ -31,6 +34,7 @@ namespace MainApp.Configuration
             if (this.DesignMode || LicenseManager.UsageMode == LicenseUsageMode.Designtime)
                 return;
 
+            GlobalLogger.Register(outputTextBox);
             _historyManager = new HistoryManager("BACnet_MSTP_Local_");
 
             PopulateDefaultValues();
@@ -40,6 +44,8 @@ namespace MainApp.Configuration
 
             _discoveryTimer = new System.Windows.Forms.Timer { Interval = 10000 };
             _discoveryTimer.Tick += DiscoveryTimer_Tick;
+            _propertyPollingTimer.Tick += PropertyPollingTimer_Tick;
+
         }
 
         private void WireUpEventHandlers()
@@ -53,9 +59,12 @@ namespace MainApp.Configuration
             cancelDiscoveryButton.Click += CancelDiscoveryButton_Click;
             pingButton.Click += PingButton_Click;
             discoverObjectsButton.Click += DiscoverObjectsButton_Click;
-            readPropertyButton.Click += ReadPropertyButton_Click;
+            manualReadWriteButton.Click += ManualReadWriteButton_Click;
             clearLogButton.Click += ClearLogButton_Click;
             deviceTreeView.AfterSelect += DeviceTreeView_AfterSelect;
+            objectTreeView.AfterSelect += ObjectTreeView_AfterSelect;
+            propertiesDataGridView.CellEndEdit += propertiesDataGridView_CellEndEdit;
+            togglePollingButton.Click += TogglePollingButton_Click;
         }
 
         private void ClearLogButton_Click(object sender, EventArgs e)
@@ -302,53 +311,6 @@ namespace MainApp.Configuration
             }
         }
 
-        private async void ReadPropertyButton_Click(object sender, EventArgs e)
-        {
-            if (deviceTreeView.SelectedNode == null)
-            {
-                MessageBox.Show("Please select a device to read.", "Error");
-                return;
-            }
-
-            EnsureBacnetClientStarted();
-            if (!_isClientStarted) return;
-
-            try
-            {
-                uint deviceId = uint.Parse(deviceTreeView.SelectedNode.Name);
-                BacnetAddress deviceAddress = await FindDeviceAddressAsync(deviceId);
-                if (deviceAddress == null)
-                {
-                    Log($"--- ERROR: Device {deviceId} not found. Ping or Discover first. ---");
-                    return;
-                }
-
-                var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
-                var propertyId = BacnetPropertyIds.PROP_OBJECT_NAME;
-
-                Log($"Reading {propertyId} from Device {deviceId}...");
-                await Task.Run(() =>
-                {
-                    if (_bacnetClient.ReadPropertyRequest(deviceAddress, objectId, propertyId, out IList<BacnetValue> values))
-                    {
-                        Log($"--- SUCCESS: Read ACK for {propertyId} ---");
-                        foreach (var val in values)
-                        {
-                            Log($"  Value: {val.Value}");
-                        }
-                    }
-                    else
-                    {
-                        Log($"--- ERROR: Failed to read property {propertyId}. No response or error received. ---");
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                Log($"--- Read Error: {ex.Message} ---");
-            }
-        }
-
         private void Log(string message)
         {
             if (this.InvokeRequired)
@@ -376,8 +338,6 @@ namespace MainApp.Configuration
         {
             bool deviceSelected = deviceTreeView.SelectedNode != null;
             pingButton.Enabled = deviceSelected;
-            readPropertyButton.Enabled = deviceSelected;
-            writePropertyButton.Enabled = deviceSelected;
             discoverObjectsButton.Enabled = _lastPingedDeviceId.HasValue;
         }
 
@@ -506,8 +466,192 @@ namespace MainApp.Configuration
 
         public void Shutdown()
         {
+            _propertyPollingTimer?.Stop();
+            _propertyPollingTimer?.Dispose();
             _historyManager?.SaveHistory();
             _bacnetClient?.Dispose();
+        }
+
+        private void ObjectTreeView_AfterSelect(object sender, TreeViewEventArgs e)
+        {
+            _propertyPollingTimer.Stop();
+            togglePollingButton.Text = "Start Polling";
+            propertiesDataGridView.Rows.Clear();
+
+            if (e.Node?.Tag is BacnetObjectId objectId)
+            {
+                _selectedObjectId = objectId;
+                togglePollingButton.Enabled = true;
+                Log($"Selected object: {objectId}");
+                if (readIntervalNumericUpDown.Value > 0)
+                {
+                    _propertyPollingTimer.Interval = (int)readIntervalNumericUpDown.Value;
+                    PropertyPollingTimer_Tick(null, null);
+                    _propertyPollingTimer.Start();
+                    togglePollingButton.Text = "Stop Polling";
+                }
+            }
+            else
+            {
+                togglePollingButton.Enabled = false;
+            }
+        }
+
+        private void TogglePollingButton_Click(object sender, EventArgs e)
+        {
+            if (_propertyPollingTimer.Enabled)
+            {
+                _propertyPollingTimer.Stop();
+                togglePollingButton.Text = "Start Polling";
+                Log("Property polling stopped.");
+            }
+            else
+            {
+                if (readIntervalNumericUpDown.Value > 0)
+                {
+                    _propertyPollingTimer.Interval = (int)readIntervalNumericUpDown.Value;
+                    PropertyPollingTimer_Tick(null, null);
+                    _propertyPollingTimer.Start();
+                    togglePollingButton.Text = "Stop Polling";
+                    Log($"Property polling started with interval {_propertyPollingTimer.Interval}ms.");
+                }
+            }
+        }
+
+        private async void PropertyPollingTimer_Tick(object sender, EventArgs e)
+        {
+            if (_bacnetClient == null || !_isClientStarted || _lastPingedDeviceId == null || _selectedObjectId.type == BacnetObjectTypes.MAX_BACNET_OBJECT_TYPE)
+                return;
+
+            try
+            {
+                BacnetAddress adr = await FindDeviceAddressAsync(_lastPingedDeviceId.Value);
+                if (adr == null) return;
+
+                if (_bacnetClient.ReadPropertyRequest(adr, _selectedObjectId, BacnetPropertyIds.PROP_ALL, out IList<BacnetValue> values))
+                {
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        propertiesDataGridView.Rows.Clear();
+                        var propValues = values.Select(v => v.Value).OfType<BacnetPropertyValue>();
+                        foreach (var prop in propValues)
+                        {
+                            string propName = ((BacnetPropertyIds)prop.property.propertyIdentifier).ToString();
+                            string propValue = prop.value.FirstOrDefault().Value?.ToString() ?? "{empty}";
+                            propertiesDataGridView.Rows.Add(propName, propValue);
+                        }
+                    });
+                }
+                else
+                {
+                    Log($"Failed to read properties for {_selectedObjectId}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"Error polling properties: {ex.Message}");
+                if (_propertyPollingTimer.Enabled)
+                {
+                    _propertyPollingTimer.Stop();
+                    togglePollingButton.Text = "Start Polling";
+                }
+            }
+        }
+
+        private async void propertiesDataGridView_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.ColumnIndex == 1 && e.RowIndex >= 0)
+            {
+                var row = propertiesDataGridView.Rows[e.RowIndex];
+                var propertyName = row.Cells[0].Value.ToString();
+                var newValue = row.Cells[1].Value.ToString();
+
+                Log($"Attempting to write {newValue} to {propertyName} on {_selectedObjectId}");
+
+                if (Enum.TryParse<BacnetPropertyIds>(propertyName, out var propertyId))
+                {
+                    try
+                    {
+                        BacnetAddress adr = await FindDeviceAddressAsync(_lastPingedDeviceId.Value);
+                        if (adr == null) return;
+
+                        // This is a simplified example. You'll need to determine the correct BacnetApplicationTags based on the property.
+                        // For now, we'll try to parse it as a float, which is common for analog values.
+                        if (float.TryParse(newValue, out float floatValue))
+                        {
+                            var bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, floatValue);
+                            _bacnetClient.WritePriority = uint.Parse(writePriorityComboBox.SelectedItem.ToString().Split(' ')[0]);
+                            _bacnetClient.WritePropertyRequest(adr, _selectedObjectId, propertyId, new[] { bacnetValue });
+                            Log("Write request sent.");
+                        }
+                        else
+                        {
+                            Log("Could not parse new value as a float. Write request not sent.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"Error writing property: {ex.Message}");
+                    }
+                }
+            }
+        }
+
+        private void ManualReadWriteButton_Click(object sender, EventArgs e)
+        {
+            using (var form = new ManualReadWriteForm(deviceTreeView.Nodes))
+            {
+                if (form.ShowDialog() == DialogResult.OK)
+                {
+                    var deviceNode = form.SelectedDeviceNode;
+                    var adr = (deviceNode.Tag as Dictionary<string, object>)["Address"] as BacnetAddress;
+                    var objectId = form.SelectedObject;
+                    var propertyId = form.SelectedProperty;
+
+                    if (form.IsReadOperation)
+                    {
+                        if (_bacnetClient.ReadPropertyRequest(adr, objectId, propertyId, out IList<BacnetValue> values))
+                        {
+                            string valuesStr = string.Join(", ", values.Select(v => v.Value?.ToString() ?? "null"));
+                            MessageBox.Show($"Read Success:\n{valuesStr}", "Read Result");
+                            Log($"Manual Read Success on {objectId}, Property {propertyId}: {valuesStr}");
+                        }
+                        else
+                        {
+                            MessageBox.Show("Read failed.", "Read Result");
+                            Log($"Manual Read Failed on {objectId}, Property {propertyId}");
+                        }
+                    }
+                    else
+                    {
+                        var valueString = form.ValueToWrite;
+                        var priority = form.WritePriority;
+
+                        // Simple type inference, can be improved
+                        BacnetValue bacnetValue;
+                        if (bool.TryParse(valueString, out bool boolVal))
+                            bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, boolVal);
+                        else if (uint.TryParse(valueString, out uint uintVal))
+                            bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, uintVal);
+                        else if (float.TryParse(valueString, out float floatVal))
+                            bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, floatVal);
+                        else
+                            bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, valueString);
+
+                        _bacnetClient.WritePriority = priority;
+                        if (_bacnetClient.WritePropertyRequest(adr, objectId, propertyId, new[] { bacnetValue }))
+                        {
+                            MessageBox.Show("Write successful.", "Write Result");
+                            Log($"Manual Write Success on {objectId}, Property {propertyId}, Value {valueString}, Priority {priority}");
+                        }
+                        else
+                        {
+                            MessageBox.Show("Write failed.", "Write Result");
+                            Log($"Manual Write Failed on {objectId}, Property {propertyId}, Value {valueString}, Priority {priority}");
+                        }
+                    }
+                }
+            }
         }
     }
 }

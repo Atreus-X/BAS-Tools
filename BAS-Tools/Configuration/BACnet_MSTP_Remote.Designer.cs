@@ -59,11 +59,11 @@
             this.cancelDiscoveryButton = new System.Windows.Forms.Button();
             this.discoveryStatusLabel = new System.Windows.Forms.Label();
             this.discoverObjectsButton = new System.Windows.Forms.Button();
-            this.readPropertyButton = new System.Windows.Forms.Button();
-            this.writePropertyButton = new System.Windows.Forms.Button();
+            this.manualReadWriteButton = new System.Windows.Forms.Button();
             this.clearLogButton = new System.Windows.Forms.Button();
             this.cancelActionButton = new System.Windows.Forms.Button();
             this.bottomPanelSplitContainer = new System.Windows.Forms.SplitContainer();
+            this.leftPanelSplitContainer = new System.Windows.Forms.SplitContainer();
             this.browserFrame = new System.Windows.Forms.GroupBox();
             this.browserSplitContainer = new System.Windows.Forms.SplitContainer();
             this.deviceTreeView = new System.Windows.Forms.TreeView();
@@ -74,6 +74,16 @@
             this.clearBrowserButton = new System.Windows.Forms.Button();
             this.objectDiscoveryProgressBar = new System.Windows.Forms.ProgressBar();
             this.objectCountLabel = new System.Windows.Forms.Label();
+            this.propertiesFrame = new System.Windows.Forms.GroupBox();
+            this.propertiesDataGridView = new System.Windows.Forms.DataGridView();
+            this.colProperty = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colValue = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.pollingPanel = new System.Windows.Forms.Panel();
+            this.writePriorityComboBox = new System.Windows.Forms.ComboBox();
+            this.labelWritePriority = new System.Windows.Forms.Label();
+            this.togglePollingButton = new System.Windows.Forms.Button();
+            this.readIntervalNumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.labelReadInterval = new System.Windows.Forms.Label();
             this.outputFrame = new System.Windows.Forms.GroupBox();
             this.outputTextBox = new System.Windows.Forms.RichTextBox();
             this.mainPanel.SuspendLayout();
@@ -97,12 +107,20 @@
             this.bottomPanelSplitContainer.Panel1.SuspendLayout();
             this.bottomPanelSplitContainer.Panel2.SuspendLayout();
             this.bottomPanelSplitContainer.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.leftPanelSplitContainer)).BeginInit();
+            this.leftPanelSplitContainer.Panel1.SuspendLayout();
+            this.leftPanelSplitContainer.Panel2.SuspendLayout();
+            this.leftPanelSplitContainer.SuspendLayout();
             this.browserFrame.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.browserSplitContainer)).BeginInit();
             this.browserSplitContainer.Panel1.SuspendLayout();
             this.browserSplitContainer.Panel2.SuspendLayout();
             this.browserSplitContainer.SuspendLayout();
             this.browserButtonsPanel.SuspendLayout();
+            this.propertiesFrame.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.propertiesDataGridView)).BeginInit();
+            this.pollingPanel.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.readIntervalNumericUpDown)).BeginInit();
             this.outputFrame.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -133,7 +151,7 @@
             // 
             this.mainSplitContainer.Panel2.Controls.Add(this.bottomPanelSplitContainer);
             this.mainSplitContainer.Size = new System.Drawing.Size(818, 923);
-            this.mainSplitContainer.SplitterDistance = 195;
+            this.mainSplitContainer.SplitterDistance = 220;
             this.mainSplitContainer.TabIndex = 3;
             // 
             // topPanelSplitContainer
@@ -153,8 +171,8 @@
             // 
             this.topPanelSplitContainer.Panel2.Controls.Add(this.rediscoverPanel);
             this.topPanelSplitContainer.Panel2.Controls.Add(this.actionsFrame);
-            this.topPanelSplitContainer.Size = new System.Drawing.Size(818, 195);
-            this.topPanelSplitContainer.SplitterDistance = 126;
+            this.topPanelSplitContainer.Size = new System.Drawing.Size(818, 220);
+            this.topPanelSplitContainer.SplitterDistance = 130;
             this.topPanelSplitContainer.TabIndex = 0;
             // 
             // mstpFrame
@@ -377,7 +395,7 @@
             this.rediscoverPanel.Controls.Add(this.rediscoverDeviceCheckBox);
             this.rediscoverPanel.Controls.Add(this.rediscoverObjectCheckBox);
             this.rediscoverPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.rediscoverPanel.Location = new System.Drawing.Point(0, 46);
+            this.rediscoverPanel.Location = new System.Drawing.Point(0, 62);
             this.rediscoverPanel.Name = "rediscoverPanel";
             this.rediscoverPanel.Padding = new System.Windows.Forms.Padding(2);
             this.rediscoverPanel.Size = new System.Drawing.Size(818, 23);
@@ -410,7 +428,7 @@
             this.actionsFrame.Dock = System.Windows.Forms.DockStyle.Top;
             this.actionsFrame.Location = new System.Drawing.Point(0, 0);
             this.actionsFrame.Name = "actionsFrame";
-            this.actionsFrame.Size = new System.Drawing.Size(818, 44);
+            this.actionsFrame.Size = new System.Drawing.Size(818, 52);
             this.actionsFrame.TabIndex = 1;
             this.actionsFrame.TabStop = false;
             this.actionsFrame.Text = "Actions";
@@ -422,14 +440,13 @@
             this.actionsLayout.Controls.Add(this.cancelDiscoveryButton);
             this.actionsLayout.Controls.Add(this.discoveryStatusLabel);
             this.actionsLayout.Controls.Add(this.discoverObjectsButton);
-            this.actionsLayout.Controls.Add(this.readPropertyButton);
-            this.actionsLayout.Controls.Add(this.writePropertyButton);
+            this.actionsLayout.Controls.Add(this.manualReadWriteButton);
             this.actionsLayout.Controls.Add(this.clearLogButton);
             this.actionsLayout.Controls.Add(this.cancelActionButton);
             this.actionsLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.actionsLayout.Location = new System.Drawing.Point(3, 16);
             this.actionsLayout.Name = "actionsLayout";
-            this.actionsLayout.Size = new System.Drawing.Size(812, 25);
+            this.actionsLayout.Size = new System.Drawing.Size(812, 33);
             this.actionsLayout.TabIndex = 0;
             // 
             // startDiscoveryButton
@@ -474,30 +491,20 @@
             this.discoverObjectsButton.Text = "Discover Objects";
             this.discoverObjectsButton.UseVisualStyleBackColor = true;
             // 
-            // readPropertyButton
+            // manualReadWriteButton
             // 
-            this.readPropertyButton.AutoSize = true;
-            this.readPropertyButton.Location = new System.Drawing.Point(289, 3);
-            this.readPropertyButton.Name = "readPropertyButton";
-            this.readPropertyButton.Size = new System.Drawing.Size(85, 23);
-            this.readPropertyButton.TabIndex = 5;
-            this.readPropertyButton.Text = "Read Property";
-            this.readPropertyButton.UseVisualStyleBackColor = true;
-            // 
-            // writePropertyButton
-            // 
-            this.writePropertyButton.AutoSize = true;
-            this.writePropertyButton.Location = new System.Drawing.Point(380, 3);
-            this.writePropertyButton.Name = "writePropertyButton";
-            this.writePropertyButton.Size = new System.Drawing.Size(84, 23);
-            this.writePropertyButton.TabIndex = 6;
-            this.writePropertyButton.Text = "Write Property";
-            this.writePropertyButton.UseVisualStyleBackColor = true;
+            this.manualReadWriteButton.AutoSize = true;
+            this.manualReadWriteButton.Location = new System.Drawing.Point(289, 3);
+            this.manualReadWriteButton.Name = "manualReadWriteButton";
+            this.manualReadWriteButton.Size = new System.Drawing.Size(100, 23);
+            this.manualReadWriteButton.TabIndex = 5;
+            this.manualReadWriteButton.Text = "Manual Read/Write";
+            this.manualReadWriteButton.UseVisualStyleBackColor = true;
             // 
             // clearLogButton
             // 
             this.clearLogButton.AutoSize = true;
-            this.clearLogButton.Location = new System.Drawing.Point(470, 3);
+            this.clearLogButton.Location = new System.Drawing.Point(395, 3);
             this.clearLogButton.Name = "clearLogButton";
             this.clearLogButton.Size = new System.Drawing.Size(68, 23);
             this.clearLogButton.TabIndex = 7;
@@ -508,7 +515,7 @@
             // 
             this.cancelActionButton.AutoSize = true;
             this.cancelActionButton.Enabled = false;
-            this.cancelActionButton.Location = new System.Drawing.Point(544, 3);
+            this.cancelActionButton.Location = new System.Drawing.Point(469, 3);
             this.cancelActionButton.Name = "cancelActionButton";
             this.cancelActionButton.Size = new System.Drawing.Size(75, 23);
             this.cancelActionButton.TabIndex = 8;
@@ -520,16 +527,35 @@
             this.bottomPanelSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
             this.bottomPanelSplitContainer.Location = new System.Drawing.Point(0, 0);
             this.bottomPanelSplitContainer.Name = "bottomPanelSplitContainer";
+            this.bottomPanelSplitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
             // 
             // bottomPanelSplitContainer.Panel1
             // 
-            this.bottomPanelSplitContainer.Panel1.Controls.Add(this.browserFrame);
+            this.bottomPanelSplitContainer.Panel1.Controls.Add(this.leftPanelSplitContainer);
             // 
             // bottomPanelSplitContainer.Panel2
             // 
             this.bottomPanelSplitContainer.Panel2.Controls.Add(this.outputFrame);
-            this.bottomPanelSplitContainer.Size = new System.Drawing.Size(818, 695);
-            this.bottomPanelSplitContainer.SplitterDistance = 409;
+            this.bottomPanelSplitContainer.Size = new System.Drawing.Size(818, 724);
+            this.bottomPanelSplitContainer.SplitterDistance = 450;
+            this.bottomPanelSplitContainer.TabIndex = 0;
+            // 
+            // leftPanelSplitContainer
+            // 
+            this.leftPanelSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.leftPanelSplitContainer.Location = new System.Drawing.Point(0, 0);
+            this.leftPanelSplitContainer.Name = "leftPanelSplitContainer";
+            // 
+            // leftPanelSplitContainer.Panel1
+            // 
+            this.leftPanelSplitContainer.Panel1.Controls.Add(this.browserFrame);
+            // 
+            // leftPanelSplitContainer.Panel2
+            // 
+            this.leftPanelSplitContainer.Panel2.Controls.Add(this.propertiesFrame);
+            this.leftPanelSplitContainer.Size = new System.Drawing.Size(818, 450);
+            this.leftPanelSplitContainer.SplitterDistance = 400;
+            this.leftPanelSplitContainer.TabIndex = 0;
             // 
             // browserFrame
             // 
@@ -538,7 +564,7 @@
             this.browserFrame.Dock = System.Windows.Forms.DockStyle.Fill;
             this.browserFrame.Location = new System.Drawing.Point(0, 0);
             this.browserFrame.Name = "browserFrame";
-            this.browserFrame.Size = new System.Drawing.Size(409, 695);
+            this.browserFrame.Size = new System.Drawing.Size(400, 450);
             this.browserFrame.TabIndex = 0;
             this.browserFrame.TabStop = false;
             this.browserFrame.Text = "Device & Object Browser";
@@ -557,8 +583,8 @@
             // browserSplitContainer.Panel2
             // 
             this.browserSplitContainer.Panel2.Controls.Add(this.objectTreeView);
-            this.browserSplitContainer.Size = new System.Drawing.Size(403, 647);
-            this.browserSplitContainer.SplitterDistance = 317;
+            this.browserSplitContainer.Size = new System.Drawing.Size(394, 402);
+            this.browserSplitContainer.SplitterDistance = 200;
             this.browserSplitContainer.TabIndex = 0;
             // 
             // deviceTreeView
@@ -566,7 +592,7 @@
             this.deviceTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.deviceTreeView.Location = new System.Drawing.Point(0, 0);
             this.deviceTreeView.Name = "deviceTreeView";
-            this.deviceTreeView.Size = new System.Drawing.Size(403, 317);
+            this.deviceTreeView.Size = new System.Drawing.Size(394, 200);
             this.deviceTreeView.TabIndex = 0;
             // 
             // objectTreeView
@@ -574,7 +600,7 @@
             this.objectTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.objectTreeView.Location = new System.Drawing.Point(0, 0);
             this.objectTreeView.Name = "objectTreeView";
-            this.objectTreeView.Size = new System.Drawing.Size(403, 326);
+            this.objectTreeView.Size = new System.Drawing.Size(394, 198);
             this.objectTreeView.TabIndex = 0;
             // 
             // browserButtonsPanel
@@ -596,7 +622,7 @@
             this.browserButtonsPanel.Name = "browserButtonsPanel";
             this.browserButtonsPanel.RowCount = 1;
             this.browserButtonsPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.browserButtonsPanel.Size = new System.Drawing.Size(403, 29);
+            this.browserButtonsPanel.Size = new System.Drawing.Size(394, 29);
             this.browserButtonsPanel.TabIndex = 1;
             // 
             // expandAllButton
@@ -629,9 +655,9 @@
             // objectDiscoveryProgressBar
             // 
             this.objectDiscoveryProgressBar.Anchor = System.Windows.Forms.AnchorStyles.Right;
-            this.objectDiscoveryProgressBar.Location = new System.Drawing.Point(247, 3);
+            this.objectDiscoveryProgressBar.Location = new System.Drawing.Point(246, 3);
             this.objectDiscoveryProgressBar.Name = "objectDiscoveryProgressBar";
-            this.objectDiscoveryProgressBar.Size = new System.Drawing.Size(153, 23);
+            this.objectDiscoveryProgressBar.Size = new System.Drawing.Size(145, 23);
             this.objectDiscoveryProgressBar.TabIndex = 9;
             this.objectDiscoveryProgressBar.Visible = false;
             // 
@@ -639,12 +665,143 @@
             // 
             this.objectCountLabel.Anchor = System.Windows.Forms.AnchorStyles.Right;
             this.objectCountLabel.AutoSize = true;
-            this.objectCountLabel.Location = new System.Drawing.Point(173, 8);
+            this.objectCountLabel.Location = new System.Drawing.Point(172, 8);
             this.objectCountLabel.Name = "objectCountLabel";
             this.objectCountLabel.Size = new System.Drawing.Size(68, 13);
             this.objectCountLabel.TabIndex = 8;
             this.objectCountLabel.Text = "Found 0 of 0";
             this.objectCountLabel.Visible = false;
+            // 
+            // propertiesFrame
+            // 
+            this.propertiesFrame.Controls.Add(this.propertiesDataGridView);
+            this.propertiesFrame.Controls.Add(this.pollingPanel);
+            this.propertiesFrame.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.propertiesFrame.Location = new System.Drawing.Point(0, 0);
+            this.propertiesFrame.Name = "propertiesFrame";
+            this.propertiesFrame.Size = new System.Drawing.Size(414, 450);
+            this.propertiesFrame.TabIndex = 0;
+            this.propertiesFrame.TabStop = false;
+            this.propertiesFrame.Text = "Object Properties";
+            // 
+            // propertiesDataGridView
+            // 
+            this.propertiesDataGridView.AllowUserToAddRows = false;
+            this.propertiesDataGridView.AllowUserToDeleteRows = false;
+            this.propertiesDataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.propertiesDataGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colProperty,
+            this.colValue});
+            this.propertiesDataGridView.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.propertiesDataGridView.Location = new System.Drawing.Point(3, 45);
+            this.propertiesDataGridView.Name = "propertiesDataGridView";
+            this.propertiesDataGridView.Size = new System.Drawing.Size(408, 402);
+            this.propertiesDataGridView.TabIndex = 1;
+            // 
+            // colProperty
+            // 
+            this.colProperty.HeaderText = "Property";
+            this.colProperty.Name = "colProperty";
+            this.colProperty.ReadOnly = true;
+            // 
+            // colValue
+            // 
+            this.colValue.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.colValue.HeaderText = "Value";
+            this.colValue.Name = "colValue";
+            // 
+            // pollingPanel
+            // 
+            this.pollingPanel.Controls.Add(this.writePriorityComboBox);
+            this.pollingPanel.Controls.Add(this.labelWritePriority);
+            this.pollingPanel.Controls.Add(this.togglePollingButton);
+            this.pollingPanel.Controls.Add(this.readIntervalNumericUpDown);
+            this.pollingPanel.Controls.Add(this.labelReadInterval);
+            this.pollingPanel.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pollingPanel.Location = new System.Drawing.Point(3, 16);
+            this.pollingPanel.Name = "pollingPanel";
+            this.pollingPanel.Size = new System.Drawing.Size(408, 29);
+            this.pollingPanel.TabIndex = 0;
+            // 
+            // writePriorityComboBox
+            // 
+            this.writePriorityComboBox.FormattingEnabled = true;
+            this.writePriorityComboBox.Items.AddRange(new object[] {
+            "1 (Manual Life Safety)",
+            "2 (Automatic Life Safety)",
+            "3",
+            "4",
+            "5 (Critical Equipment Control)",
+            "6 (Minimum On/Off)",
+            "7",
+            "8 (Manual Operator)",
+            "9",
+            "10",
+            "11",
+            "12",
+            "13",
+            "14",
+            "15",
+            "16 (Default)"});
+            this.writePriorityComboBox.Location = new System.Drawing.Point(300, 4);
+            this.writePriorityComboBox.Name = "writePriorityComboBox";
+            this.writePriorityComboBox.Size = new System.Drawing.Size(100, 21);
+            this.writePriorityComboBox.TabIndex = 4;
+            // 
+            // labelWritePriority
+            // 
+            this.labelWritePriority.AutoSize = true;
+            this.labelWritePriority.Location = new System.Drawing.Point(230, 7);
+            this.labelWritePriority.Name = "labelWritePriority";
+            this.labelWritePriority.Size = new System.Drawing.Size(64, 13);
+            this.labelWritePriority.TabIndex = 3;
+            this.labelWritePriority.Text = "Write Priority";
+            // 
+            // togglePollingButton
+            // 
+            this.togglePollingButton.Enabled = false;
+            this.togglePollingButton.Location = new System.Drawing.Point(150, 3);
+            this.togglePollingButton.Name = "togglePollingButton";
+            this.togglePollingButton.Size = new System.Drawing.Size(75, 23);
+            this.togglePollingButton.TabIndex = 2;
+            this.togglePollingButton.Text = "Start Polling";
+            this.togglePollingButton.UseVisualStyleBackColor = true;
+            // 
+            // readIntervalNumericUpDown
+            // 
+            this.readIntervalNumericUpDown.Increment = new decimal(new int[] {
+            100,
+            0,
+            0,
+            0});
+            this.readIntervalNumericUpDown.Location = new System.Drawing.Point(85, 5);
+            this.readIntervalNumericUpDown.Maximum = new decimal(new int[] {
+            60000,
+            0,
+            0,
+            0});
+            this.readIntervalNumericUpDown.Minimum = new decimal(new int[] {
+            100,
+            0,
+            0,
+            0});
+            this.readIntervalNumericUpDown.Name = "readIntervalNumericUpDown";
+            this.readIntervalNumericUpDown.Size = new System.Drawing.Size(55, 20);
+            this.readIntervalNumericUpDown.TabIndex = 1;
+            this.readIntervalNumericUpDown.Value = new decimal(new int[] {
+            1000,
+            0,
+            0,
+            0});
+            // 
+            // labelReadInterval
+            // 
+            this.labelReadInterval.AutoSize = true;
+            this.labelReadInterval.Location = new System.Drawing.Point(4, 7);
+            this.labelReadInterval.Name = "labelReadInterval";
+            this.labelReadInterval.Size = new System.Drawing.Size(75, 13);
+            this.labelReadInterval.TabIndex = 0;
+            this.labelReadInterval.Text = "Interval (ms)";
             // 
             // outputFrame
             // 
@@ -652,7 +809,7 @@
             this.outputFrame.Dock = System.Windows.Forms.DockStyle.Fill;
             this.outputFrame.Location = new System.Drawing.Point(0, 0);
             this.outputFrame.Name = "outputFrame";
-            this.outputFrame.Size = new System.Drawing.Size(406, 695);
+            this.outputFrame.Size = new System.Drawing.Size(818, 270);
             this.outputFrame.TabIndex = 0;
             this.outputFrame.TabStop = false;
             this.outputFrame.Text = "Output";
@@ -662,7 +819,7 @@
             this.outputTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.outputTextBox.Location = new System.Drawing.Point(3, 16);
             this.outputTextBox.Name = "outputTextBox";
-            this.outputTextBox.Size = new System.Drawing.Size(400, 676);
+            this.outputTextBox.Size = new System.Drawing.Size(812, 251);
             this.outputTextBox.TabIndex = 0;
             this.outputTextBox.Text = "";
             // 
@@ -704,6 +861,10 @@
             this.bottomPanelSplitContainer.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.bottomPanelSplitContainer)).EndInit();
             this.bottomPanelSplitContainer.ResumeLayout(false);
+            this.leftPanelSplitContainer.Panel1.ResumeLayout(false);
+            this.leftPanelSplitContainer.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.leftPanelSplitContainer)).EndInit();
+            this.leftPanelSplitContainer.ResumeLayout(false);
             this.browserFrame.ResumeLayout(false);
             this.browserFrame.PerformLayout();
             this.browserSplitContainer.Panel1.ResumeLayout(false);
@@ -712,6 +873,11 @@
             this.browserSplitContainer.ResumeLayout(false);
             this.browserButtonsPanel.ResumeLayout(false);
             this.browserButtonsPanel.PerformLayout();
+            this.propertiesFrame.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.propertiesDataGridView)).EndInit();
+            this.pollingPanel.ResumeLayout(false);
+            this.pollingPanel.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.readIntervalNumericUpDown)).EndInit();
             this.outputFrame.ResumeLayout(false);
             this.ResumeLayout(false);
 
@@ -725,13 +891,8 @@
         private System.Windows.Forms.FlowLayoutPanel actionsLayout;
         private System.Windows.Forms.Button startDiscoveryButton;
         private System.Windows.Forms.Button discoverObjectsButton;
-        private System.Windows.Forms.Button readPropertyButton;
-        private System.Windows.Forms.Button writePropertyButton;
+        private System.Windows.Forms.Button manualReadWriteButton;
         private System.Windows.Forms.SplitContainer mainSplitContainer;
-        private System.Windows.Forms.GroupBox browserFrame;
-        private System.Windows.Forms.SplitContainer browserSplitContainer;
-        private System.Windows.Forms.TreeView deviceTreeView;
-        private System.Windows.Forms.TreeView objectTreeView;
         private System.Windows.Forms.GroupBox outputFrame;
         private System.Windows.Forms.RichTextBox outputTextBox;
         private System.Windows.Forms.Button cancelDiscoveryButton;
@@ -755,7 +916,6 @@
         private System.Windows.Forms.RadioButton listNetworkRadioButton;
         private System.Windows.Forms.ComboBox networkNumberComboBox;
         private System.Windows.Forms.SplitContainer topPanelSplitContainer;
-        private System.Windows.Forms.SplitContainer bottomPanelSplitContainer;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel2;
         private System.Windows.Forms.TableLayoutPanel browserButtonsPanel;
         private System.Windows.Forms.Button expandAllButton;
@@ -767,5 +927,21 @@
         private System.Windows.Forms.CheckBox rediscoverDeviceCheckBox;
         private System.Windows.Forms.CheckBox rediscoverObjectCheckBox;
         private System.Windows.Forms.Button cancelActionButton;
+        private System.Windows.Forms.SplitContainer bottomPanelSplitContainer;
+        private System.Windows.Forms.SplitContainer leftPanelSplitContainer;
+        private System.Windows.Forms.GroupBox browserFrame;
+        private System.Windows.Forms.SplitContainer browserSplitContainer;
+        private System.Windows.Forms.TreeView deviceTreeView;
+        private System.Windows.Forms.TreeView objectTreeView;
+        private System.Windows.Forms.GroupBox propertiesFrame;
+        private System.Windows.Forms.DataGridView propertiesDataGridView;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colProperty;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colValue;
+        private System.Windows.Forms.Panel pollingPanel;
+        private System.Windows.Forms.Label labelReadInterval;
+        private System.Windows.Forms.NumericUpDown readIntervalNumericUpDown;
+        private System.Windows.Forms.Button togglePollingButton;
+        private System.Windows.Forms.Label labelWritePriority;
+        private System.Windows.Forms.ComboBox writePriorityComboBox;
     }
 }

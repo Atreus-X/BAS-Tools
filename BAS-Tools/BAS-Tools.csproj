@@ -168,6 +168,12 @@
     <Compile Include="MainApp.Designer.cs">
       <DependentUpon>MainApp.cs</DependentUpon>
     </Compile>
+    <Compile Include="ManualReadWriteForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ManualReadWriteForm.Designer.cs">
+      <DependentUpon>ManualReadWriteForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Configuration\BACnet_IP.resx">
