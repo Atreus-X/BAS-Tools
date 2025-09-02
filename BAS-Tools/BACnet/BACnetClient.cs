@@ -1365,14 +1365,11 @@ namespace System.IO.BACnet
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.ExpectingReply, adr.RoutedSource);
 
-            // Conditionally add the SEGMENTED_RESPONSE_ACCEPTED flag
+            // Force the PDU to NOT accept segmented responses and use the smallest APDU size
+            // to ensure compatibility with all devices.
             BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST;
-            if (m_max_segments != BacnetMaxSegments.MAX_SEG0)
-            {
-                pduType |= BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED;
-            }
+            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROPERTY, BacnetMaxSegments.MAX_SEG0, BacnetMaxAdpu.MAX_APDU50, invoke_id);
 
-            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROPERTY, m_max_segments, m_client.MaxAdpuLength, invoke_id);
             Services.EncodeReadProperty(b, object_id, (uint)property_id, array_index);
 
             //send
@@ -1381,7 +1378,6 @@ namespace System.IO.BACnet
 
             return ret;
         }
-
         public void EndReadPropertyRequest(IAsyncResult result, out IList<BacnetValue> value_list, out Exception ex)
         {
             BacnetAsyncResult res = (BacnetAsyncResult)result;
@@ -1570,13 +1566,10 @@ namespace System.IO.BACnet
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.ExpectingReply, adr.RoutedSource);
 
+            // Force the PDU to NOT accept segmented responses and use the smallest APDU size
             BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST;
-            if (m_max_segments != BacnetMaxSegments.MAX_SEG0)
-            {
-                pduType |= BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED;
-            }
+            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, BacnetMaxSegments.MAX_SEG0, BacnetMaxAdpu.MAX_APDU50, invoke_id);
 
-            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, m_max_segments, m_client.MaxAdpuLength, invoke_id);
             Services.EncodeReadPropertyMultiple(b, object_id, property_id_and_array_index);
 
             //send
@@ -1585,8 +1578,6 @@ namespace System.IO.BACnet
 
             return ret;
         }
-
-        // Another way to read multiple properties on multiples objects, if supported by devices
         public bool ReadPropertyMultipleRequest(BacnetAddress adr, IList<BacnetReadAccessSpecification> properties, out IList<BacnetReadAccessResult> values, byte invoke_id = 0)
         {
             using (BacnetAsyncResult result = (BacnetAsyncResult)BeginReadPropertyMultipleRequest(adr, properties, true, invoke_id))
@@ -1616,13 +1607,10 @@ namespace System.IO.BACnet
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.ExpectingReply, adr.RoutedSource);
 
+            // Force the PDU to NOT accept segmented responses and use the smallest APDU size
             BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST;
-            if (m_max_segments != BacnetMaxSegments.MAX_SEG0)
-            {
-                pduType |= BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED;
-            }
+            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, BacnetMaxSegments.MAX_SEG0, BacnetMaxAdpu.MAX_APDU50, invoke_id);
 
-            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, m_max_segments, m_client.MaxAdpuLength, invoke_id);
             Services.EncodeReadPropertyMultiple(b, properties);
 
             //send
@@ -1631,7 +1619,6 @@ namespace System.IO.BACnet
 
             return ret;
         }
-
         public void EndReadPropertyMultipleRequest(IAsyncResult result, out IList<BacnetReadAccessResult> values, out Exception ex)
         {
             BacnetAsyncResult res = (BacnetAsyncResult)result;

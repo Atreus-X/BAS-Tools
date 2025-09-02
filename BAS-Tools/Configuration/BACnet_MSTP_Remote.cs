@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO.BACnet;
+using System.IO.BACnet.Serialize;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -26,6 +27,7 @@ namespace MainApp.Configuration
         private bool _isClientStarted = false;
         private readonly System.Windows.Forms.Timer _propertyPollingTimer;
         private BacnetObjectId _selectedObjectId;
+        private List<ushort> _networksToScan = new List<ushort>();
 
         public BACnet_MSTP_Remote()
         {
@@ -89,13 +91,21 @@ namespace MainApp.Configuration
 
         private void OnIamHandler(BacnetClient _sender, BacnetAddress adr, uint deviceId, uint _maxApdu, BacnetSegmentations _segmentation, ushort vendorId)
         {
+            ushort deviceNetwork = (adr.RoutedSource != null) ? adr.RoutedSource.net : adr.net;
+
+            // Filter devices if a network list is specified
+            if (listNetworkRadioButton.Checked && _networksToScan.Any() && !_networksToScan.Contains(deviceNetwork))
+            {
+                return; // Ignore this device
+            }
+
             Log($"OnIam from {adr} for device {deviceId}. Segmentation support: {_segmentation}");
             if (this.IsDisposed || !this.IsHandleCreated) return;
             this.Invoke((MethodInvoker)delegate
             {
                 try
                 {
-                    ushort deviceNetwork = (adr.RoutedSource != null) ? adr.RoutedSource.net : adr.net;
+                    // The 'deviceNetwork' variable is already defined in the outer scope, so we don't redeclare it here.
                     string macAddress = (adr.RoutedSource != null && adr.RoutedSource.adr != null) ? string.Join(":", adr.RoutedSource.adr.Select(b => b.ToString("X2"))) : "N/A";
                     string vendorName = BacnetVendorInfo.GetVendorName(vendorId);
                     string networkNodeKey = $"NET-{deviceNetwork}";
@@ -216,26 +226,6 @@ namespace MainApp.Configuration
             }
             BacnetAddress deviceAddress = deviceInfo["Address"] as BacnetAddress;
 
-            BacnetSegmentations segmentation = BacnetSegmentations.SEGMENTATION_BOTH; // Default to supported
-            if (deviceInfo.ContainsKey("Segmentation"))
-            {
-                segmentation = (BacnetSegmentations)deviceInfo["Segmentation"];
-            }
-            else
-            {
-                Log($"Warning: Segmentation support not found for device {deviceId}. Assuming none.");
-                segmentation = BacnetSegmentations.SEGMENTATION_NONE;
-            }
-            Log($"Device {deviceId} segmentation support: {segmentation}");
-
-            var old_segments = _bacnetClient.MaxSegments;
-            if (segmentation == BacnetSegmentations.SEGMENTATION_NONE)
-            {
-                _bacnetClient.MaxSegments = BacnetMaxSegments.MAX_SEG0;
-            }
-            Log($"BacnetClient.MaxSegments set to: {_bacnetClient.MaxSegments}");
-
-
             this.Invoke((MethodInvoker)delegate {
                 objectTreeView.Nodes.Clear();
                 objectDiscoveryProgressBar.Visible = true;
@@ -251,31 +241,24 @@ namespace MainApp.Configuration
                     lock (_bacnetLock)
                     {
                         Log($"Requesting object list for Device {deviceId}...");
-                        if (deviceInfo.ContainsKey("SupportsReadPropertyMultiple") && (bool)deviceInfo["SupportsReadPropertyMultiple"])
+                        var propertyReferences = new List<BacnetPropertyReference>
+                {
+                    new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_LIST, ASN1.BACNET_ARRAY_ALL)
+                };
+                        var request = new BacnetReadAccessSpecification(new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId), propertyReferences);
+                        if (_bacnetClient.ReadPropertyMultipleRequest(deviceAddress, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results))
                         {
-                            Log("Device supports ReadPropertyMultiple. Using it to discover objects.");
-                            var propertyReferences = new List<BacnetPropertyReference>
+                            var objectList = results.SelectMany(r => r.values.SelectMany(v => v.value)).ToList();
+                            Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
+
+                            if (!this.IsDisposed && this.IsHandleCreated)
                             {
-                                new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_NAME, BACNET_ARRAY_ALL),
-                                new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_TYPE, BACNET_ARRAY_ALL),
-                                new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BACNET_ARRAY_ALL)
-                            };
-                            var request = new BacnetReadAccessSpecification(new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId), propertyReferences);
-                            if (_bacnetClient.ReadPropertyMultipleRequest(deviceAddress, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results))
-                            {
-                                Log($"--- SUCCESS: Found {results.Count} objects. ---");
-                                var values = results.SelectMany(r => r.values.Select(v => v.value.FirstOrDefault())).Where(v => v.Value != null).ToList();
-                                this.Invoke((MethodInvoker)delegate { PopulateObjectTree(values); });
+                                this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
                             }
                         }
                         else
                         {
-                            Log("Device does not support ReadPropertyMultiple. Using ReadProperty for object list.");
-                            if (_bacnetClient.ReadPropertyRequest(deviceAddress, new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId), BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> objectList))
-                            {
-                                Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
-                                this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
-                            }
+                            Log($"--- ERROR: Failed to read object list for device {deviceId}. ---");
                         }
                     }
                 }
@@ -285,9 +268,6 @@ namespace MainApp.Configuration
                 }
                 finally
                 {
-                    // Restore the original segmentation setting
-                    _bacnetClient.MaxSegments = old_segments;
-
                     if (!this.IsDisposed && this.IsHandleCreated)
                     {
                         this.Invoke((MethodInvoker)delegate
@@ -299,7 +279,6 @@ namespace MainApp.Configuration
                 }
             });
         }
-
         private async void ObjectTreeView_AfterSelect(object sender, TreeViewEventArgs e)
         {
             if (rediscoverObjectCheckBox.Checked && e.Node != null && e.Node.Tag is BacnetObjectId objectId && _lastPingedDeviceId.HasValue)
@@ -439,10 +418,10 @@ namespace MainApp.Configuration
 
             if (listNetworkRadioButton.Checked && !string.IsNullOrWhiteSpace(bbmdIp))
             {
-                List<ushort> networksToScan = ParseNetworkNumbers(networkNumberComboBox.Text);
-                if (networksToScan.Any())
+                _networksToScan = ParseNetworkNumbers(networkNumberComboBox.Text); // Populate the list
+                if (_networksToScan.Any())
                 {
-                    foreach (var netNum in networksToScan)
+                    foreach (var netNum in _networksToScan)
                     {
                         Log($"Sending Who-Is for remote network {netNum} via BBMD {bbmdIp}:{bbmdPort}.");
                         _bacnetClient.RemoteWhoIs(bbmdIp, bbmdPort, -1, -1, netNum);
@@ -456,11 +435,11 @@ namespace MainApp.Configuration
             }
             else
             {
+                _networksToScan.Clear(); // Ensure list is clear for non-list discoveries
                 Log("Sending local Who-Is broadcast.");
                 _bacnetClient.WhoIs(-1, -1, _bacnetClient.Transport.GetBroadcastAddress());
             }
         }
-
         private List<ushort> ParseNetworkNumbers(string text)
         {
             var networks = new List<ushort>();
@@ -493,8 +472,8 @@ namespace MainApp.Configuration
             startDiscoveryButton.Enabled = true;
             cancelDiscoveryButton.Visible = false;
             discoveryStatusLabel.Visible = false;
+            _networksToScan.Clear(); // Clear the list for the next discovery
         }
-
         private void Log(string message)
         {
             if (this.InvokeRequired)

@@ -282,7 +282,7 @@ namespace MainApp.Configuration
                         if (_bacnetClient.ReadPropertyMultipleRequest(deviceAddress, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results))
                         {
                             Log($"--- SUCCESS: Found {results.Count} objects. ---");
-                            var values = results.SelectMany(r => r.values.Select(v => v.value.FirstOrDefault())).Where(v => v.Value != null).ToList();
+                            var values = results.SelectMany(r => r.values.SelectMany(v => v.value)).Where(v => v.Value != null).ToList();
                             PopulateObjectTree(values);
                         }
                     }

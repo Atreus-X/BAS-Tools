@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO.BACnet;
+using System.IO.BACnet.Serialize;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -321,26 +322,6 @@ namespace MainApp.Configuration
             }
             BacnetAddress deviceAddress = deviceInfo["Address"] as BacnetAddress;
 
-            BacnetSegmentations segmentation = BacnetSegmentations.SEGMENTATION_BOTH; // Default to supported
-            if (deviceInfo.ContainsKey("Segmentation"))
-            {
-                segmentation = (BacnetSegmentations)deviceInfo["Segmentation"];
-            }
-            else
-            {
-                Log($"Warning: Segmentation support not found for device {deviceId}. Assuming none.");
-                segmentation = BacnetSegmentations.SEGMENTATION_NONE;
-            }
-            Log($"Device {deviceId} segmentation support: {segmentation}");
-
-            var old_segments = _bacnetClient.MaxSegments;
-            if (segmentation == BacnetSegmentations.SEGMENTATION_NONE)
-            {
-                _bacnetClient.MaxSegments = BacnetMaxSegments.MAX_SEG0;
-            }
-            Log($"BacnetClient.MaxSegments set to: {_bacnetClient.MaxSegments}");
-
-
             this.Invoke((MethodInvoker)delegate {
                 objectTreeView.Nodes.Clear();
                 objectDiscoveryProgressBar.Visible = true;
@@ -356,32 +337,24 @@ namespace MainApp.Configuration
                     lock (_bacnetLock)
                     {
                         Log($"Requesting object list for Device {deviceId}...");
-                        if (deviceInfo.ContainsKey("SupportsReadPropertyMultiple") && (bool)deviceInfo["SupportsReadPropertyMultiple"])
+                        var propertyReferences = new List<BacnetPropertyReference>
+                {
+                    new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_LIST, ASN1.BACNET_ARRAY_ALL)
+                };
+                        var request = new BacnetReadAccessSpecification(new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId), propertyReferences);
+                        if (_bacnetClient.ReadPropertyMultipleRequest(deviceAddress, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results))
                         {
-                            Log("Device supports ReadPropertyMultiple. Using it to discover objects.");
-                            var objectList = new List<BacnetReadAccessResult>();
-                            var propertyReferences = new List<BacnetPropertyReference>
+                            var objectList = results.SelectMany(r => r.values.SelectMany(v => v.value)).ToList();
+                            Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
+
+                            if (!this.IsDisposed && this.IsHandleCreated)
                             {
-                                new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_NAME, BACNET_ARRAY_ALL),
-                                new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_TYPE, BACNET_ARRAY_ALL),
-                                new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BACNET_ARRAY_ALL)
-                            };
-                            var request = new BacnetReadAccessSpecification(new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId), propertyReferences);
-                            if (_bacnetClient.ReadPropertyMultipleRequest(deviceAddress, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results))
-                            {
-                                Log($"--- SUCCESS: Found {results.Count} objects. ---");
-                                var values = results.SelectMany(r => r.values.Select(v => v.value.FirstOrDefault())).Where(v => v.Value != null).ToList();
-                                this.Invoke((MethodInvoker)delegate { PopulateObjectTree(values); });
+                                this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
                             }
                         }
                         else
                         {
-                            Log("Device does not support ReadPropertyMultiple. Using ReadProperty for object list.");
-                            if (_bacnetClient.ReadPropertyRequest(deviceAddress, new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId), BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> objectList))
-                            {
-                                Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
-                                this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
-                            }
+                            Log($"--- ERROR: Failed to read object list for device {deviceId}. ---");
                         }
                     }
                 }
@@ -391,9 +364,6 @@ namespace MainApp.Configuration
                 }
                 finally
                 {
-                    // Restore the original segmentation setting
-                    _bacnetClient.MaxSegments = old_segments;
-
                     if (!this.IsDisposed && this.IsHandleCreated)
                     {
                         this.Invoke((MethodInvoker)delegate
@@ -405,7 +375,6 @@ namespace MainApp.Configuration
                 }
             });
         }
-
         private void Log(string message)
         {
             if (this.InvokeRequired)
