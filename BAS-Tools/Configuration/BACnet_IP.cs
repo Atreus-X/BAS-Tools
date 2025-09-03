@@ -15,60 +15,53 @@ using static System.IO.BACnet.Serialize.Services;
 
 namespace MainApp.Configuration
 {
-    public partial class BACnet_IP : UserControl, IHistorySupport
+    public partial class BACnet_IP : BACnetControlBase
     {
-        private BacnetClient _bacnetClient;
-        private HistoryManager _historyManager;
-        private uint? _lastPingedDeviceId = null;
-        private bool _isClientStarted = false;
-        private readonly object _bacnetLock = new object();
         private string _lastBBMDIp = "";
-        private readonly System.Windows.Forms.Timer _propertyPollingTimer;
-        private BacnetObjectId _selectedObjectId;
 
+        protected override TreeView DeviceTreeView => deviceTreeView;
+        protected override TreeView ObjectTreeView => objectTreeView;
+        protected override DataGridView PropertiesDataGridView => propertiesDataGridView;
+        protected override RichTextBox OutputTextBox => outputTextBox;
+        protected override Button TogglePollingButton => togglePollingButton;
+        protected override NumericUpDown ReadIntervalNumericUpDown => readIntervalNumericUpDown;
+        protected override ComboBox WritePriorityComboBox => writePriorityComboBox;
 
         public BACnet_IP()
         {
             InitializeComponent();
-            _propertyPollingTimer = new System.Windows.Forms.Timer();
             this.Load += BACnet_IP_Load;
         }
 
         private void BACnet_IP_Load(object sender, EventArgs e)
         {
-            if (this.DesignMode || LicenseManager.UsageMode == LicenseUsageMode.Designtime)
-                return;
-
-            GlobalLogger.Register(outputTextBox);
-            _historyManager = new HistoryManager("BACnet_IP_");
-            PopulateDefaultValues();
-            LoadHistory();
-            UpdateAllStates(null, null);
-            WireUpEventHandlers();
-
-            _propertyPollingTimer.Tick += PropertyPollingTimer_Tick;
+            BaseLoad("BACnet_IP_");
         }
 
-        private void WireUpEventHandlers()
+        protected override void UpdateAllStates(object sender, EventArgs e)
         {
-            this.deviceTreeView.AfterSelect += this.DeviceTreeView_AfterSelect;
-            this.objectTreeView.AfterSelect += this.ObjectTreeView_AfterSelect;
-            this.propertiesDataGridView.CellEndEdit += this.propertiesDataGridView_CellEndEdit;
+            bool instanceExists = !string.IsNullOrWhiteSpace(instanceNumberComboBox.Text);
+            pingButton.Enabled = instanceExists;
+            discoverObjectsButton.Enabled = _lastPingedDeviceId.HasValue;
+        }
+
+        protected override void WireUpProtocolSpecificEventHandlers()
+        {
             this.instanceNumberComboBox.TextChanged += this.UpdateAllStates;
             this.discoverButton.Click += this.DiscoverButton_Click;
             this.pingButton.Click += this.PingButton_Click;
             this.discoverObjectsButton.Click += this.DiscoverObjectsButton_Click;
             this.manualReadWriteButton.Click += this.ManualReadWriteButton_Click;
             this.clearLogButton.Click += this.ClearLogButton_Click;
-            this.togglePollingButton.Click += this.TogglePollingButton_Click;
-            this.networkNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(networkNumberComboBox, "networkNumber");
+
+            networkNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(networkNumberComboBox, "networkNumber");
             ipAddressComboBox.Leave += (s, args) => SaveComboBoxEntry(ipAddressComboBox, "ipAddress");
             instanceNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(instanceNumberComboBox, "instanceNumber");
             ipPortComboBox.Leave += (s, args) => SaveComboBoxEntry(ipPortComboBox, "ipPort");
             apduTimeoutComboBox.Leave += (s, args) => SaveComboBoxEntry(apduTimeoutComboBox, "apduTimeout");
             bbmdIpComboBox.Leave += (s, args) => {
                 SaveComboBoxEntry(bbmdIpComboBox, "bbmdIp");
-                EnsureBacnetClientStarted(); // Re-check connection on BBMD IP change
+                EnsureBacnetClientStarted();
             };
             bbmdTtlComboBox.Leave += (s, args) => SaveComboBoxEntry(bbmdTtlComboBox, "bbmdTtl");
 
@@ -127,7 +120,7 @@ namespace MainApp.Configuration
                     Log($"Attempting to register as Foreign Device with BBMD at {currentBBMDIp}:{bbmdPort} with TTL {ttl}...");
                     _bacnetClient.RegisterAsForeignDevice(currentBBMDIp, ttl, bbmdPort);
                     Log("Foreign Device Registration message sent.");
-                    Thread.Sleep(2000); // Added delay to allow BBMD to process registration
+                    Thread.Sleep(2000);
                 }
 
                 _isClientStarted = true;
@@ -141,6 +134,7 @@ namespace MainApp.Configuration
                 MessageBox.Show($"Error during BACnet initialization: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void OnIamHandler(BacnetClient sender, BacnetAddress adr, uint deviceId, uint maxApdu, BacnetSegmentations segmentation, ushort vendorId)
         {
             Log($"OnIam from {adr} for device {deviceId}. Segmentation support: {segmentation}");
@@ -173,57 +167,7 @@ namespace MainApp.Configuration
                 catch (Exception ex) { Log($"Error in OnIamHandler: {ex.Message}"); }
             });
         }
-        private void ReadDeviceName(TreeNode deviceNode, uint deviceId, BacnetAddress adr)
-        {
-            Task.Run(() =>
-            {
-                string finalDeviceName = deviceId.ToString();
-                string errorText = null;
-                bool supportsReadPropertyMultiple = false;
-                try
-                {
-                    lock (_bacnetLock)
-                    {
-                        var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
-                        if (_bacnetClient.ReadPropertyRequest(adr, objectId, BacnetPropertyIds.PROP_OBJECT_NAME, out IList<BacnetValue> values) && values?.Count > 0)
-                        {
-                            finalDeviceName = values[0].Value.ToString();
-                        }
-                        else
-                        {
-                            errorText = " (Name not available)";
-                        }
 
-                        // Check for ReadPropertyMultiple support
-                        if (_bacnetClient.ReadPropertyRequest(adr, objectId, BacnetPropertyIds.PROP_PROTOCOL_SERVICES_SUPPORTED, out values) && values?.Count > 0)
-                        {
-                            var servicesSupported = (BacnetBitString)values[0].Value;
-                            if (servicesSupported.value.Length > 1 && (servicesSupported.value[1] & 0x40) > 0) // Bit 14 is ReadPropertyMultiple
-                            {
-                                supportsReadPropertyMultiple = true;
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log($"Error reading name for device {deviceId}: {ex.Message}");
-                    errorText = " (Error reading name)";
-                }
-                finally
-                {
-                    if (!this.IsDisposed && this.IsHandleCreated)
-                    {
-                        this.Invoke((MethodInvoker)delegate
-                        {
-                            var deviceInfo = deviceNode.Tag as Dictionary<string, object>;
-                            deviceInfo["SupportsReadPropertyMultiple"] = supportsReadPropertyMultiple;
-                            deviceNode.Text = $"{finalDeviceName} ({deviceInfo["MAC"]}) ({deviceId}) ({deviceInfo["VendorName"]}){errorText ?? ""}";
-                        });
-                    }
-                }
-            });
-        }
         private void DiscoverButton_Click(object sender, EventArgs e)
         {
             EnsureBacnetClientStarted();
@@ -270,7 +214,6 @@ namespace MainApp.Configuration
             {
                 try
                 {
-                    // Unicast Who-Is directly to the device IP
                     var port = ushort.Parse(ipPortComboBox.Text);
                     var adr = new BacnetAddress(BacnetAddressTypes.IP, ipAddressComboBox.Text, port);
                     _bacnetClient.WhoIs(lowLimit: (int)deviceId, highLimit: (int)deviceId, adr: adr);
@@ -282,7 +225,8 @@ namespace MainApp.Configuration
                 }
             }
         }
-        private void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e)
+
+        protected override void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e)
         {
             if (e.Node == null || e.Node.Tag == null || e.Node.Tag.ToString() == "NETWORK_NODE")
             {
@@ -336,25 +280,39 @@ namespace MainApp.Configuration
                 {
                     lock (_bacnetLock)
                     {
-                        Log($"Requesting object list for Device {deviceId}...");
-                        var propertyReferences = new List<BacnetPropertyReference>
-                {
-                    new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_LIST, ASN1.BACNET_ARRAY_ALL)
-                };
-                        var request = new BacnetReadAccessSpecification(new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId), propertyReferences);
-                        if (_bacnetClient.ReadPropertyMultipleRequest(deviceAddress, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results))
+                        var segmentation = (BacnetSegmentations)deviceInfo["Segmentation"];
+                        var old_segments = _bacnetClient.MaxSegments;
+                        if (segmentation == BacnetSegmentations.SEGMENTATION_NONE)
                         {
-                            var objectList = results.SelectMany(r => r.values.SelectMany(v => v.value)).ToList();
-                            Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
+                            _bacnetClient.MaxSegments = BacnetMaxSegments.MAX_SEG0;
+                        }
 
-                            if (!this.IsDisposed && this.IsHandleCreated)
+                        try
+                        {
+                            Log($"Requesting object list for Device {deviceId}...");
+                            var propertyReferences = new List<BacnetPropertyReference>
                             {
-                                this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
+                                new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_LIST, ASN1.BACNET_ARRAY_ALL)
+                            };
+                            var request = new BacnetReadAccessSpecification(new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId), propertyReferences);
+                            if (_bacnetClient.ReadPropertyMultipleRequest(deviceAddress, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results))
+                            {
+                                var objectList = results.SelectMany(r => r.values.SelectMany(v => v.value)).ToList();
+                                Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
+
+                                if (!this.IsDisposed && this.IsHandleCreated)
+                                {
+                                    this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
+                                }
+                            }
+                            else
+                            {
+                                Log($"--- ERROR: Failed to read object list for device {deviceId}. ---");
                             }
                         }
-                        else
+                        finally
                         {
-                            Log($"--- ERROR: Failed to read object list for device {deviceId}. ---");
+                            _bacnetClient.MaxSegments = old_segments;
                         }
                     }
                 }
@@ -375,18 +333,8 @@ namespace MainApp.Configuration
                 }
             });
         }
-        private void Log(string message)
-        {
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new Action<string>(Log), message);
-                return;
-            }
-            outputTextBox.AppendText(DateTime.Now.ToLongTimeString() + ": " + message + Environment.NewLine);
-            outputTextBox.ScrollToCaret();
-        }
 
-        private void PopulateDefaultValues()
+        protected override void PopulateDefaultValues()
         {
             interfaceComboBox.Items.Clear();
             interfaceComboBox.Items.Add("0.0.0.0 (Any)");
@@ -410,87 +358,7 @@ namespace MainApp.Configuration
             bbmdTtlComboBox.Items.AddRange(new object[] { "60", "3600" });
         }
 
-        private void UpdateAllStates(object sender, EventArgs e)
-        {
-            bool instanceExists = !string.IsNullOrWhiteSpace(instanceNumberComboBox.Text);
-            pingButton.Enabled = instanceExists;
-            discoverObjectsButton.Enabled = _lastPingedDeviceId.HasValue;
-        }
-
-        private void PopulateObjectTree(IList<BacnetValue> objectList)
-        {
-            objectTreeView.Nodes.Clear();
-            if (objectList == null) return;
-
-            objectDiscoveryProgressBar.Value = 0;
-            objectDiscoveryProgressBar.Maximum = objectList.Count;
-            objectCountLabel.Text = $"Found 0 of {objectList.Count}";
-
-            var objectGroups = objectList
-                .Where(v => v.Value is BacnetObjectId)
-                .Select(val => (BacnetObjectId)val.Value)
-                .GroupBy(objId => objId.type)
-                .OrderBy(g => g.Key.ToString());
-
-            int count = 0;
-            objectTreeView.BeginUpdate();
-            try
-            {
-                foreach (var group in objectGroups)
-                {
-                    var parentNode = new TreeNode(group.Key.ToString());
-                    objectTreeView.Nodes.Add(parentNode);
-                    foreach (var objId in group.OrderBy(o => o.instance))
-                    {
-                        var childNode = new TreeNode(objId.instance.ToString()) { Tag = objId };
-                        parentNode.Nodes.Add(childNode);
-                        count++;
-                    }
-                    this.Invoke((MethodInvoker)delegate {
-                        objectDiscoveryProgressBar.Value = count;
-                        objectCountLabel.Text = $"Found {count} of {objectList.Count}";
-                    });
-                }
-            }
-            finally
-            {
-                objectTreeView.EndUpdate();
-                objectDiscoveryProgressBar.Value = count;
-                objectCountLabel.Text = $"Found {count} of {objectList.Count}";
-            }
-        }
-
-        private async Task<BacnetAddress> FindDeviceAddressAsync(uint deviceId)
-        {
-            foreach (TreeNode networkNode in deviceTreeView.Nodes)
-            {
-                foreach (TreeNode deviceNode in networkNode.Nodes)
-                {
-                    if (deviceNode.Name == deviceId.ToString() && deviceNode.Tag is Dictionary<string, object> deviceInfo)
-                    {
-                        return deviceInfo["Address"] as BacnetAddress;
-                    }
-                }
-            }
-
-            Log($"Address for Device {deviceId} not cached. Sending targeted WhoIs...");
-            var tcs = new TaskCompletionSource<BacnetAddress>();
-            void handler(BacnetClient _s, BacnetAddress a, uint d, uint _m, BacnetSegmentations _seg, ushort _v)
-            {
-                if (d == deviceId) tcs.TrySetResult(a);
-            }
-            _bacnetClient.OnIam += handler;
-            _bacnetClient.WhoIs((int)deviceId, (int)deviceId);
-            var timeoutTask = Task.Delay(2000);
-            var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
-            _bacnetClient.OnIam -= handler;
-            if (completedTask == tcs.Task) return await tcs.Task;
-
-            Log($"--- Timeout: No I-Am response from Device {deviceId}. ---");
-            return null;
-        }
-
-        private void LoadHistory()
+        protected override void LoadHistory()
         {
             PopulateComboBoxWithHistory(ipAddressComboBox, "ipAddress");
             PopulateComboBoxWithHistory(instanceNumberComboBox, "instanceNumber");
@@ -509,29 +377,7 @@ namespace MainApp.Configuration
             if (string.IsNullOrEmpty(networkNumberComboBox.Text)) networkNumberComboBox.Text = "0";
         }
 
-        private void PopulateComboBoxWithHistory(ComboBox comboBox, string key)
-        {
-            if (comboBox == null || comboBox.Name == "interfaceComboBox") return;
-            comboBox.Items.Clear();
-            var historyList = _historyManager.GetHistoryForPrefixedKey(key);
-            if (historyList.Any())
-            {
-                comboBox.Items.AddRange(historyList.Cast<object>().ToArray());
-                comboBox.Text = historyList.First();
-            }
-        }
-
-        private void SaveComboBoxEntry(ComboBox comboBox, string key)
-        {
-            if (_historyManager != null && comboBox != null && !string.IsNullOrWhiteSpace(comboBox.Text) && comboBox.Name != "interfaceComboBox")
-            {
-                _historyManager.AddEntry(key, comboBox.Text);
-                PopulateComboBoxWithHistory(comboBox, key);
-                comboBox.Text = comboBox.Text;
-            }
-        }
-
-        public void ClearHistory()
+        public override void ClearHistory()
         {
             if (_historyManager == null) return;
             _historyManager.ClearHistory();
@@ -545,139 +391,6 @@ namespace MainApp.Configuration
             PopulateDefaultValues();
             LoadHistory();
             Log("BACnet/IP history cleared.");
-        }
-
-        public void Shutdown()
-        {
-            _propertyPollingTimer?.Stop();
-            _propertyPollingTimer?.Dispose();
-            _historyManager?.SaveHistory();
-            _bacnetClient?.Dispose();
-        }
-
-        private void ObjectTreeView_AfterSelect(object sender, TreeViewEventArgs e)
-        {
-            _propertyPollingTimer.Stop();
-            togglePollingButton.Text = "Start Polling";
-            propertiesDataGridView.Rows.Clear();
-
-            if (e.Node?.Tag is BacnetObjectId objectId)
-            {
-                _selectedObjectId = objectId;
-                togglePollingButton.Enabled = true;
-                Log($"Selected object: {objectId}");
-                if (readIntervalNumericUpDown.Value > 0)
-                {
-                    _propertyPollingTimer.Interval = (int)readIntervalNumericUpDown.Value;
-                    PropertyPollingTimer_Tick(null, null);
-                    _propertyPollingTimer.Start();
-                    togglePollingButton.Text = "Stop Polling";
-                }
-            }
-            else
-            {
-                togglePollingButton.Enabled = false;
-            }
-        }
-
-        private void TogglePollingButton_Click(object sender, EventArgs e)
-        {
-            if (_propertyPollingTimer.Enabled)
-            {
-                _propertyPollingTimer.Stop();
-                togglePollingButton.Text = "Start Polling";
-                Log("Property polling stopped.");
-            }
-            else
-            {
-                if (readIntervalNumericUpDown.Value > 0)
-                {
-                    _propertyPollingTimer.Interval = (int)readIntervalNumericUpDown.Value;
-                    PropertyPollingTimer_Tick(null, null);
-                    _propertyPollingTimer.Start();
-                    togglePollingButton.Text = "Stop Polling";
-                    Log($"Property polling started with interval {_propertyPollingTimer.Interval}ms.");
-                }
-            }
-        }
-
-        private async void PropertyPollingTimer_Tick(object sender, EventArgs e)
-        {
-            if (_bacnetClient == null || !_isClientStarted || _lastPingedDeviceId == null || _selectedObjectId.type == BacnetObjectTypes.MAX_BACNET_OBJECT_TYPE)
-                return;
-
-            try
-            {
-                BacnetAddress adr = await FindDeviceAddressAsync(_lastPingedDeviceId.Value);
-                if (adr == null) return;
-
-                if (_bacnetClient.ReadPropertyRequest(adr, _selectedObjectId, BacnetPropertyIds.PROP_ALL, out IList<BacnetValue> values))
-                {
-                    this.Invoke((MethodInvoker)delegate
-                    {
-                        propertiesDataGridView.Rows.Clear();
-                        var propValues = values.Select(v => v.Value).OfType<BacnetPropertyValue>();
-                        foreach (var prop in propValues)
-                        {
-                            string propName = ((BacnetPropertyIds)prop.property.propertyIdentifier).ToString();
-                            string propValue = prop.value.FirstOrDefault().Value?.ToString() ?? "{empty}";
-                            propertiesDataGridView.Rows.Add(propName, propValue);
-                        }
-                    });
-                }
-                else
-                {
-                    Log($"Failed to read properties for {_selectedObjectId}.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log($"Error polling properties: {ex.Message}");
-                if (_propertyPollingTimer.Enabled)
-                {
-                    _propertyPollingTimer.Stop();
-                    togglePollingButton.Text = "Start Polling";
-                }
-            }
-        }
-
-        private async void propertiesDataGridView_CellEndEdit(object sender, DataGridViewCellEventArgs e)
-        {
-            if (e.ColumnIndex == 1 && e.RowIndex >= 0)
-            {
-                var row = propertiesDataGridView.Rows[e.RowIndex];
-                var propertyName = row.Cells[0].Value.ToString();
-                var newValue = row.Cells[1].Value.ToString();
-
-                Log($"Attempting to write {newValue} to {propertyName} on {_selectedObjectId}");
-
-                if (Enum.TryParse<BacnetPropertyIds>(propertyName, out var propertyId))
-                {
-                    try
-                    {
-                        BacnetAddress adr = await FindDeviceAddressAsync(_lastPingedDeviceId.Value);
-                        if (adr == null) return;
-
-                        // This is a simplified example. You'll need to determine the correct BacnetApplicationTags based on the property.
-                        // For now, we'll try to parse it as a float, which is common for analog values.
-                        if (float.TryParse(newValue, out float floatValue))
-                        {
-                            var bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, floatValue);
-                            _bacnetClient.WritePriority = uint.Parse(writePriorityComboBox.SelectedItem.ToString().Split(' ')[0]);
-                            _bacnetClient.WritePropertyRequest(adr, _selectedObjectId, propertyId, new[] { bacnetValue });
-                            Log("Write request sent.");
-                        }
-                        else
-                        {
-                            Log("Could not parse new value as a float. Write request not sent.");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log($"Error writing property: {ex.Message}");
-                    }
-                }
-            }
         }
 
         private void ManualReadWriteButton_Click(object sender, EventArgs e)
@@ -710,7 +423,6 @@ namespace MainApp.Configuration
                         var valueString = form.ValueToWrite;
                         var priority = form.WritePriority;
 
-                        // Simple type inference, can be improved
                         BacnetValue bacnetValue;
                         if (bool.TryParse(valueString, out bool boolVal))
                             bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, boolVal);

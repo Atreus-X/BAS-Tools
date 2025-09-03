@@ -893,7 +893,7 @@
         private System.Windows.Forms.Button manualReadWriteButton;
         private System.Windows.Forms.SplitContainer mainSplitContainer;
         private System.Windows.Forms.GroupBox outputFrame;
-        private System.Windows.Forms.RichTextBox outputTextBox;
+        protected System.Windows.Forms.RichTextBox outputTextBox;
         private System.Windows.Forms.Button cancelDiscoveryButton;
         private System.Windows.Forms.Label discoveryStatusLabel;
         private System.Windows.Forms.Button clearLogButton;
@@ -930,17 +930,17 @@
         private System.Windows.Forms.SplitContainer leftPanelSplitContainer;
         private System.Windows.Forms.GroupBox browserFrame;
         private System.Windows.Forms.SplitContainer browserSplitContainer;
-        private System.Windows.Forms.TreeView deviceTreeView;
-        private System.Windows.Forms.TreeView objectTreeView;
+        protected System.Windows.Forms.TreeView deviceTreeView;
+        protected System.Windows.Forms.TreeView objectTreeView;
         private System.Windows.Forms.GroupBox propertiesFrame;
-        private System.Windows.Forms.DataGridView propertiesDataGridView;
+        protected System.Windows.Forms.DataGridView propertiesDataGridView;
         private System.Windows.Forms.DataGridViewTextBoxColumn colProperty;
         private System.Windows.Forms.DataGridViewTextBoxColumn colValue;
         private System.Windows.Forms.Panel pollingPanel;
         private System.Windows.Forms.Label labelReadInterval;
-        private System.Windows.Forms.NumericUpDown readIntervalNumericUpDown;
-        private System.Windows.Forms.Button togglePollingButton;
+        protected System.Windows.Forms.NumericUpDown readIntervalNumericUpDown;
+        protected System.Windows.Forms.Button togglePollingButton;
         private System.Windows.Forms.Label labelWritePriority;
-        private System.Windows.Forms.ComboBox writePriorityComboBox;
+        protected System.Windows.Forms.ComboBox writePriorityComboBox;
     }
 }

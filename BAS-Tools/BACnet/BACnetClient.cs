@@ -1,11 +1,12 @@
-﻿using MainApp;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.BACnet.Serialize;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows.Forms;
+using MainApp;
+using static System.IO.BACnet.Bvlc;
 
 namespace System.IO.BACnet
 {
@@ -805,7 +806,8 @@ namespace System.IO.BACnet
 
                 if (sender.Type == BacnetAddressTypes.IP)
                 {
-                    int bvlc_length = Bvlc.Decode(buffer, offset, out _, out _, ref remote_address);
+                    BacnetBvlcFunctions function;
+                    int bvlc_length = Bvlc.Decode(buffer, offset, out function, out int decoded_msg_length, ref remote_address);
                     if (bvlc_length < 0)
                     {
                         // This is not a critical error, could be other UDP traffic on the port.
@@ -1365,10 +1367,9 @@ namespace System.IO.BACnet
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.ExpectingReply, adr.RoutedSource);
 
-            // Force the PDU to NOT accept segmented responses and use the smallest APDU size
-            // to ensure compatibility with all devices.
-            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST;
-            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROPERTY, BacnetMaxSegments.MAX_SEG0, BacnetMaxAdpu.MAX_APDU50, invoke_id);
+            // Dynamically set segmentation based on client settings
+            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST | (m_max_segments != BacnetMaxSegments.MAX_SEG0 ? BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED : 0);
+            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROPERTY, m_max_segments, m_client.MaxAdpuLength, invoke_id);
 
             Services.EncodeReadProperty(b, object_id, (uint)property_id, array_index);
 
@@ -1566,9 +1567,9 @@ namespace System.IO.BACnet
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.ExpectingReply, adr.RoutedSource);
 
-            // Force the PDU to NOT accept segmented responses and use the smallest APDU size
-            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST;
-            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, BacnetMaxSegments.MAX_SEG0, BacnetMaxAdpu.MAX_APDU50, invoke_id);
+            // Dynamically set segmentation based on client settings
+            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST | (m_max_segments != BacnetMaxSegments.MAX_SEG0 ? BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED : 0);
+            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, m_max_segments, m_client.MaxAdpuLength, invoke_id);
 
             Services.EncodeReadPropertyMultiple(b, object_id, property_id_and_array_index);
 
@@ -1607,9 +1608,9 @@ namespace System.IO.BACnet
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.ExpectingReply, adr.RoutedSource);
 
-            // Force the PDU to NOT accept segmented responses and use the smallest APDU size
-            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST;
-            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, BacnetMaxSegments.MAX_SEG0, BacnetMaxAdpu.MAX_APDU50, invoke_id);
+            // Dynamically set segmentation based on client settings
+            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST | (m_max_segments != BacnetMaxSegments.MAX_SEG0 ? BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED : 0);
+            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, m_max_segments, m_client.MaxAdpuLength, invoke_id);
 
             Services.EncodeReadPropertyMultiple(b, properties);
 

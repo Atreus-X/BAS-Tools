@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Windows.Forms;
 using MainApp.Configuration;
 
@@ -13,6 +14,10 @@ namespace MainApp
         public MainApp()
         {
             InitializeComponent();
+
+            // --- Set the form's starting position ---
+            this.StartPosition = FormStartPosition.Manual;
+            this.Location = new Point(0, 0);
 
             // --- Wire up menu item event handlers ---
             this.exitToolStripMenuItem.Click += (sender, e) => this.Close();
