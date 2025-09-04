@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
+using BAS_Tools;
 using MainApp.Configuration;
 
 namespace MainApp
@@ -22,6 +23,7 @@ namespace MainApp
             // --- Wire up menu item event handlers ---
             this.exitToolStripMenuItem.Click += (sender, e) => this.Close();
             this.clearHistoryToolStripMenuItem.Click += (sender, e) => this.ClearHistoryMenuItem_Click();
+            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             this.bacnetIPToolStripMenuItem.Click += new System.EventHandler(this.BacnetIpMenuItem_Click);
             this.bacnetMSTPLocalToolStripMenuItem.Click += new System.EventHandler(this.BacnetMstpLocalMenuItem_Click);
             this.bacnetMSTPRemoteToolStripMenuItem.Click += new System.EventHandler(this.BacnetMstpRemoteMenuItem_Click);
@@ -114,6 +116,13 @@ namespace MainApp
                 {
                     historyControl.ClearHistory();
                 }
+            }
+        }
+        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var aboutForm = new AboutForm())
+            {
+                aboutForm.ShowDialog();
             }
         }
     }

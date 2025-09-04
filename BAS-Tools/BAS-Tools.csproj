@@ -125,6 +125,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AboutForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AboutForm.Designer.cs">
+      <DependentUpon>AboutForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="BACnet\BACnet_Objects.cs" />
     <Compile Include="BACnet\BACnetBase.cs" />
     <Compile Include="BACnet\BACnetClient.cs" />
@@ -133,6 +139,9 @@
     <Compile Include="BACnet\BACnetTransport.cs" />
     <Compile Include="BACnet\BACnetControlBase.cs">
       <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="BACnet\BACnetControlBase.Designer.cs">
+      <DependentUpon>BACnetControlBase.cs</DependentUpon>
     </Compile>
     <Compile Include="Configuration\BACnet_MSTP_Local.cs">
       <SubType>UserControl</SubType>
@@ -189,6 +198,9 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="AboutForm.resx">
+      <DependentUpon>AboutForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Configuration\BACnet_IP.resx">
       <DependentUpon>BACnet_IP.cs</DependentUpon>
     </EmbeddedResource>
@@ -197,6 +209,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Configuration\BACnet_MSTP_Remote.resx">
       <DependentUpon>BACnet_MSTP_Remote.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Licensing\LicenseForm.resx">
+      <DependentUpon>LicenseForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainApp.resx">
       <DependentUpon>MainApp.cs</DependentUpon>
@@ -262,3 +277,4 @@
     <Error Condition="!Exists('..\packages\System.ValueTuple.4.6.1\build\net471\System.ValueTuple.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\System.ValueTuple.4.6.1\build\net471\System.ValueTuple.targets'))" />
   </Target>
 </Project>
+

@@ -28,6 +28,7 @@
             this.bacnetMSTPRemoteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.modbusTCPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.modbusRTUToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mainContentPanel = new System.Windows.Forms.Panel();
             this.mainMenuStrip.SuspendLayout();
             this.SuspendLayout();
@@ -37,7 +38,8 @@
             this.mainMenuStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.mainMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
-            this.configurationToolStripMenuItem});
+            this.configurationToolStripMenuItem,
+            this.aboutToolStripMenuItem});
             this.mainMenuStrip.Location = new System.Drawing.Point(0, 0);
             this.mainMenuStrip.Name = "mainMenuStrip";
             this.mainMenuStrip.Padding = new System.Windows.Forms.Padding(4, 2, 0, 2);
@@ -114,6 +116,12 @@
             this.modbusRTUToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.modbusRTUToolStripMenuItem.Text = "Modbus RTU";
             // 
+            // aboutToolStripMenuItem
+            // 
+            this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(52, 20);
+            this.aboutToolStripMenuItem.Text = "About";
+            // 
             // mainContentPanel
             // 
             this.mainContentPanel.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -155,5 +163,6 @@
         private System.Windows.Forms.ToolStripMenuItem modbusRTUToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem clearHistoryToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
     }
 }

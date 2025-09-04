@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.IO.BACnet;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -33,6 +35,7 @@ namespace MainApp.Configuration
 
         public BACnetControlBase()
         {
+            InitializeComponent();
             _propertyPollingTimer = new System.Windows.Forms.Timer();
         }
 
@@ -50,8 +53,111 @@ namespace MainApp.Configuration
             UpdateAllStates(null, null);
             WireUpCommonEventHandlers();
             WireUpProtocolSpecificEventHandlers();
+            InitializeContextMenu();
 
             _propertyPollingTimer.Tick += PropertyPollingTimer_Tick;
+        }
+
+        private void InitializeContextMenu()
+        {
+            var contextMenu = new ContextMenuStrip();
+            var exportMenuItem = new ToolStripMenuItem("Export to CSV");
+            exportMenuItem.Click += ExportMenuItem_Click;
+            contextMenu.Items.Add(exportMenuItem);
+            DeviceTreeView.ContextMenuStrip = contextMenu;
+            ObjectTreeView.ContextMenuStrip = contextMenu;
+        }
+
+        private void ExportMenuItem_Click(object sender, EventArgs e)
+        {
+            var menuItem = sender as ToolStripMenuItem;
+            var contextMenu = menuItem?.Owner as ContextMenuStrip;
+            var treeView = contextMenu?.SourceControl as TreeView;
+
+            if (treeView == null) return;
+
+            var selectedNode = treeView.SelectedNode;
+            if (selectedNode == null)
+            {
+                MessageBox.Show("Please select a node to export.", "No Node Selected", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var sfd = new SaveFileDialog())
+            {
+                sfd.Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*";
+                sfd.FilterIndex = 1;
+                sfd.RestoreDirectory = true;
+                sfd.FileName = $"{selectedNode.Text.Split(' ')[0]}_export.csv";
+
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        var csv = new StringBuilder();
+                        if (treeView == DeviceTreeView)
+                        {
+                            csv.AppendLine("Network,Device ID,Device Name,MAC Address,Vendor");
+                            if (selectedNode.Tag?.ToString() == "NETWORK_NODE")
+                            {
+                                foreach (TreeNode deviceNode in selectedNode.Nodes)
+                                {
+                                    ExtractDeviceData(deviceNode, selectedNode.Text, csv);
+                                }
+                            }
+                            else
+                            {
+                                ExtractDeviceData(selectedNode, selectedNode.Parent.Text, csv);
+                            }
+                        }
+                        else if (treeView == ObjectTreeView)
+                        {
+                            csv.AppendLine("Object Type,Instance,Object Name");
+                            if (selectedNode.Parent == null) // Group node
+                            {
+                                foreach (TreeNode objectNode in selectedNode.Nodes)
+                                {
+                                    ExtractObjectData(objectNode, csv);
+                                }
+                            }
+                            else // Individual object node
+                            {
+                                ExtractObjectData(selectedNode, csv);
+                            }
+                        }
+
+                        File.WriteAllText(sfd.FileName, csv.ToString());
+                        MessageBox.Show("Export successful!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Error exporting data: {ex.Message}", "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+        private void ExtractDeviceData(TreeNode deviceNode, string networkName, StringBuilder csv)
+        {
+            if (deviceNode.Tag is Dictionary<string, object> deviceInfo)
+            {
+                var deviceId = deviceNode.Name;
+                var deviceName = deviceNode.Text.Split('(')[0].Trim();
+                var mac = deviceInfo.ContainsKey("MAC") ? deviceInfo["MAC"].ToString() : "N/A";
+                var vendor = deviceInfo.ContainsKey("VendorName") ? deviceInfo["VendorName"].ToString() : "N/A";
+                csv.AppendLine($"{networkName},{deviceId},{deviceName},{mac},{vendor}");
+            }
+        }
+
+        private void ExtractObjectData(TreeNode objectNode, StringBuilder csv)
+        {
+            if (objectNode.Tag is BacnetObjectId oid)
+            {
+                var objectType = objectNode.Parent.Text;
+                var instance = oid.instance;
+                var objectName = objectNode.Text;
+                csv.AppendLine($"{objectType},{instance},{objectName}");
+            }
         }
 
         private void WireUpCommonEventHandlers()
@@ -127,27 +233,38 @@ namespace MainApp.Configuration
             });
         }
 
-        protected void PopulateObjectTree(IList<BacnetValue> objectList, ushort vendorId)
+        protected void PopulateObjectTree(IList<BacnetValue> objectList)
         {
             ObjectTreeView.Nodes.Clear();
             if (objectList == null) return;
+            ushort vendorId = 0;
+            if (_lastPingedDeviceId.HasValue)
+            {
+                var node = DeviceTreeView.Nodes.Find(_lastPingedDeviceId.Value.ToString(), true).FirstOrDefault();
+                if (node != null && node.Tag is Dictionary<string, object> deviceInfo)
+                {
+                    vendorId = (ushort)deviceInfo["VendorId"];
+                }
+            }
+
 
             var objectGroups = objectList
                 .Where(v => v.Value is BacnetObjectId)
                 .Select(val => (BacnetObjectId)val.Value)
-                .GroupBy(objId => objId.type)
-                .OrderBy(g => BACnetObjectFactory.GetGroupLabel(vendorId, g.Key));
+                .GroupBy(objId => BACnetObjectFactory.GetBacnetObjectInfo(objId.type, vendorId).Group)
+                .OrderBy(g => g.Key.ToString());
 
             ObjectTreeView.BeginUpdate();
             try
             {
                 foreach (var group in objectGroups)
                 {
-                    var parentNode = new TreeNode(BACnetObjectFactory.GetGroupLabel(vendorId, group.Key));
+                    var parentNode = new TreeNode(group.Key);
                     ObjectTreeView.Nodes.Add(parentNode);
                     foreach (var objId in group.OrderBy(o => o.instance))
                     {
-                        var childNode = new TreeNode(BACnetObjectFactory.GetInstanceLabel(vendorId, objId.type, objId.instance)) { Tag = objId };
+                        var objectTypeInfo = BACnetObjectFactory.GetBacnetObjectInfo(objId.type, vendorId);
+                        var childNode = new TreeNode($"{objectTypeInfo.Label} {objId.instance}") { Tag = objId };
                         parentNode.Nodes.Add(childNode);
                     }
                 }
@@ -219,13 +336,68 @@ namespace MainApp.Configuration
                 BacnetAddress adr = await FindDeviceAddressAsync(_lastPingedDeviceId.Value);
                 if (adr == null) return;
 
-                if (_bacnetClient.ReadPropertyRequest(adr, _selectedObjectId, BacnetPropertyIds.PROP_ALL, out IList<BacnetValue> values))
+                // Find the device node to check for ReadPropertyMultiple support
+                var deviceNode = DeviceTreeView.Nodes.Find(_lastPingedDeviceId.Value.ToString(), true).FirstOrDefault();
+                var deviceInfo = deviceNode?.Tag as Dictionary<string, object>;
+                bool supportsRpm = deviceInfo != null && deviceInfo.ContainsKey("SupportsReadPropertyMultiple") && (bool)deviceInfo["SupportsReadPropertyMultiple"];
+
+                List<BacnetPropertyValue> allProperties = new List<BacnetPropertyValue>();
+                bool success = false;
+
+                // Attempt 1: Use ReadPropertyMultiple with PROP_ALL if supported
+                if (supportsRpm)
+                {
+                    var propertyReferences = new List<BacnetPropertyReference> { new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_ALL, BACNET_ARRAY_ALL) };
+                    var request = new BacnetReadAccessSpecification(_selectedObjectId, propertyReferences);
+                    if (_bacnetClient.ReadPropertyMultipleRequest(adr, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results))
+                    {
+                        if (results != null && results.Count > 0)
+                        {
+                            allProperties.AddRange(results[0].values);
+                            success = true;
+                        }
+                    }
+                }
+
+                // Attempt 2: Fallback to reading PROP_PROPERTY_LIST and then individual properties
+                if (!success)
+                {
+                    Log("Falling back to individual property reads.");
+                    if (_bacnetClient.ReadPropertyRequest(adr, _selectedObjectId, BacnetPropertyIds.PROP_PROPERTY_LIST, out IList<BacnetValue> propertyListValues))
+                    {
+                        if (propertyListValues != null)
+                        {
+                            foreach (BacnetValue val in propertyListValues)
+                            {
+                                var propId = (BacnetPropertyIds)(uint)val.Value;
+                                if (propId != BacnetPropertyIds.PROP_PROPERTY_LIST) // Avoid recursion
+                                {
+                                    if (_bacnetClient.ReadPropertyRequest(adr, _selectedObjectId, propId, out IList<BacnetValue> propValues))
+                                    {
+                                        var newProp = new BacnetPropertyValue
+                                        {
+                                            property = new BacnetPropertyReference((uint)propId, BACNET_ARRAY_ALL),
+                                            value = propValues
+                                        };
+                                        allProperties.Add(newProp);
+                                    }
+                                    else
+                                    {
+                                        Log($"Failed to read property {propId} for {_selectedObjectId}.");
+                                    }
+                                }
+                            }
+                            success = true;
+                        }
+                    }
+                }
+
+                if (success)
                 {
                     this.Invoke((MethodInvoker)delegate
                     {
                         PropertiesDataGridView.Rows.Clear();
-                        var propValues = values.Select(v => v.Value).OfType<BacnetPropertyValue>();
-                        foreach (var prop in propValues)
+                        foreach (var prop in allProperties.OrderBy(p => p.property.propertyIdentifier))
                         {
                             string propName = ((BacnetPropertyIds)prop.property.propertyIdentifier).ToString();
                             string propValue = prop.value.FirstOrDefault().Value?.ToString() ?? "{empty}";
@@ -444,7 +616,6 @@ namespace MainApp.Configuration
                 return;
             }
             BacnetAddress deviceAddress = deviceInfo["Address"] as BacnetAddress;
-            ushort vendorId = (ushort)deviceInfo["VendorId"];
 
             this.Invoke((MethodInvoker)delegate {
                 ObjectTreeView.Nodes.Clear();
@@ -500,7 +671,7 @@ namespace MainApp.Configuration
                             Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
                             if (!this.IsDisposed && this.IsHandleCreated)
                             {
-                                this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList, vendorId); });
+                                this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
                             }
                         }
                         else
@@ -517,7 +688,8 @@ namespace MainApp.Configuration
                 {
                     Log($"--- ERROR reading object list for device {deviceId}: {ex.Message} ---");
                 }
-            }, cancelToken);
+            });
         }
     }
 }
+
