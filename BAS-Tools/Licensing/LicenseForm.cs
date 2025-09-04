@@ -1,36 +1,36 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace MainApp.Licensing
+namespace BAS_Tools.Licensing
 {
     public partial class LicenseForm : Form
     {
         public LicenseForm()
         {
             InitializeComponent();
-            txtHardwareId.Text = LicenseManager.GetHardwareId();
+            hardwareIdTextBox.Text = LicenseManager.GetHardwareId();
         }
 
-        private void btnActivate_Click(object sender, EventArgs e)
+        private void activateButton_Click(object sender, EventArgs e)
         {
-            string key = txtLicenseKey.Text.Trim();
-            if (LicenseManager.ValidateLicense(key))
+            if (LicenseManager.ValidateLicense(licenseKeyTextBox.Text))
             {
-                LicenseManager.SaveLicense(key);
-                MessageBox.Show("Application activated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                this.DialogResult = DialogResult.OK;
-                this.Close();
+                LicenseManager.SaveLicense(licenseKeyTextBox.Text);
+                MessageBox.Show("Activation successful!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                DialogResult = DialogResult.OK;
+                Close();
             }
             else
             {
-                MessageBox.Show("The license key is invalid for this hardware.", "Activation Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Invalid license key.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void btnCancel_Click(object sender, EventArgs e)
+        private void copyButton_Click(object sender, EventArgs e)
         {
-            this.DialogResult = DialogResult.Cancel;
-            this.Close();
+            Clipboard.SetText(hardwareIdTextBox.Text);
+            MessageBox.Show("Hardware ID copied to clipboard.", "Copied", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
+

@@ -1,9 +1,16 @@
-﻿namespace MainApp.Licensing
+﻿namespace BAS_Tools.Licensing
 {
     partial class LicenseForm
     {
+        /// <summary>
+        /// Required designer variable.
+        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
+        /// <summary>
+        /// Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -15,89 +22,90 @@
 
         #region Windows Form Designer generated code
 
+        /// <summary>
+        /// Required method for Designer support - do not modify
+        /// the contents of this method with the code editor.
+        /// </summary>
         private void InitializeComponent()
         {
-            this.lblHardwareId = new System.Windows.Forms.Label();
-            this.txtHardwareId = new System.Windows.Forms.TextBox();
-            this.lblLicenseKey = new System.Windows.Forms.Label();
-            this.txtLicenseKey = new System.Windows.Forms.TextBox();
-            this.btnActivate = new System.Windows.Forms.Button();
-            this.btnCancel = new System.Windows.Forms.Button();
+            this.label1 = new System.Windows.Forms.Label();
+            this.hardwareIdTextBox = new System.Windows.Forms.TextBox();
+            this.copyButton = new System.Windows.Forms.Button();
+            this.label2 = new System.Windows.Forms.Label();
+            this.licenseKeyTextBox = new System.Windows.Forms.TextBox();
+            this.activateButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
-            // lblHardwareId
+            // label1
             // 
-            this.lblHardwareId.AutoSize = true;
-            this.lblHardwareId.Location = new System.Drawing.Point(12, 15);
-            this.lblHardwareId.Name = "lblHardwareId";
-            this.lblHardwareId.Size = new System.Drawing.Size(71, 13);
-            this.lblHardwareId.TabIndex = 0;
-            this.lblHardwareId.Text = "Hardware ID:";
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(12, 15);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(70, 13);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "Hardware ID:";
             // 
-            // txtHardwareId
+            // hardwareIdTextBox
             // 
-            this.txtHardwareId.Location = new System.Drawing.Point(89, 12);
-            this.txtHardwareId.Name = "txtHardwareId";
-            this.txtHardwareId.ReadOnly = true;
-            this.txtHardwareId.Size = new System.Drawing.Size(283, 20);
-            this.txtHardwareId.TabIndex = 3;
+            this.hardwareIdTextBox.Location = new System.Drawing.Point(88, 12);
+            this.hardwareIdTextBox.Name = "hardwareIdTextBox";
+            this.hardwareIdTextBox.ReadOnly = true;
+            this.hardwareIdTextBox.Size = new System.Drawing.Size(284, 20);
+            this.hardwareIdTextBox.TabIndex = 1;
             // 
-            // lblLicenseKey
+            // copyButton
             // 
-            this.lblLicenseKey.AutoSize = true;
-            this.lblLicenseKey.Location = new System.Drawing.Point(12, 41);
-            this.lblLicenseKey.Name = "lblLicenseKey";
-            this.lblLicenseKey.Size = new System.Drawing.Size(68, 13);
-            this.lblLicenseKey.TabIndex = 2;
-            this.lblLicenseKey.Text = "License Key:";
+            this.copyButton.Location = new System.Drawing.Point(378, 10);
+            this.copyButton.Name = "copyButton";
+            this.copyButton.Size = new System.Drawing.Size(75, 23);
+            this.copyButton.TabIndex = 2;
+            this.copyButton.Text = "Copy";
+            this.copyButton.UseVisualStyleBackColor = true;
+            this.copyButton.Click += new System.EventHandler(this.copyButton_Click);
             // 
-            // txtLicenseKey
+            // label2
             // 
-            this.txtLicenseKey.Location = new System.Drawing.Point(89, 38);
-            this.txtLicenseKey.Name = "txtLicenseKey";
-            this.txtLicenseKey.Size = new System.Drawing.Size(283, 20);
-            this.txtLicenseKey.TabIndex = 0;
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(12, 44);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(68, 13);
+            this.label2.TabIndex = 3;
+            this.label2.Text = "License Key:";
             // 
-            // btnActivate
+            // licenseKeyTextBox
             // 
-            this.btnActivate.Location = new System.Drawing.Point(216, 73);
-            this.btnActivate.Name = "btnActivate";
-            this.btnActivate.Size = new System.Drawing.Size(75, 23);
-            this.btnActivate.TabIndex = 1;
-            this.btnActivate.Text = "Activate";
-            this.btnActivate.UseVisualStyleBackColor = true;
-            this.btnActivate.Click += new System.EventHandler(this.btnActivate_Click);
+            this.licenseKeyTextBox.Location = new System.Drawing.Point(88, 41);
+            this.licenseKeyTextBox.Name = "licenseKeyTextBox";
+            this.licenseKeyTextBox.Size = new System.Drawing.Size(284, 20);
+            this.licenseKeyTextBox.TabIndex = 4;
             // 
-            // btnCancel
+            // activateButton
             // 
-            this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnCancel.Location = new System.Drawing.Point(297, 73);
-            this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(75, 23);
-            this.btnCancel.TabIndex = 2;
-            this.btnCancel.Text = "Cancel";
-            this.btnCancel.UseVisualStyleBackColor = true;
-            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
+            this.activateButton.Location = new System.Drawing.Point(378, 39);
+            this.activateButton.Name = "activateButton";
+            this.activateButton.Size = new System.Drawing.Size(75, 23);
+            this.activateButton.TabIndex = 5;
+            this.activateButton.Text = "Activate";
+            this.activateButton.UseVisualStyleBackColor = true;
+            this.activateButton.Click += new System.EventHandler(this.activateButton_Click);
             // 
             // LicenseForm
             // 
-            this.AcceptButton = this.btnActivate;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.CancelButton = this.btnCancel;
-            this.ClientSize = new System.Drawing.Size(384, 111);
-            this.Controls.Add(this.btnCancel);
-            this.Controls.Add(this.btnActivate);
-            this.Controls.Add(this.txtLicenseKey);
-            this.Controls.Add(this.lblLicenseKey);
-            this.Controls.Add(this.txtHardwareId);
-            this.Controls.Add(this.lblHardwareId);
+            this.ClientSize = new System.Drawing.Size(464, 76);
+            this.Controls.Add(this.activateButton);
+            this.Controls.Add(this.licenseKeyTextBox);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.copyButton);
+            this.Controls.Add(this.hardwareIdTextBox);
+            this.Controls.Add(this.label1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "LicenseForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Activate Application";
+            this.Text = "Software Activation";
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -105,11 +113,12 @@
 
         #endregion
 
-        private System.Windows.Forms.Label lblHardwareId;
-        private System.Windows.Forms.TextBox txtHardwareId;
-        private System.Windows.Forms.Label lblLicenseKey;
-        private System.Windows.Forms.TextBox txtLicenseKey;
-        private System.Windows.Forms.Button btnActivate;
-        private System.Windows.Forms.Button btnCancel;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox hardwareIdTextBox;
+        private System.Windows.Forms.Button copyButton;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.TextBox licenseKeyTextBox;
+        private System.Windows.Forms.Button activateButton;
     }
 }
+

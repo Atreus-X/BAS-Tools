@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Management;
 using System.Security.Cryptography;
 using System.Text;
+using BAS_Tools.Licensing;
 
 namespace LicenseGenerator
 {
-    internal class Program
+    class Program
     {
         static void Main(string[] args)
         {
@@ -17,17 +19,17 @@ namespace LicenseGenerator
                 return;
             }
 
-            string licenseKey = GenerateLicenseKey(hardwareId);
+            string licenseKey = GenerateLicense(hardwareId);
             Console.WriteLine($"Generated License Key: {licenseKey}");
             Console.WriteLine("Press any key to exit.");
             Console.ReadKey();
         }
 
-        private static string GenerateLicenseKey(string hardwareId)
+        private static string GenerateLicense(string hardwareId)
         {
-            using (SHA256 sha256 = SHA256.Create())
+            using (var sha256 = SHA256.Create())
             {
-                byte[] hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(hardwareId + BAS_Tools.Licensing.LicenseSecret.Secret));
+                byte[] hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(hardwareId + LicenseSecret.SecretKey));
                 return BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
             }
         }
