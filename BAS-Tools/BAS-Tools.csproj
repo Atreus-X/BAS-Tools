@@ -91,6 +91,7 @@
 		<Reference Include="System.IO.Ports, Version=9.0.0.8, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
 			<HintPath>..\packages\System.IO.Ports.9.0.8\lib\net462\System.IO.Ports.dll</HintPath>
 		</Reference>
+		<Reference Include="System.Management" />
 		<Reference Include="System.Memory, Version=4.0.5.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
 			<HintPath>..\packages\System.Memory.4.6.3\lib\net462\System.Memory.dll</HintPath>
 		</Reference>
@@ -124,13 +125,15 @@
 		<Reference Include="System.Xml" />
 	</ItemGroup>
 	<ItemGroup>
+		<Compile Include="BACnet\BACnet_Objects.cs" />
 		<Compile Include="BACnet\BACnetBase.cs" />
 		<Compile Include="BACnet\BACnetClient.cs" />
 		<Compile Include="BACnet\BacnetIpUdpProtocolTransport.cs" />
 		<Compile Include="BACnet\BacnetMstpProtocolTransport.cs" />
 		<Compile Include="BACnet\BACnetTransport.cs" />
-		<Compile Include="BACnet\BACnetControlBase.cs" />
-		<Compile Include="BACnet\BACnet_Objects.cs" />
+		<Compile Include="BACnet\BACnetControlBase.cs">
+			<SubType>UserControl</SubType>
+		</Compile>
 		<Compile Include="Configuration\BACnet_MSTP_Local.cs">
 			<SubType>UserControl</SubType>
 		</Compile>
@@ -168,6 +171,7 @@
 			<DependentUpon>LicenseForm.cs</DependentUpon>
 		</Compile>
 		<Compile Include="Licensing\LicenseManager.cs" />
+		<Compile Include="Licensing\LicenseSecret.cs" />
 		<Compile Include="LoggerService.cs" />
 		<Compile Include="GlobalSuppressions.cs" />
 		<Compile Include="HistoryManager.cs" />
@@ -193,6 +197,9 @@
 		</EmbeddedResource>
 		<EmbeddedResource Include="Configuration\BACnet_MSTP_Remote.resx">
 			<DependentUpon>BACnet_MSTP_Remote.cs</DependentUpon>
+		</EmbeddedResource>
+		<EmbeddedResource Include="Licensing\LicenseForm.resx">
+			<DependentUpon>LicenseForm.cs</DependentUpon>
 		</EmbeddedResource>
 		<EmbeddedResource Include="MainApp.resx">
 			<DependentUpon>MainApp.cs</DependentUpon>

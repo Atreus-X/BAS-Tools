@@ -12,4 +12,14 @@
 		<GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<Compile Include="..\BAS-Tools\Licensing\LicenseSecret.cs" Link="LicenseSecret.cs" />
+		<Compile Include="Properties\AssemblyInfo.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="System.Management" />
+	</ItemGroup>
+
 </Project>
+

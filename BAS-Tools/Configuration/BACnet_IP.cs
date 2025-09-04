@@ -99,10 +99,11 @@ namespace MainApp.Configuration
                 }
                 finally
                 {
-                    Task.Run(async () =>
+                    // This will run after the async task is kicked off, 
+                    // so we need a continuation to hide the progress bar.
+                    Task.Delay(5000, _cancellationTokenSource.Token).ContinueWith((t) =>
                     {
-                        await Task.Delay(5000);
-                        if (this.IsHandleCreated && !_cancellationTokenSource.IsCancellationRequested)
+                        if (this.IsHandleCreated)
                         {
                             this.Invoke((MethodInvoker)delegate
                             {
@@ -279,6 +280,7 @@ namespace MainApp.Configuration
 
             _lastPingedDeviceId = uint.Parse(e.Node.Name);
             UpdateAllStates(null, null);
+            DiscoverObjectsButton_Click(sender, e);
         }
 
         protected override void PopulateDefaultValues()

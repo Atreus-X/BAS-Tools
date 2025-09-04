@@ -237,6 +237,7 @@ namespace MainApp.Configuration
             {
                 _lastPingedDeviceId = deviceId;
                 UpdateAllStates(null, null);
+                DiscoverObjectsButton_Click(sender, e);
             }
         }
 

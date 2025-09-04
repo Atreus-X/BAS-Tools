@@ -135,6 +135,7 @@ namespace MainApp.Configuration
             }
             _lastPingedDeviceId = uint.Parse(e.Node.Name);
             UpdateAllStates(null, null);
+            DiscoverObjectsButton_Click(_sender, e);
         }
 
         private new void DiscoverObjectsButton_Click(object _sender, EventArgs e)
