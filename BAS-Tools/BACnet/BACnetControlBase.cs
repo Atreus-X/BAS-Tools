@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO.BACnet;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MainApp.BACnet;
 using static System.IO.BACnet.Serialize.ASN1;
 
 namespace MainApp.Configuration
@@ -18,6 +20,7 @@ namespace MainApp.Configuration
         protected readonly object _bacnetLock = new object();
         protected readonly System.Windows.Forms.Timer _propertyPollingTimer;
         protected BacnetObjectId _selectedObjectId;
+        protected CancellationTokenSource _cancellationTokenSource;
 
         // Abstract properties for UI controls that derived classes must provide.
         protected abstract TreeView DeviceTreeView { get; }
@@ -124,7 +127,7 @@ namespace MainApp.Configuration
             });
         }
 
-        protected void PopulateObjectTree(IList<BacnetValue> objectList)
+        protected void PopulateObjectTree(IList<BacnetValue> objectList, ushort vendorId)
         {
             ObjectTreeView.Nodes.Clear();
             if (objectList == null) return;
@@ -133,18 +136,18 @@ namespace MainApp.Configuration
                 .Where(v => v.Value is BacnetObjectId)
                 .Select(val => (BacnetObjectId)val.Value)
                 .GroupBy(objId => objId.type)
-                .OrderBy(g => g.Key.ToString());
+                .OrderBy(g => BACnetObjectFactory.GetGroupLabel(vendorId, g.Key));
 
             ObjectTreeView.BeginUpdate();
             try
             {
                 foreach (var group in objectGroups)
                 {
-                    var parentNode = new TreeNode(group.Key.ToString());
+                    var parentNode = new TreeNode(BACnetObjectFactory.GetGroupLabel(vendorId, group.Key));
                     ObjectTreeView.Nodes.Add(parentNode);
                     foreach (var objId in group.OrderBy(o => o.instance))
                     {
-                        var childNode = new TreeNode(objId.instance.ToString()) { Tag = objId };
+                        var childNode = new TreeNode(BACnetObjectFactory.GetInstanceLabel(vendorId, objId.type, objId.instance)) { Tag = objId };
                         parentNode.Nodes.Add(childNode);
                     }
                 }
@@ -348,6 +351,173 @@ namespace MainApp.Configuration
             {
                 TogglePollingButton.Enabled = false;
             }
+        }
+
+        protected void ClearLogButton_Click(object sender, EventArgs e)
+        {
+            OutputTextBox.Clear();
+            Log("Log cleared.");
+        }
+
+        protected void ManualReadWriteButton_Click(object sender, EventArgs e)
+        {
+            using (var form = new ManualReadWriteForm(DeviceTreeView.Nodes))
+            {
+                if (form.ShowDialog() == DialogResult.OK)
+                {
+                    var deviceNode = form.SelectedDeviceNode;
+                    var adr = (deviceNode.Tag as Dictionary<string, object>)["Address"] as BacnetAddress;
+                    var objectId = form.SelectedObject;
+                    var propertyId = form.SelectedProperty;
+
+                    if (form.IsReadOperation)
+                    {
+                        if (_bacnetClient.ReadPropertyRequest(adr, objectId, propertyId, out IList<BacnetValue> values))
+                        {
+                            string valuesStr = string.Join(", ", values.Select(v => v.Value?.ToString() ?? "null"));
+                            MessageBox.Show($"Read Success:\n{valuesStr}", "Read Result");
+                            Log($"Manual Read Success on {objectId}, Property {propertyId}: {valuesStr}");
+                        }
+                        else
+                        {
+                            MessageBox.Show("Read failed.", "Read Result");
+                            Log($"Manual Read Failed on {objectId}, Property {propertyId}");
+                        }
+                    }
+                    else
+                    {
+                        var valueString = form.ValueToWrite;
+                        var priority = form.WritePriority;
+
+                        BacnetValue bacnetValue;
+                        if (bool.TryParse(valueString, out bool boolVal))
+                            bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, boolVal);
+                        else if (uint.TryParse(valueString, out uint uintVal))
+                            bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, uintVal);
+                        else if (float.TryParse(valueString, out float floatVal))
+                            bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, floatVal);
+                        else
+                            bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, valueString);
+
+                        _bacnetClient.WritePriority = priority;
+                        if (_bacnetClient.WritePropertyRequest(adr, objectId, propertyId, new[] { bacnetValue }))
+                        {
+                            MessageBox.Show("Write successful.", "Write Result");
+                            Log($"Manual Write Success on {objectId}, Property {propertyId}, Value {valueString}, Priority {priority}");
+                        }
+                        else
+                        {
+                            MessageBox.Show("Write failed.", "Write Result");
+                            Log($"Manual Write Failed on {objectId}, Property {propertyId}, Value {valueString}, Priority {priority}");
+                        }
+                    }
+                }
+            }
+        }
+
+        protected void DiscoverObjectsButton_Click(object sender, EventArgs e)
+        {
+            if (DeviceTreeView.SelectedNode != null)
+            {
+                LoadDeviceDetails(DeviceTreeView.SelectedNode);
+            }
+            else
+            {
+                MessageBox.Show("Please select a device from the list first.", "Device Not Selected");
+            }
+        }
+
+        protected void LoadDeviceDetails(TreeNode selectedNode)
+        {
+            LoadDeviceDetails(selectedNode, CancellationToken.None, new Progress<int>());
+        }
+
+        protected void LoadDeviceDetails(TreeNode selectedNode, CancellationToken cancelToken, IProgress<int> progress)
+        {
+            if (selectedNode == null || selectedNode.Tag == null || selectedNode.Tag.ToString() == "NETWORK_NODE") return;
+
+            uint deviceId = uint.Parse(selectedNode.Name);
+            var deviceInfo = selectedNode.Tag as Dictionary<string, object>;
+            if (deviceInfo == null)
+            {
+                Log($"Error: deviceInfo is null for device {deviceId}");
+                return;
+            }
+            BacnetAddress deviceAddress = deviceInfo["Address"] as BacnetAddress;
+            ushort vendorId = (ushort)deviceInfo["VendorId"];
+
+            this.Invoke((MethodInvoker)delegate {
+                ObjectTreeView.Nodes.Clear();
+            });
+
+            Task.Run(() =>
+            {
+                try
+                {
+                    var segmentation = (BacnetSegmentations)deviceInfo["Segmentation"];
+                    var old_segments = _bacnetClient.MaxSegments;
+                    if (segmentation == BacnetSegmentations.SEGMENTATION_NONE)
+                    {
+                        _bacnetClient.MaxSegments = BacnetMaxSegments.MAX_SEG0;
+                    }
+
+                    try
+                    {
+                        Log($"Requesting object list for Device {deviceId}...");
+                        List<BacnetValue> objectList = new List<BacnetValue>();
+                        var deviceOid = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
+
+                        if (_bacnetClient.ReadPropertyRequest(deviceAddress, deviceOid, BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> countValue, array_index: 0))
+                        {
+                            uint count = (uint)countValue[0].Value;
+                            Log($"Device {deviceId} has {count} objects. Reading them individually.");
+                            for (uint i = 1; i <= count; i++)
+                            {
+                                if (cancelToken.IsCancellationRequested)
+                                {
+                                    Log("Object discovery cancelled.");
+                                    return;
+                                }
+
+                                if (_bacnetClient.ReadPropertyRequest(deviceAddress, deviceOid, BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> objIdValue, array_index: i))
+                                {
+                                    objectList.Add(objIdValue[0]);
+                                    progress.Report((int)(i * 100 / count));
+                                }
+                                else
+                                {
+                                    Log($"--- WARNING: Failed to read object at index {i} from device {deviceId}. ---");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Log($"--- ERROR: Failed to read object list size for device {deviceId}. ---");
+                        }
+
+                        if (objectList.Any())
+                        {
+                            Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
+                            if (!this.IsDisposed && this.IsHandleCreated)
+                            {
+                                this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList, vendorId); });
+                            }
+                        }
+                        else
+                        {
+                            Log($"--- ERROR: Failed to read any objects for device {deviceId}. ---");
+                        }
+                    }
+                    finally
+                    {
+                        _bacnetClient.MaxSegments = old_segments;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log($"--- ERROR reading object list for device {deviceId}: {ex.Message} ---");
+                }
+            }, cancelToken);
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MainApp.Licensing;
+using System;
 using System.Windows.Forms;
 
 namespace BAS_Tools
@@ -13,7 +14,25 @@ namespace BAS_Tools
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new MainApp.MainApp());
+
+            if (LicenseManager.IsLicensed())
+            {
+                Application.Run(new MainApp.MainApp());
+            }
+            else
+            {
+                using (var licenseForm = new LicenseForm())
+                {
+                    if (licenseForm.ShowDialog() == DialogResult.OK)
+                    {
+                        Application.Run(new MainApp.MainApp());
+                    }
+                    else
+                    {
+                        Application.Exit();
+                    }
+                }
+            }
         }
     }
 }

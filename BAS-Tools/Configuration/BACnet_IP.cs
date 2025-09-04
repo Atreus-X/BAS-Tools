@@ -9,7 +9,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using MainApp;
+using MainApp.BACnet;
 using static System.IO.BACnet.Serialize.ASN1;
 using static System.IO.BACnet.Serialize.Services;
 
@@ -51,8 +51,9 @@ namespace MainApp.Configuration
             this.discoverButton.Click += this.DiscoverButton_Click;
             this.pingButton.Click += this.PingButton_Click;
             this.discoverObjectsButton.Click += this.DiscoverObjectsButton_Click;
-            this.manualReadWriteButton.Click += this.ManualReadWriteButton_Click;
-            this.clearLogButton.Click += this.ClearLogButton_Click;
+            this.manualReadWriteButton.Click += base.ManualReadWriteButton_Click;
+            this.clearLogButton.Click += base.ClearLogButton_Click;
+            this.cancelActionButton.Click += this.CancelActionButton_Click;
 
             networkNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(networkNumberComboBox, "networkNumber");
             ipAddressComboBox.Leave += (s, args) => SaveComboBoxEntry(ipAddressComboBox, "ipAddress");
@@ -72,11 +73,51 @@ namespace MainApp.Configuration
                 objectTreeView.Nodes.Clear();
             };
         }
-
-        private void ClearLogButton_Click(object sender, EventArgs e)
+        private void CancelActionButton_Click(object sender, EventArgs e)
         {
-            outputTextBox.Clear();
-            Log("Log cleared.");
+            _cancellationTokenSource?.Cancel();
+        }
+
+        private new void DiscoverObjectsButton_Click(object sender, EventArgs e)
+        {
+            if (deviceTreeView.SelectedNode != null)
+            {
+                _cancellationTokenSource = new CancellationTokenSource();
+                var progress = new Progress<int>(value =>
+                {
+                    objectDiscoveryProgressBar.Value = value;
+                    objectCountLabel.Text = $"Found {value}%";
+                });
+
+                objectDiscoveryProgressBar.Visible = true;
+                objectCountLabel.Visible = true;
+                cancelActionButton.Enabled = true;
+
+                try
+                {
+                    LoadDeviceDetails(deviceTreeView.SelectedNode, _cancellationTokenSource.Token, progress);
+                }
+                finally
+                {
+                    Task.Run(async () =>
+                    {
+                        await Task.Delay(5000);
+                        if (this.IsHandleCreated && !_cancellationTokenSource.IsCancellationRequested)
+                        {
+                            this.Invoke((MethodInvoker)delegate
+                            {
+                                objectDiscoveryProgressBar.Visible = false;
+                                objectCountLabel.Visible = false;
+                                cancelActionButton.Enabled = false;
+                            });
+                        }
+                    });
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please select a device from the list first.", "Device Not Selected");
+            }
         }
 
         private void EnsureBacnetClientStarted()
@@ -156,7 +197,7 @@ namespace MainApp.Configuration
 
                     if (!networkNode.Nodes.ContainsKey(deviceId.ToString()))
                     {
-                        var deviceInfo = new Dictionary<string, object> { { "Address", adr }, { "VendorName", vendorName }, { "MAC", macAddress }, { "Segmentation", segmentation } };
+                        var deviceInfo = new Dictionary<string, object> { { "Address", adr }, { "VendorName", vendorName }, { "MAC", macAddress }, { "Segmentation", segmentation }, { "VendorId", vendorId } };
                         string deviceText = $"(Name not read) ({macAddress}) ({deviceId}) ({vendorName})";
                         TreeNode deviceNode = new TreeNode(deviceText) { Name = deviceId.ToString(), Tag = deviceInfo };
                         networkNode.Nodes.Add(deviceNode);
@@ -238,100 +279,6 @@ namespace MainApp.Configuration
 
             _lastPingedDeviceId = uint.Parse(e.Node.Name);
             UpdateAllStates(null, null);
-            LoadDeviceDetails(e.Node);
-        }
-
-        private void DiscoverObjectsButton_Click(object sender, EventArgs e)
-        {
-            if (deviceTreeView.SelectedNode != null)
-            {
-                LoadDeviceDetails(deviceTreeView.SelectedNode);
-            }
-            else
-            {
-                MessageBox.Show("Please select a device from the list first.", "Device Not Selected");
-            }
-        }
-
-        private void LoadDeviceDetails(TreeNode selectedNode)
-        {
-            if (selectedNode == null || selectedNode.Tag == null || selectedNode.Tag.ToString() == "NETWORK_NODE") return;
-
-            uint deviceId = uint.Parse(selectedNode.Name);
-            var deviceInfo = selectedNode.Tag as Dictionary<string, object>;
-            if (deviceInfo == null)
-            {
-                Log($"Error: deviceInfo is null for device {deviceId}");
-                return;
-            }
-            BacnetAddress deviceAddress = deviceInfo["Address"] as BacnetAddress;
-
-            this.Invoke((MethodInvoker)delegate {
-                objectTreeView.Nodes.Clear();
-                objectDiscoveryProgressBar.Visible = true;
-                objectCountLabel.Visible = true;
-                objectCountLabel.Text = "Reading details...";
-                objectDiscoveryProgressBar.Value = 0;
-            });
-
-            Task.Run(() =>
-            {
-                try
-                {
-                    lock (_bacnetLock)
-                    {
-                        var segmentation = (BacnetSegmentations)deviceInfo["Segmentation"];
-                        var old_segments = _bacnetClient.MaxSegments;
-                        if (segmentation == BacnetSegmentations.SEGMENTATION_NONE)
-                        {
-                            _bacnetClient.MaxSegments = BacnetMaxSegments.MAX_SEG0;
-                        }
-
-                        try
-                        {
-                            Log($"Requesting object list for Device {deviceId}...");
-                            var propertyReferences = new List<BacnetPropertyReference>
-                            {
-                                new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_OBJECT_LIST, ASN1.BACNET_ARRAY_ALL)
-                            };
-                            var request = new BacnetReadAccessSpecification(new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId), propertyReferences);
-                            if (_bacnetClient.ReadPropertyMultipleRequest(deviceAddress, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results))
-                            {
-                                var objectList = results.SelectMany(r => r.values.SelectMany(v => v.value)).ToList();
-                                Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
-
-                                if (!this.IsDisposed && this.IsHandleCreated)
-                                {
-                                    this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
-                                }
-                            }
-                            else
-                            {
-                                Log($"--- ERROR: Failed to read object list for device {deviceId}. ---");
-                            }
-                        }
-                        finally
-                        {
-                            _bacnetClient.MaxSegments = old_segments;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log($"--- ERROR reading object list for device {deviceId}: {ex.Message} ---");
-                }
-                finally
-                {
-                    if (!this.IsDisposed && this.IsHandleCreated)
-                    {
-                        this.Invoke((MethodInvoker)delegate
-                        {
-                            objectDiscoveryProgressBar.Visible = false;
-                            objectCountLabel.Visible = false;
-                        });
-                    }
-                }
-            });
         }
 
         protected override void PopulateDefaultValues()
@@ -392,61 +339,6 @@ namespace MainApp.Configuration
             LoadHistory();
             Log("BACnet/IP history cleared.");
         }
-
-        private void ManualReadWriteButton_Click(object sender, EventArgs e)
-        {
-            using (var form = new ManualReadWriteForm(deviceTreeView.Nodes))
-            {
-                if (form.ShowDialog() == DialogResult.OK)
-                {
-                    var deviceNode = form.SelectedDeviceNode;
-                    var adr = (deviceNode.Tag as Dictionary<string, object>)["Address"] as BacnetAddress;
-                    var objectId = form.SelectedObject;
-                    var propertyId = form.SelectedProperty;
-
-                    if (form.IsReadOperation)
-                    {
-                        if (_bacnetClient.ReadPropertyRequest(adr, objectId, propertyId, out IList<BacnetValue> values))
-                        {
-                            string valuesStr = string.Join(", ", values.Select(v => v.Value?.ToString() ?? "null"));
-                            MessageBox.Show($"Read Success:\n{valuesStr}", "Read Result");
-                            Log($"Manual Read Success on {objectId}, Property {propertyId}: {valuesStr}");
-                        }
-                        else
-                        {
-                            MessageBox.Show("Read failed.", "Read Result");
-                            Log($"Manual Read Failed on {objectId}, Property {propertyId}");
-                        }
-                    }
-                    else
-                    {
-                        var valueString = form.ValueToWrite;
-                        var priority = form.WritePriority;
-
-                        BacnetValue bacnetValue;
-                        if (bool.TryParse(valueString, out bool boolVal))
-                            bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, boolVal);
-                        else if (uint.TryParse(valueString, out uint uintVal))
-                            bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, uintVal);
-                        else if (float.TryParse(valueString, out float floatVal))
-                            bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, floatVal);
-                        else
-                            bacnetValue = new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, valueString);
-
-                        _bacnetClient.WritePriority = priority;
-                        if (_bacnetClient.WritePropertyRequest(adr, objectId, propertyId, new[] { bacnetValue }))
-                        {
-                            MessageBox.Show("Write successful.", "Write Result");
-                            Log($"Manual Write Success on {objectId}, Property {propertyId}, Value {valueString}, Priority {priority}");
-                        }
-                        else
-                        {
-                            MessageBox.Show("Write failed.", "Write Result");
-                            Log($"Manual Write Failed on {objectId}, Property {propertyId}, Value {valueString}, Priority {priority}");
-                        }
-                    }
-                }
-            }
-        }
     }
 }
+

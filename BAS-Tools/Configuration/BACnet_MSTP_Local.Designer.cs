@@ -52,6 +52,9 @@
             this.discoverObjectsButton = new System.Windows.Forms.Button();
             this.manualReadWriteButton = new System.Windows.Forms.Button();
             this.clearLogButton = new System.Windows.Forms.Button();
+            this.cancelActionButton = new System.Windows.Forms.Button();
+            this.objectDiscoveryProgressBar = new System.Windows.Forms.ProgressBar();
+            this.objectCountLabel = new System.Windows.Forms.Label();
             this.bottomPanelSplitContainer = new System.Windows.Forms.SplitContainer();
             this.leftPanelSplitContainer = new System.Windows.Forms.SplitContainer();
             this.browserFrame = new System.Windows.Forms.GroupBox();
@@ -334,6 +337,9 @@
             this.actionsLayout.Controls.Add(this.discoverObjectsButton);
             this.actionsLayout.Controls.Add(this.manualReadWriteButton);
             this.actionsLayout.Controls.Add(this.clearLogButton);
+            this.actionsLayout.Controls.Add(this.cancelActionButton);
+            this.actionsLayout.Controls.Add(this.objectDiscoveryProgressBar);
+            this.actionsLayout.Controls.Add(this.objectCountLabel);
             this.actionsLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.actionsLayout.Location = new System.Drawing.Point(2, 15);
             this.actionsLayout.Margin = new System.Windows.Forms.Padding(2);
@@ -419,6 +425,40 @@
             this.clearLogButton.TabIndex = 7;
             this.clearLogButton.Text = "Clear Log";
             this.clearLogButton.UseVisualStyleBackColor = true;
+            // 
+            // cancelActionButton
+            // 
+            this.cancelActionButton.AutoSize = true;
+            this.cancelActionButton.Enabled = false;
+            this.cancelActionButton.Location = new System.Drawing.Point(545, 2);
+            this.cancelActionButton.Margin = new System.Windows.Forms.Padding(2);
+            this.cancelActionButton.Name = "cancelActionButton";
+            this.cancelActionButton.Size = new System.Drawing.Size(75, 23);
+            this.cancelActionButton.TabIndex = 8;
+            this.cancelActionButton.Text = "Cancel";
+            this.cancelActionButton.UseVisualStyleBackColor = true;
+            // 
+            // objectDiscoveryProgressBar
+            // 
+            this.objectDiscoveryProgressBar.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.objectDiscoveryProgressBar.Location = new System.Drawing.Point(624, 2);
+            this.objectDiscoveryProgressBar.Margin = new System.Windows.Forms.Padding(2);
+            this.objectDiscoveryProgressBar.Name = "objectDiscoveryProgressBar";
+            this.objectDiscoveryProgressBar.Size = new System.Drawing.Size(109, 23);
+            this.objectDiscoveryProgressBar.TabIndex = 9;
+            this.objectDiscoveryProgressBar.Visible = false;
+            // 
+            // objectCountLabel
+            // 
+            this.objectCountLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.objectCountLabel.AutoSize = true;
+            this.objectCountLabel.Location = new System.Drawing.Point(737, 7);
+            this.objectCountLabel.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.objectCountLabel.Name = "objectCountLabel";
+            this.objectCountLabel.Size = new System.Drawing.Size(68, 13);
+            this.objectCountLabel.TabIndex = 10;
+            this.objectCountLabel.Text = "Found 0 of 0";
+            this.objectCountLabel.Visible = false;
             // 
             // bottomPanelSplitContainer
             // 
@@ -756,5 +796,8 @@
         protected System.Windows.Forms.Button togglePollingButton;
         private System.Windows.Forms.Label labelWritePriority;
         protected System.Windows.Forms.ComboBox writePriorityComboBox;
+        private System.Windows.Forms.Button cancelActionButton;
+        private System.Windows.Forms.ProgressBar objectDiscoveryProgressBar;
+        private System.Windows.Forms.Label objectCountLabel;
     }
 }

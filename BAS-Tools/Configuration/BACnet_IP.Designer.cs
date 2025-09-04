@@ -60,6 +60,7 @@
             this.discoverObjectsButton = new System.Windows.Forms.Button();
             this.manualReadWriteButton = new System.Windows.Forms.Button();
             this.clearLogButton = new System.Windows.Forms.Button();
+            this.cancelActionButton = new System.Windows.Forms.Button();
             this.ipFrame = new System.Windows.Forms.GroupBox();
             this.ipLayout = new System.Windows.Forms.TableLayoutPanel();
             this.labelTargetIP = new System.Windows.Forms.Label();
@@ -444,6 +445,7 @@
             this.actionsLayout.Controls.Add(this.discoverObjectsButton);
             this.actionsLayout.Controls.Add(this.manualReadWriteButton);
             this.actionsLayout.Controls.Add(this.clearLogButton);
+            this.actionsLayout.Controls.Add(this.cancelActionButton);
             this.actionsLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.actionsLayout.Location = new System.Drawing.Point(8, 21);
             this.actionsLayout.Name = "actionsLayout";
@@ -499,6 +501,17 @@
             this.clearLogButton.TabIndex = 5;
             this.clearLogButton.Text = "Clear Log";
             this.clearLogButton.UseVisualStyleBackColor = true;
+            // 
+            // cancelActionButton
+            // 
+            this.cancelActionButton.AutoSize = true;
+            this.cancelActionButton.Enabled = false;
+            this.cancelActionButton.Location = new System.Drawing.Point(483, 3);
+            this.cancelActionButton.Name = "cancelActionButton";
+            this.cancelActionButton.Size = new System.Drawing.Size(75, 23);
+            this.cancelActionButton.TabIndex = 6;
+            this.cancelActionButton.Text = "Cancel";
+            this.cancelActionButton.UseVisualStyleBackColor = true;
             // 
             // ipFrame
             // 
@@ -797,5 +810,6 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn colValue;
         private System.Windows.Forms.Label labelWritePriority;
         protected System.Windows.Forms.ComboBox writePriorityComboBox;
+        private System.Windows.Forms.Button cancelActionButton;
     }
 }
