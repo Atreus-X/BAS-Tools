@@ -266,11 +266,16 @@ namespace MainApp.Configuration
 
                     var objectDetails = new List<Tuple<uint, string, BacnetObjectId>>();
 
-                    foreach (var objId in group)
+                    var tasks = group.Select(async objId =>
                     {
                         string name = await GetObjectNameAsync(deviceAddress, objId);
-                        objectDetails.Add(Tuple.Create(objId.instance, name, objId));
-                    }
+                        lock (objectDetails)
+                        {
+                            objectDetails.Add(Tuple.Create(objId.instance, name, objId));
+                        }
+                    });
+                    await Task.WhenAll(tasks);
+
 
                     foreach (var detail in objectDetails.OrderBy(d => d.Item1)) // Sort by instance
                     {
@@ -364,7 +369,6 @@ namespace MainApp.Configuration
                 BacnetAddress adr = await FindDeviceAddressAsync(_lastPingedDeviceId.Value);
                 if (adr == null) return;
 
-                // Find the device node to check for ReadPropertyMultiple support
                 var deviceNode = DeviceTreeView.Nodes.Find(_lastPingedDeviceId.Value.ToString(), true).FirstOrDefault();
                 var deviceInfo = deviceNode?.Tag as Dictionary<string, object>;
                 bool supportsRpm = deviceInfo != null && deviceInfo.ContainsKey("SupportsReadPropertyMultiple") && (bool)deviceInfo["SupportsReadPropertyMultiple"];
@@ -372,49 +376,69 @@ namespace MainApp.Configuration
                 List<BacnetPropertyValue> allProperties = new List<BacnetPropertyValue>();
                 bool success = false;
 
-                // Attempt 1: Use ReadPropertyMultiple with PROP_ALL if supported
                 if (supportsRpm)
                 {
+                    Log($"Attempting to read all properties for {_selectedObjectId} using ReadPropertyMultiple with PROP_ALL.");
                     var propertyReferences = new List<BacnetPropertyReference> { new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_ALL, BACNET_ARRAY_ALL) };
                     var request = new BacnetReadAccessSpecification(_selectedObjectId, propertyReferences);
+
                     if (_bacnetClient.ReadPropertyMultipleRequest(adr, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results))
                     {
-                        if (results != null && results.Count > 0)
+                        if (results != null && results.Count > 0 && results[0].values.Any(p => p.value.All(v => !(v.Value is BacnetError))))
                         {
                             allProperties.AddRange(results[0].values);
                             success = true;
+                            Log($"Successfully read {allProperties.Count} properties using ReadPropertyMultiple.");
                         }
+                        else
+                        {
+                            Log("ReadPropertyMultiple with PROP_ALL returned no values or an error.");
+                        }
+                    }
+                    else
+                    {
+                        Log("ReadPropertyMultiple with PROP_ALL failed.");
                     }
                 }
 
-                // Attempt 2: Fallback to reading PROP_PROPERTY_LIST and then a single ReadPropertyMultiple
                 if (!success)
                 {
-                    Log("Falling back to reading property list then ReadPropertyMultiple.");
+                    Log("Falling back to reading property list and then individual properties one by one.");
                     if (_bacnetClient.ReadPropertyRequest(adr, _selectedObjectId, BacnetPropertyIds.PROP_PROPERTY_LIST, out IList<BacnetValue> propertyListValues))
                     {
                         if (propertyListValues != null && propertyListValues.Count > 0)
                         {
-                            // Construct a list of properties to read
-                            var propertiesToRead = propertyListValues
-                                .Select(val => new BacnetPropertyReference((uint)val.Value, BACNET_ARRAY_ALL))
-                                .ToList();
-
-                            // Create a single ReadAccessSpecification with all the properties
-                            var request = new BacnetReadAccessSpecification(_selectedObjectId, propertiesToRead);
-
-                            // Execute a single ReadPropertyMultiple request
-                            if (_bacnetClient.ReadPropertyMultipleRequest(adr, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results))
+                            Log($"Found {propertyListValues.Count} properties in the property list.");
+                            foreach (var propValue in propertyListValues)
                             {
-                                if (results != null && results.Count > 0)
+                                var propId = (BacnetPropertyIds)(uint)propValue.Value;
+                                if (_bacnetClient.ReadPropertyRequest(adr, _selectedObjectId, propId, out IList<BacnetValue> values))
                                 {
-                                    allProperties.AddRange(results[0].values);
-                                    success = true;
+                                    var prop = new BacnetPropertyValue
+                                    {
+                                        property = new BacnetPropertyReference((uint)propId, BACNET_ARRAY_ALL),
+                                        value = values
+                                    };
+                                    allProperties.Add(prop);
+                                }
+                                else
+                                {
+                                    Log($"Failed to read property: {propId}");
                                 }
                             }
+                            success = true;
+                        }
+                        else
+                        {
+                            Log("PROP_PROPERTY_LIST was empty.");
                         }
                     }
+                    else
+                    {
+                        Log("Failed to read PROP_PROPERTY_LIST.");
+                    }
                 }
+
 
                 if (success)
                 {
@@ -424,7 +448,7 @@ namespace MainApp.Configuration
                         foreach (var prop in allProperties.OrderBy(p => p.property.propertyIdentifier))
                         {
                             string propName = ((BacnetPropertyIds)prop.property.propertyIdentifier).ToString();
-                            string propValue = prop.value.FirstOrDefault().Value?.ToString() ?? "{empty}";
+                            string propValue = prop.value.Count > 0 && prop.value.First().Value != null ? prop.value.First().Value.ToString() : "{empty}";
                             PropertiesDataGridView.Rows.Add(propName, propValue);
                         }
                     });
@@ -444,6 +468,7 @@ namespace MainApp.Configuration
                 }
             }
         }
+
 
         protected async void propertiesDataGridView_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
@@ -611,28 +636,6 @@ namespace MainApp.Configuration
             }
         }
 
-        protected async void DiscoverObjectsButton_Click(object sender, EventArgs e)
-        {
-            if (DeviceTreeView.SelectedNode != null)
-            {
-                await LoadDeviceDetails(DeviceTreeView.SelectedNode);
-            }
-            else
-            {
-                MessageBox.Show("Please select a device from the list first.", "Device Not Selected");
-            }
-        }
-
-        protected async Task LoadDeviceDetails(TreeNode selectedNode)
-        {
-            _cancellationTokenSource = new CancellationTokenSource();
-            var progress = new Progress<int>(value =>
-            {
-                // This needs to be implemented in the derived classes
-            });
-            await LoadDeviceDetails(selectedNode, _cancellationTokenSource.Token, progress);
-        }
-
         protected async Task LoadDeviceDetails(TreeNode selectedNode, CancellationToken cancelToken, IProgress<int> progress)
         {
             if (selectedNode == null || selectedNode.Tag == null || selectedNode.Tag.ToString() == "NETWORK_NODE") return;
@@ -654,7 +657,7 @@ namespace MainApp.Configuration
 
             try
             {
-                var objectList = await Task.Run(() =>
+                var objectList = await Task.Run(async () =>
                 {
                     try
                     {
