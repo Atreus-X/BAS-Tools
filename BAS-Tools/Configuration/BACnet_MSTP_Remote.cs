@@ -138,7 +138,7 @@ namespace MainApp.Configuration
             DiscoverObjectsButton_Click(_sender, e);
         }
 
-        private new void DiscoverObjectsButton_Click(object _sender, EventArgs e)
+        private new async void DiscoverObjectsButton_Click(object _sender, EventArgs e)
         {
             if (deviceTreeView.SelectedNode != null && deviceTreeView.SelectedNode.Tag != null && deviceTreeView.SelectedNode.Tag.ToString() != "NETWORK_NODE")
             {
@@ -148,14 +148,44 @@ namespace MainApp.Configuration
                     objectDiscoveryProgressBar.Value = value;
                     objectCountLabel.Text = $"Found {value}%";
                 });
-                LoadDeviceDetails(deviceTreeView.SelectedNode, _cancellationTokenSource.Token, progress);
+
+                objectDiscoveryProgressBar.Value = 0;
+                objectDiscoveryProgressBar.Visible = true;
+                objectCountLabel.Visible = true;
+                cancelActionButton.Enabled = true;
+
+                try
+                {
+                    await LoadDeviceDetails(deviceTreeView.SelectedNode, _cancellationTokenSource.Token, progress);
+                }
+                catch (OperationCanceledException)
+                {
+                    Log("Object discovery cancelled.");
+                }
+                catch (Exception ex)
+                {
+                    Log($"Error during object discovery: {ex.Message}");
+                }
+                finally
+                {
+                    if (this.IsHandleCreated)
+                    {
+                        this.Invoke((MethodInvoker)delegate
+                        {
+                            objectDiscoveryProgressBar.Visible = false;
+                            objectCountLabel.Visible = false;
+                            cancelActionButton.Enabled = false;
+                        });
+                    }
+                    _cancellationTokenSource.Dispose();
+                    _cancellationTokenSource = null;
+                }
             }
             else
             {
                 MessageBox.Show("Please select a device from the list first.", "Device Not Selected");
             }
         }
-
         private void NetworkFilter_CheckedChanged(object _sender, EventArgs _e)
         {
             networkNumberComboBox.Visible = listNetworkRadioButton.Checked;

@@ -78,7 +78,7 @@ namespace MainApp.Configuration
             _cancellationTokenSource?.Cancel();
         }
 
-        private new void DiscoverObjectsButton_Click(object sender, EventArgs e)
+        private new async void DiscoverObjectsButton_Click(object sender, EventArgs e)
         {
             if (deviceTreeView.SelectedNode != null)
             {
@@ -89,30 +89,36 @@ namespace MainApp.Configuration
                     objectCountLabel.Text = $"Found {value}%";
                 });
 
+                objectDiscoveryProgressBar.Value = 0;
                 objectDiscoveryProgressBar.Visible = true;
                 objectCountLabel.Visible = true;
                 cancelActionButton.Enabled = true;
 
                 try
                 {
-                    LoadDeviceDetails(deviceTreeView.SelectedNode, _cancellationTokenSource.Token, progress);
+                    await LoadDeviceDetails(deviceTreeView.SelectedNode, _cancellationTokenSource.Token, progress);
+                }
+                catch (OperationCanceledException)
+                {
+                    Log("Object discovery cancelled.");
+                }
+                catch (Exception ex)
+                {
+                    Log($"Error during object discovery: {ex.Message}");
                 }
                 finally
                 {
-                    // This will run after the async task is kicked off, 
-                    // so we need a continuation to hide the progress bar.
-                    Task.Delay(5000, _cancellationTokenSource.Token).ContinueWith((t) =>
+                    if (this.IsHandleCreated)
                     {
-                        if (this.IsHandleCreated)
+                        this.Invoke((MethodInvoker)delegate
                         {
-                            this.Invoke((MethodInvoker)delegate
-                            {
-                                objectDiscoveryProgressBar.Visible = false;
-                                objectCountLabel.Visible = false;
-                                cancelActionButton.Enabled = false;
-                            });
-                        }
-                    });
+                            objectDiscoveryProgressBar.Visible = false;
+                            objectCountLabel.Visible = false;
+                            cancelActionButton.Enabled = false;
+                        });
+                    }
+                    _cancellationTokenSource.Dispose();
+                    _cancellationTokenSource = null;
                 }
             }
             else
@@ -120,7 +126,6 @@ namespace MainApp.Configuration
                 MessageBox.Show("Please select a device from the list first.", "Device Not Selected");
             }
         }
-
         private void EnsureBacnetClientStarted()
         {
             string currentBBMDIp = bbmdIpComboBox.Text.Trim();

@@ -398,7 +398,7 @@ namespace MainApp.Configuration
 
         public void Shutdown()
         {
-            _historyManager.SaveHistory();
+            _historyManager?.SaveHistory();
             if (_modbusClient != null && _modbusClient.IsConnected)
             {
                 _modbusClient.Disconnect();
