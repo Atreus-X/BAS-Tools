@@ -18,6 +18,7 @@ namespace MainApp.Configuration
     public partial class BACnet_IP : BACnetControlBase
     {
         private string _lastBBMDIp = "";
+        private System.Windows.Forms.Timer _discoveryTimer;
 
         protected override TreeView DeviceTreeView => deviceTreeView;
         protected override TreeView ObjectTreeView => objectTreeView;
@@ -36,6 +37,22 @@ namespace MainApp.Configuration
         private void BACnet_IP_Load(object sender, EventArgs e)
         {
             BaseLoad("BACnet_IP_");
+            _discoveryTimer = new System.Windows.Forms.Timer { Interval = 10000 };
+            _discoveryTimer.Tick += DiscoveryTimer_Tick;
+        }
+
+        private void DiscoveryTimer_Tick(object sender, EventArgs e)
+        {
+            _discoveryTimer.Stop();
+            Log("Discovery finished.");
+            if (this.IsHandleCreated)
+            {
+                this.Invoke((MethodInvoker)delegate
+                {
+                    discoverButton.Enabled = true;
+                    DeviceTreeView.Enabled = true;
+                });
+            }
         }
 
         protected override void UpdateAllStates(object sender, EventArgs e)
@@ -220,6 +237,8 @@ namespace MainApp.Configuration
             EnsureBacnetClientStarted();
             if (!_isClientStarted) return;
             deviceTreeView.Nodes.Clear();
+            DeviceTreeView.Enabled = false;
+            discoverButton.Enabled = false;
             Log("Sending Who-Is broadcast...");
 
             string bbmdIp = bbmdIpComboBox.Text.Trim();
@@ -236,6 +255,7 @@ namespace MainApp.Configuration
                 adr.net = net;
                 _bacnetClient.WhoIs(-1, -1, adr);
             }
+            _discoveryTimer.Start();
         }
 
         private void PingButton_Click(object sender, EventArgs e)
@@ -348,4 +368,3 @@ namespace MainApp.Configuration
         }
     }
 }
-

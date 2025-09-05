@@ -233,7 +233,7 @@ namespace MainApp.Configuration
             });
         }
 
-        protected async void PopulateObjectTree(IList<BacnetValue> objectList)
+        protected async Task PopulateObjectTree(IList<BacnetValue> objectList)
         {
             ObjectTreeView.Nodes.Clear();
             if (objectList == null) return;
@@ -654,7 +654,7 @@ namespace MainApp.Configuration
 
             try
             {
-                await Task.Run(() =>
+                var objectList = await Task.Run(() =>
                 {
                     try
                     {
@@ -668,7 +668,7 @@ namespace MainApp.Configuration
                         try
                         {
                             Log($"Requesting object list for Device {deviceId}...");
-                            List<BacnetValue> objectList = new List<BacnetValue>();
+                            var oList = new List<BacnetValue>();
                             var deviceOid = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
 
                             if (_bacnetClient.ReadPropertyRequest(deviceAddress, deviceOid, BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> countValue, array_index: 0))
@@ -684,7 +684,7 @@ namespace MainApp.Configuration
 
                                     if (_bacnetClient.ReadPropertyRequest(deviceAddress, deviceOid, BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> objIdValue, array_index: i))
                                     {
-                                        objectList.Add(objIdValue[0]);
+                                        oList.Add(objIdValue[0]);
                                         progress.Report((int)(i * 100 / count));
                                     }
                                     else
@@ -697,19 +697,7 @@ namespace MainApp.Configuration
                             {
                                 Log($"--- ERROR: Failed to read object list size for device {deviceId}. ---");
                             }
-
-                            if (objectList.Any())
-                            {
-                                Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
-                                if (!this.IsDisposed && this.IsHandleCreated)
-                                {
-                                    this.Invoke((MethodInvoker)delegate { PopulateObjectTree(objectList); });
-                                }
-                            }
-                            else
-                            {
-                                Log($"--- ERROR: Failed to read any objects for device {deviceId}. ---");
-                            }
+                            return oList;
                         }
                         finally
                         {
@@ -719,8 +707,22 @@ namespace MainApp.Configuration
                     catch (Exception ex) when (!(ex is OperationCanceledException))
                     {
                         Log($"--- ERROR reading object list for device {deviceId}: {ex.Message} ---");
+                        return null;
                     }
                 }, cancelToken);
+
+                if (objectList != null && objectList.Any())
+                {
+                    Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
+                    if (!this.IsDisposed && this.IsHandleCreated)
+                    {
+                        await PopulateObjectTree(objectList);
+                    }
+                }
+                else if (objectList != null)
+                {
+                    Log($"--- ERROR: Failed to read any objects for device {deviceId}. ---");
+                }
             }
             finally
             {
@@ -736,4 +738,3 @@ namespace MainApp.Configuration
         }
     }
 }
-

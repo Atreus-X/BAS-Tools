@@ -192,6 +192,7 @@ namespace MainApp.Configuration
             if (!_isClientStarted) return;
 
             deviceTreeView.Nodes.Clear();
+            DeviceTreeView.Enabled = false;
             Log("Discovering devices...");
 
             startDiscoveryButton.Enabled = false;
@@ -217,6 +218,7 @@ namespace MainApp.Configuration
             startDiscoveryButton.Enabled = true;
             cancelDiscoveryButton.Visible = false;
             discoveryStatusLabel.Visible = false;
+            DeviceTreeView.Enabled = true;
         }
 
         protected override void PopulateDefaultValues()
@@ -277,4 +279,3 @@ namespace MainApp.Configuration
         }
     }
 }
-
