@@ -110,7 +110,13 @@ namespace MainApp.Configuration
                         networkNode.Nodes.Add(deviceNode);
                         networkNode.Expand();
                         ReadDeviceName(deviceNode, deviceId, adr);
-                        discoveryStatusLabel.Text = $"Found: {deviceTreeView.GetNodeCount(true)}";
+
+                        int deviceCount = 0;
+                        foreach (TreeNode netNode in deviceTreeView.Nodes)
+                        {
+                            deviceCount += netNode.Nodes.Count;
+                        }
+                        discoveryStatusLabel.Text = $"Found: {deviceCount}";
                     }
                 }
                 catch (Exception ex) { Log($"Error in OnIamHandler: {ex.Message}"); }
@@ -144,14 +150,17 @@ namespace MainApp.Configuration
             if (deviceTreeView.SelectedNode != null && deviceTreeView.SelectedNode.Tag != null && deviceTreeView.SelectedNode.Tag.ToString() != "NETWORK_NODE")
             {
                 _cancellationTokenSource = new CancellationTokenSource();
-                var progress = new Progress<int>(value =>
+                var progress = new Progress<Tuple<int, int>>(value =>
                 {
-                    objectDiscoveryProgressBar.Value = value;
-                    objectCountLabel.Text = $"Found {value}%";
+                    objectDiscoveryProgressBar.Maximum = value.Item2;
+                    objectDiscoveryProgressBar.Value = value.Item1;
+                    int percentage = (int)(((double)value.Item1 / value.Item2) * 100);
+                    objectCountLabel.Text = $"{percentage}% ({value.Item1}/{value.Item2})";
                 });
 
                 objectDiscoveryProgressBar.Value = 0;
                 objectDiscoveryProgressBar.Visible = true;
+                objectCountLabel.Text = "0% (0/0)";
                 objectCountLabel.Visible = true;
                 cancelActionButton.Enabled = true;
 
@@ -187,7 +196,6 @@ namespace MainApp.Configuration
                 MessageBox.Show("Please select a device from the list first.", "Device Not Selected");
             }
         }
-
         private void NetworkFilter_CheckedChanged(object _sender, EventArgs _e)
         {
             networkNumberComboBox.Visible = listNetworkRadioButton.Checked;

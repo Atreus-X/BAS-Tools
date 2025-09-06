@@ -13,7 +13,7 @@ using static System.IO.BACnet.Serialize.ASN1;
 
 namespace MainApp.BACnet
 {
-    public partial class BACnetControlBase : UserControl, IHistorySupport
+    public abstract partial class BACnetControlBase : UserControl, IHistorySupport
     {
         protected BacnetClient _bacnetClient;
         protected HistoryManager _historyManager;
@@ -636,7 +636,7 @@ namespace MainApp.BACnet
             }
         }
 
-        protected Task LoadDeviceDetails(TreeNode selectedNode, CancellationToken cancelToken, IProgress<int> progress)
+        protected Task LoadDeviceDetails(TreeNode selectedNode, CancellationToken cancelToken, IProgress<Tuple<int, int>> progress)
         {
             return Task.Run(async () =>
             {
@@ -690,7 +690,7 @@ namespace MainApp.BACnet
                                         if (_bacnetClient.ReadPropertyRequest(deviceAddress, deviceOid, BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> objIdValue, array_index: i))
                                         {
                                             oList.Add(objIdValue[0]);
-                                            progress.Report((int)(i * 100 / count));
+                                            progress.Report(new Tuple<int, int>((int)i, (int)count));
                                         }
                                         else
                                         {
@@ -744,3 +744,4 @@ namespace MainApp.BACnet
         }
     }
 }
+
