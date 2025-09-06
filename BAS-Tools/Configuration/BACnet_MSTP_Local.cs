@@ -64,17 +64,20 @@ namespace MainApp.Configuration
             if (deviceTreeView.SelectedNode != null)
             {
                 _cancellationTokenSource = new CancellationTokenSource();
-                var progress = new Progress<Tuple<int, int>>(value =>
+                var progress = new Progress<DiscoveryProgress>(p =>
                 {
-                    objectDiscoveryProgressBar.Maximum = value.Item2;
-                    objectDiscoveryProgressBar.Value = value.Item1;
-                    int percentage = (int)(((double)value.Item1 / value.Item2) * 100);
-                    objectCountLabel.Text = $"{percentage}% ({value.Item1}/{value.Item2})";
+                    if (objectDiscoveryProgressBar.IsHandleCreated)
+                    {
+                        objectDiscoveryProgressBar.Value = p.Percentage;
+                    }
+                    if (objectCountLabel.IsHandleCreated)
+                    {
+                        objectCountLabel.Text = $"Found {p.Current} of {p.Total} ({p.Percentage}%)";
+                    }
                 });
 
                 objectDiscoveryProgressBar.Value = 0;
                 objectDiscoveryProgressBar.Visible = true;
-                objectCountLabel.Text = "0% (0/0)";
                 objectCountLabel.Visible = true;
                 cancelActionButton.Enabled = true;
 
@@ -161,7 +164,7 @@ namespace MainApp.Configuration
                     var deviceInfo = new Dictionary<string, object> { { "Address", adr }, { "Segmentation", segmentation }, { "VendorId", vendorId } };
                     var node = new TreeNode(deviceDisplay) { Name = deviceId.ToString(), Tag = deviceInfo };
                     deviceTreeView.Nodes.Add(node);
-                    discoveryStatusLabel.Text = $"Found: {deviceTreeView.GetNodeCount(false)}";
+                    discoveryStatusLabel.Text = $"Found: {deviceTreeView.Nodes.Count}";
                     ReadDeviceName(node, deviceId, adr);
                 }
                 else
@@ -202,6 +205,8 @@ namespace MainApp.Configuration
             cancelDiscoveryButton.Visible = true;
             discoveryStatusLabel.Text = "Found: 0";
             discoveryStatusLabel.Visible = true;
+
+            // Make progress bar visible and animate
             objectDiscoveryProgressBar.Style = ProgressBarStyle.Marquee;
             objectDiscoveryProgressBar.Visible = true;
 
@@ -209,7 +214,6 @@ namespace MainApp.Configuration
             Log("Sending Who-Is broadcast for discovery.");
             _bacnetClient.WhoIs();
         }
-
 
         private void CancelDiscoveryButton_Click(object sender, EventArgs e)
         {
@@ -224,10 +228,11 @@ namespace MainApp.Configuration
             cancelDiscoveryButton.Visible = false;
             discoveryStatusLabel.Visible = false;
             DeviceTreeView.Enabled = true;
+
+            // Hide progress bar and reset style
             objectDiscoveryProgressBar.Visible = false;
             objectDiscoveryProgressBar.Style = ProgressBarStyle.Blocks;
         }
-
         protected override void PopulateDefaultValues()
         {
             serialPortComboBox.Items.Clear();

@@ -150,17 +150,16 @@ namespace MainApp.Configuration
             if (deviceTreeView.SelectedNode != null && deviceTreeView.SelectedNode.Tag != null && deviceTreeView.SelectedNode.Tag.ToString() != "NETWORK_NODE")
             {
                 _cancellationTokenSource = new CancellationTokenSource();
-                var progress = new Progress<Tuple<int, int>>(value =>
+                var progress = new Progress<DiscoveryProgress>(p =>
                 {
-                    objectDiscoveryProgressBar.Maximum = value.Item2;
-                    objectDiscoveryProgressBar.Value = value.Item1;
-                    int percentage = (int)(((double)value.Item1 / value.Item2) * 100);
-                    objectCountLabel.Text = $"{percentage}% ({value.Item1}/{value.Item2})";
+                    if (objectDiscoveryProgressBar.IsHandleCreated)
+                        objectDiscoveryProgressBar.Value = p.Percentage;
+                    if (objectCountLabel.IsHandleCreated)
+                        objectCountLabel.Text = $"Found {p.Current} of {p.Total} ({p.Percentage}%)";
                 });
 
                 objectDiscoveryProgressBar.Value = 0;
                 objectDiscoveryProgressBar.Visible = true;
-                objectCountLabel.Text = "0% (0/0)";
                 objectCountLabel.Visible = true;
                 cancelActionButton.Enabled = true;
 
@@ -187,8 +186,11 @@ namespace MainApp.Configuration
                             cancelActionButton.Enabled = false;
                         });
                     }
-                    _cancellationTokenSource.Dispose();
-                    _cancellationTokenSource = null;
+                    if (_cancellationTokenSource != null)
+                    {
+                        _cancellationTokenSource.Dispose();
+                        _cancellationTokenSource = null;
+                    }
                 }
             }
             else
@@ -196,6 +198,7 @@ namespace MainApp.Configuration
                 MessageBox.Show("Please select a device from the list first.", "Device Not Selected");
             }
         }
+
         private void NetworkFilter_CheckedChanged(object _sender, EventArgs _e)
         {
             networkNumberComboBox.Visible = listNetworkRadioButton.Checked;
@@ -268,8 +271,11 @@ namespace MainApp.Configuration
             startDiscoveryButton.Enabled = false;
             cancelDiscoveryButton.Visible = true;
             discoveryStatusLabel.Visible = true;
+            discoveryStatusLabel.Text = "Found: 0";
             objectDiscoveryProgressBar.Style = ProgressBarStyle.Marquee;
-            objectDiscoveryProgressBar.Visible = true;
+            objectDiscoveryProgressBar.Visible = false; // Not for device discovery
+            objectCountLabel.Visible = false; // Not for device discovery
+
             _discoveryTimer.Start();
 
             string bbmdIp = bbmdIpComboBox.Text.Trim();
@@ -333,8 +339,6 @@ namespace MainApp.Configuration
             discoveryStatusLabel.Visible = false;
             _networksToScan.Clear();
             DeviceTreeView.Enabled = true;
-            objectDiscoveryProgressBar.Visible = false;
-            objectDiscoveryProgressBar.Style = ProgressBarStyle.Blocks;
         }
 
         protected override void PopulateDefaultValues()
@@ -395,3 +399,4 @@ namespace MainApp.Configuration
         }
     }
 }
+

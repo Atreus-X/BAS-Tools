@@ -53,7 +53,7 @@ namespace MainApp.Configuration
                     DeviceTreeView.Enabled = true;
                     objectDiscoveryProgressBar.Visible = false;
                     objectDiscoveryProgressBar.Style = ProgressBarStyle.Blocks;
-                    discoveryStatusLabel.Visible = false;
+                    objectCountLabel.Visible = false;
                 });
             }
         }
@@ -74,7 +74,6 @@ namespace MainApp.Configuration
             this.manualReadWriteButton.Click += base.ManualReadWriteButton_Click;
             this.clearLogButton.Click += base.ClearLogButton_Click;
             this.cancelActionButton.Click += this.CancelActionButton_Click;
-            this.cancelDiscoveryButton.Click += this.CancelDiscoveryButton_Click;
 
             networkNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(networkNumberComboBox, "networkNumber");
             ipAddressComboBox.Leave += (s, args) => SaveComboBoxEntry(ipAddressComboBox, "ipAddress");
@@ -98,26 +97,26 @@ namespace MainApp.Configuration
         {
             _cancellationTokenSource?.Cancel();
         }
-        private void CancelDiscoveryButton_Click(object sender, EventArgs e)
-        {
-            DiscoveryTimer_Tick(sender, e);
-        }
 
         private async void DiscoverObjectsButton_Click(object sender, EventArgs e)
         {
             if (deviceTreeView.SelectedNode != null)
             {
                 _cancellationTokenSource = new CancellationTokenSource();
-                var progress = new Progress<Tuple<int, int>>(value =>
+                var progress = new Progress<DiscoveryProgress>(p =>
                 {
-                    objectDiscoveryProgressBar.Maximum = value.Item2;
-                    objectDiscoveryProgressBar.Value = value.Item1;
-                    objectCountLabel.Text = $"{value.Item1}/{value.Item2}";
+                    if (objectDiscoveryProgressBar.IsHandleCreated)
+                    {
+                        objectDiscoveryProgressBar.Value = p.Percentage;
+                    }
+                    if (objectCountLabel.IsHandleCreated)
+                    {
+                        objectCountLabel.Text = $"Found {p.Current} of {p.Total} ({p.Percentage}%)";
+                    }
                 });
 
                 objectDiscoveryProgressBar.Value = 0;
                 objectDiscoveryProgressBar.Visible = true;
-                objectCountLabel.Text = "0/0";
                 objectCountLabel.Visible = true;
                 cancelActionButton.Enabled = true;
 
@@ -236,13 +235,7 @@ namespace MainApp.Configuration
                         networkNode.Nodes.Add(deviceNode);
                         networkNode.Expand();
                         ReadDeviceName(deviceNode, deviceId, adr);
-
-                        int deviceCount = 0;
-                        foreach (TreeNode netNode in deviceTreeView.Nodes)
-                        {
-                            deviceCount += netNode.Nodes.Count;
-                        }
-                        discoveryStatusLabel.Text = $"Found: {deviceCount}";
+                        objectCountLabel.Text = $"Found: {deviceTreeView.GetNodeCount(true)}";
                     }
                 }
                 catch (Exception ex) { Log($"Error in OnIamHandler: {ex.Message}"); }
@@ -260,8 +253,8 @@ namespace MainApp.Configuration
 
             objectDiscoveryProgressBar.Style = ProgressBarStyle.Marquee;
             objectDiscoveryProgressBar.Visible = true;
-            discoveryStatusLabel.Text = "Found: 0";
-            discoveryStatusLabel.Visible = true;
+            objectCountLabel.Text = "Found: 0";
+            objectCountLabel.Visible = true;
 
             string bbmdIp = bbmdIpComboBox.Text.Trim();
             ushort.TryParse(networkNumberComboBox.Text, out ushort net);
@@ -390,4 +383,3 @@ namespace MainApp.Configuration
         }
     }
 }
-
