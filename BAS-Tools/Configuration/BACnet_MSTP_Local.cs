@@ -59,7 +59,7 @@ namespace MainApp.Configuration
             _cancellationTokenSource?.Cancel();
         }
 
-        private new async void DiscoverObjectsButton_Click(object sender, EventArgs e)
+        private async void DiscoverObjectsButton_Click(object sender, EventArgs e)
         {
             if (deviceTreeView.SelectedNode != null)
             {
@@ -200,11 +200,14 @@ namespace MainApp.Configuration
             discoveryStatusLabel.Text = "Found: 0";
             discoveryStatusLabel.Visible = true;
 
+            // Make progress bar visible and animate
+            objectDiscoveryProgressBar.Style = ProgressBarStyle.Marquee;
+            objectDiscoveryProgressBar.Visible = true;
+
             _discoveryTimer.Start();
             Log("Sending Who-Is broadcast for discovery.");
             _bacnetClient.WhoIs();
         }
-
 
         private void CancelDiscoveryButton_Click(object sender, EventArgs e)
         {
@@ -219,8 +222,11 @@ namespace MainApp.Configuration
             cancelDiscoveryButton.Visible = false;
             discoveryStatusLabel.Visible = false;
             DeviceTreeView.Enabled = true;
-        }
 
+            // Hide progress bar and reset style
+            objectDiscoveryProgressBar.Visible = false;
+            objectDiscoveryProgressBar.Style = ProgressBarStyle.Blocks;
+        }
         protected override void PopulateDefaultValues()
         {
             serialPortComboBox.Items.Clear();

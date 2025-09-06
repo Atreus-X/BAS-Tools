@@ -51,6 +51,9 @@ namespace MainApp.Configuration
                 {
                     discoverButton.Enabled = true;
                     DeviceTreeView.Enabled = true;
+                    objectDiscoveryProgressBar.Visible = false;
+                    objectDiscoveryProgressBar.Style = ProgressBarStyle.Blocks;
+                    objectCountLabel.Visible = false;
                 });
             }
         }
@@ -95,7 +98,7 @@ namespace MainApp.Configuration
             _cancellationTokenSource?.Cancel();
         }
 
-        private new async void DiscoverObjectsButton_Click(object sender, EventArgs e)
+        private async void DiscoverObjectsButton_Click(object sender, EventArgs e)
         {
             if (deviceTreeView.SelectedNode != null)
             {
@@ -226,6 +229,7 @@ namespace MainApp.Configuration
                         networkNode.Nodes.Add(deviceNode);
                         networkNode.Expand();
                         ReadDeviceName(deviceNode, deviceId, adr);
+                        objectCountLabel.Text = $"Found: {deviceTreeView.GetNodeCount(true)}";
                     }
                 }
                 catch (Exception ex) { Log($"Error in OnIamHandler: {ex.Message}"); }
@@ -240,6 +244,11 @@ namespace MainApp.Configuration
             DeviceTreeView.Enabled = false;
             discoverButton.Enabled = false;
             Log("Sending Who-Is broadcast...");
+
+            objectDiscoveryProgressBar.Style = ProgressBarStyle.Marquee;
+            objectDiscoveryProgressBar.Visible = true;
+            objectCountLabel.Text = "Found: 0";
+            objectCountLabel.Visible = true;
 
             string bbmdIp = bbmdIpComboBox.Text.Trim();
             ushort.TryParse(networkNumberComboBox.Text, out ushort net);

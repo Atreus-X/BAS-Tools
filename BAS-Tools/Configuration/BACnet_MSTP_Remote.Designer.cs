@@ -72,8 +72,8 @@
             this.expandAllButton = new System.Windows.Forms.Button();
             this.collapseAllButton = new System.Windows.Forms.Button();
             this.clearBrowserButton = new System.Windows.Forms.Button();
-            this.objectDiscoveryProgressBar = new System.Windows.Forms.ProgressBar();
             this.objectCountLabel = new System.Windows.Forms.Label();
+            this.objectDiscoveryProgressBar = new System.Windows.Forms.ProgressBar();
             this.propertiesFrame = new System.Windows.Forms.GroupBox();
             this.propertiesDataGridView = new System.Windows.Forms.DataGridView();
             this.colProperty = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -151,7 +151,7 @@
             // 
             this.mainSplitContainer.Panel2.Controls.Add(this.bottomPanelSplitContainer);
             this.mainSplitContainer.Size = new System.Drawing.Size(818, 923);
-            this.mainSplitContainer.SplitterDistance = 220;
+            this.mainSplitContainer.SplitterDistance = 175;
             this.mainSplitContainer.TabIndex = 3;
             // 
             // topPanelSplitContainer
@@ -171,7 +171,7 @@
             // 
             this.topPanelSplitContainer.Panel2.Controls.Add(this.rediscoverPanel);
             this.topPanelSplitContainer.Panel2.Controls.Add(this.actionsFrame);
-            this.topPanelSplitContainer.Size = new System.Drawing.Size(818, 204);
+            this.topPanelSplitContainer.Size = new System.Drawing.Size(818, 175);
             this.topPanelSplitContainer.SplitterDistance = 130;
             this.topPanelSplitContainer.TabIndex = 0;
             // 
@@ -397,7 +397,7 @@
             this.rediscoverPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.rediscoverPanel.Location = new System.Drawing.Point(0, 48);
             this.rediscoverPanel.Name = "rediscoverPanel";
-            this.rediscoverPanel.Size = new System.Drawing.Size(818, 38);
+            this.rediscoverPanel.Size = new System.Drawing.Size(818, 0);
             this.rediscoverPanel.TabIndex = 2;
             // 
             // rediscoverDeviceCheckBox
@@ -535,8 +535,8 @@
             // bottomPanelSplitContainer.Panel2
             // 
             this.bottomPanelSplitContainer.Panel2.Controls.Add(this.outputFrame);
-            this.bottomPanelSplitContainer.Size = new System.Drawing.Size(818, 699);
-            this.bottomPanelSplitContainer.SplitterDistance = 434;
+            this.bottomPanelSplitContainer.Size = new System.Drawing.Size(818, 744);
+            this.bottomPanelSplitContainer.SplitterDistance = 475;
             this.bottomPanelSplitContainer.TabIndex = 0;
             // 
             // leftPanelSplitContainer
@@ -552,7 +552,7 @@
             // leftPanelSplitContainer.Panel2
             // 
             this.leftPanelSplitContainer.Panel2.Controls.Add(this.propertiesFrame);
-            this.leftPanelSplitContainer.Size = new System.Drawing.Size(818, 434);
+            this.leftPanelSplitContainer.Size = new System.Drawing.Size(818, 475);
             this.leftPanelSplitContainer.SplitterDistance = 400;
             this.leftPanelSplitContainer.TabIndex = 0;
             // 
@@ -563,7 +563,7 @@
             this.browserFrame.Dock = System.Windows.Forms.DockStyle.Fill;
             this.browserFrame.Location = new System.Drawing.Point(0, 0);
             this.browserFrame.Name = "browserFrame";
-            this.browserFrame.Size = new System.Drawing.Size(400, 434);
+            this.browserFrame.Size = new System.Drawing.Size(400, 475);
             this.browserFrame.TabIndex = 0;
             this.browserFrame.TabStop = false;
             this.browserFrame.Text = "Device & Object Browser";
@@ -571,7 +571,7 @@
             // browserSplitContainer
             // 
             this.browserSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.browserSplitContainer.Location = new System.Drawing.Point(3, 45);
+            this.browserSplitContainer.Location = new System.Drawing.Point(3, 74);
             this.browserSplitContainer.Name = "browserSplitContainer";
             this.browserSplitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
             // 
@@ -582,8 +582,8 @@
             // browserSplitContainer.Panel2
             // 
             this.browserSplitContainer.Panel2.Controls.Add(this.objectTreeView);
-            this.browserSplitContainer.Size = new System.Drawing.Size(394, 386);
-            this.browserSplitContainer.SplitterDistance = 192;
+            this.browserSplitContainer.Size = new System.Drawing.Size(394, 398);
+            this.browserSplitContainer.SplitterDistance = 198;
             this.browserSplitContainer.TabIndex = 0;
             // 
             // deviceTreeView
@@ -591,7 +591,7 @@
             this.deviceTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.deviceTreeView.Location = new System.Drawing.Point(0, 0);
             this.deviceTreeView.Name = "deviceTreeView";
-            this.deviceTreeView.Size = new System.Drawing.Size(394, 192);
+            this.deviceTreeView.Size = new System.Drawing.Size(394, 198);
             this.deviceTreeView.TabIndex = 0;
             // 
             // objectTreeView
@@ -599,29 +599,28 @@
             this.objectTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.objectTreeView.Location = new System.Drawing.Point(0, 0);
             this.objectTreeView.Name = "objectTreeView";
-            this.objectTreeView.Size = new System.Drawing.Size(394, 190);
+            this.objectTreeView.Size = new System.Drawing.Size(394, 196);
             this.objectTreeView.TabIndex = 0;
             // 
             // browserButtonsPanel
             // 
             this.browserButtonsPanel.AutoSize = true;
-            this.browserButtonsPanel.ColumnCount = 5;
-            this.browserButtonsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.browserButtonsPanel.ColumnCount = 3;
             this.browserButtonsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.browserButtonsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.browserButtonsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.browserButtonsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.browserButtonsPanel.Controls.Add(this.expandAllButton, 0, 0);
             this.browserButtonsPanel.Controls.Add(this.collapseAllButton, 1, 0);
             this.browserButtonsPanel.Controls.Add(this.clearBrowserButton, 2, 0);
-            this.browserButtonsPanel.Controls.Add(this.objectDiscoveryProgressBar, 4, 0);
-            this.browserButtonsPanel.Controls.Add(this.objectCountLabel, 3, 0);
+            this.browserButtonsPanel.Controls.Add(this.objectCountLabel, 0, 1);
+            this.browserButtonsPanel.Controls.Add(this.objectDiscoveryProgressBar, 1, 1);
             this.browserButtonsPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this.browserButtonsPanel.Location = new System.Drawing.Point(3, 16);
             this.browserButtonsPanel.Name = "browserButtonsPanel";
-            this.browserButtonsPanel.RowCount = 1;
-            this.browserButtonsPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.browserButtonsPanel.Size = new System.Drawing.Size(394, 29);
+            this.browserButtonsPanel.RowCount = 2;
+            this.browserButtonsPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.browserButtonsPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.browserButtonsPanel.Size = new System.Drawing.Size(394, 58);
             this.browserButtonsPanel.TabIndex = 1;
             // 
             // expandAllButton
@@ -651,25 +650,27 @@
             this.clearBrowserButton.Text = "Clear";
             this.clearBrowserButton.UseVisualStyleBackColor = true;
             // 
-            // objectDiscoveryProgressBar
-            // 
-            this.objectDiscoveryProgressBar.Anchor = System.Windows.Forms.AnchorStyles.Right;
-            this.objectDiscoveryProgressBar.Location = new System.Drawing.Point(246, 3);
-            this.objectDiscoveryProgressBar.Name = "objectDiscoveryProgressBar";
-            this.objectDiscoveryProgressBar.Size = new System.Drawing.Size(145, 23);
-            this.objectDiscoveryProgressBar.TabIndex = 9;
-            this.objectDiscoveryProgressBar.Visible = false;
-            // 
             // objectCountLabel
             // 
-            this.objectCountLabel.Anchor = System.Windows.Forms.AnchorStyles.Right;
+            this.objectCountLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.objectCountLabel.AutoSize = true;
-            this.objectCountLabel.Location = new System.Drawing.Point(246, 8);
+            this.objectCountLabel.Location = new System.Drawing.Point(3, 37);
             this.objectCountLabel.Name = "objectCountLabel";
-            this.objectCountLabel.Size = new System.Drawing.Size(1, 13);
+            this.objectCountLabel.Size = new System.Drawing.Size(67, 13);
             this.objectCountLabel.TabIndex = 8;
             this.objectCountLabel.Text = "Found 0 of 0";
+            this.objectCountLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.objectCountLabel.Visible = false;
+            // 
+            // objectDiscoveryProgressBar
+            // 
+            this.browserButtonsPanel.SetColumnSpan(this.objectDiscoveryProgressBar, 2);
+            this.objectDiscoveryProgressBar.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.objectDiscoveryProgressBar.Location = new System.Drawing.Point(84, 32);
+            this.objectDiscoveryProgressBar.Name = "objectDiscoveryProgressBar";
+            this.objectDiscoveryProgressBar.Size = new System.Drawing.Size(307, 23);
+            this.objectDiscoveryProgressBar.TabIndex = 9;
+            this.objectDiscoveryProgressBar.Visible = false;
             // 
             // propertiesFrame
             // 
@@ -678,7 +679,7 @@
             this.propertiesFrame.Dock = System.Windows.Forms.DockStyle.Fill;
             this.propertiesFrame.Location = new System.Drawing.Point(0, 0);
             this.propertiesFrame.Name = "propertiesFrame";
-            this.propertiesFrame.Size = new System.Drawing.Size(414, 434);
+            this.propertiesFrame.Size = new System.Drawing.Size(414, 475);
             this.propertiesFrame.TabIndex = 0;
             this.propertiesFrame.TabStop = false;
             this.propertiesFrame.Text = "Object Properties";
@@ -694,7 +695,7 @@
             this.propertiesDataGridView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.propertiesDataGridView.Location = new System.Drawing.Point(3, 45);
             this.propertiesDataGridView.Name = "propertiesDataGridView";
-            this.propertiesDataGridView.Size = new System.Drawing.Size(408, 386);
+            this.propertiesDataGridView.Size = new System.Drawing.Size(408, 427);
             this.propertiesDataGridView.TabIndex = 1;
             // 
             // colProperty
@@ -808,7 +809,7 @@
             this.outputFrame.Dock = System.Windows.Forms.DockStyle.Fill;
             this.outputFrame.Location = new System.Drawing.Point(0, 0);
             this.outputFrame.Name = "outputFrame";
-            this.outputFrame.Size = new System.Drawing.Size(818, 261);
+            this.outputFrame.Size = new System.Drawing.Size(818, 265);
             this.outputFrame.TabIndex = 0;
             this.outputFrame.TabStop = false;
             this.outputFrame.Text = "Output";
@@ -818,7 +819,7 @@
             this.outputTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.outputTextBox.Location = new System.Drawing.Point(3, 16);
             this.outputTextBox.Name = "outputTextBox";
-            this.outputTextBox.Size = new System.Drawing.Size(812, 242);
+            this.outputTextBox.Size = new System.Drawing.Size(812, 246);
             this.outputTextBox.TabIndex = 0;
             this.outputTextBox.Text = "";
             // 

@@ -16,9 +16,10 @@ namespace MainApp
         {
             InitializeComponent();
 
-            // --- Set the form's starting position ---
+            // --- Set the form's starting position and size ---
             this.StartPosition = FormStartPosition.Manual;
             this.Location = new Point(0, 0);
+            this.Width = Screen.PrimaryScreen.Bounds.Width / 2;
 
             // --- Wire up menu item event handlers ---
             this.exitToolStripMenuItem.Click += (sender, e) => this.Close();

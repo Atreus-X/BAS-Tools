@@ -1,4 +1,4 @@
-﻿namespace MainApp.Configuration
+﻿namespace MainApp.BACnet
 {
     partial class BACnetControlBase
     {

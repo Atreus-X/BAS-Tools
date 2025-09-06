@@ -11,9 +11,9 @@ using System.Windows.Forms;
 using MainApp.BACnet;
 using static System.IO.BACnet.Serialize.ASN1;
 
-namespace MainApp.Configuration
+namespace MainApp.BACnet
 {
-    public abstract partial class BACnetControlBase : UserControl, IHistorySupport
+    public partial class BACnetControlBase : UserControl, IHistorySupport
     {
         protected BacnetClient _bacnetClient;
         protected HistoryManager _historyManager;
@@ -24,14 +24,14 @@ namespace MainApp.Configuration
         protected BacnetObjectId _selectedObjectId;
         protected CancellationTokenSource _cancellationTokenSource;
 
-        // Abstract properties for UI controls that derived classes must provide.
-        protected abstract TreeView DeviceTreeView { get; }
-        protected abstract TreeView ObjectTreeView { get; }
-        protected abstract DataGridView PropertiesDataGridView { get; }
-        protected abstract RichTextBox OutputTextBox { get; }
-        protected abstract Button TogglePollingButton { get; }
-        protected abstract NumericUpDown ReadIntervalNumericUpDown { get; }
-        protected abstract ComboBox WritePriorityComboBox { get; }
+        // Abstract properties have been changed to virtual properties with default null implementations
+        protected virtual TreeView DeviceTreeView => null;
+        protected virtual TreeView ObjectTreeView => null;
+        protected virtual DataGridView PropertiesDataGridView => null;
+        protected virtual RichTextBox OutputTextBox => null;
+        protected virtual Button TogglePollingButton => null;
+        protected virtual NumericUpDown ReadIntervalNumericUpDown => null;
+        protected virtual ComboBox WritePriorityComboBox => null;
 
         public BACnetControlBase()
         {
@@ -169,11 +169,11 @@ namespace MainApp.Configuration
         }
 
         // Abstract methods for protocol-specific implementation
-        protected abstract void PopulateDefaultValues();
-        protected abstract void LoadHistory();
-        protected abstract void UpdateAllStates(object sender, EventArgs e);
-        protected abstract void WireUpProtocolSpecificEventHandlers();
-        public abstract void ClearHistory();
+        protected virtual void PopulateDefaultValues() { }
+        protected virtual void LoadHistory() { }
+        protected virtual void UpdateAllStates(object sender, EventArgs e) { }
+        protected virtual void WireUpProtocolSpecificEventHandlers() { }
+        public virtual void ClearHistory() { }
 
         protected void ReadDeviceName(TreeNode deviceNode, uint deviceId, BacnetAddress adr)
         {
@@ -636,108 +636,111 @@ namespace MainApp.Configuration
             }
         }
 
-        protected async Task LoadDeviceDetails(TreeNode selectedNode, CancellationToken cancelToken, IProgress<int> progress)
+        protected Task LoadDeviceDetails(TreeNode selectedNode, CancellationToken cancelToken, IProgress<int> progress)
         {
-            if (selectedNode == null || selectedNode.Tag == null || selectedNode.Tag.ToString() == "NETWORK_NODE") return;
-
-            uint deviceId = uint.Parse(selectedNode.Name);
-            var deviceInfo = selectedNode.Tag as Dictionary<string, object>;
-            if (deviceInfo == null)
+            return Task.Run(async () =>
             {
-                Log($"Error: deviceInfo is null for device {deviceId}");
-                return;
-            }
-            BacnetAddress deviceAddress = deviceInfo["Address"] as BacnetAddress;
+                if (selectedNode == null || selectedNode.Tag == null || selectedNode.Tag.ToString() == "NETWORK_NODE") return;
 
-            this.Invoke((MethodInvoker)delegate {
-                ObjectTreeView.Nodes.Clear();
-                DeviceTreeView.Enabled = false;
-                ObjectTreeView.Enabled = false;
-            });
-
-            try
-            {
-                var objectList = await Task.Run(async () =>
+                uint deviceId = uint.Parse(selectedNode.Name);
+                var deviceInfo = selectedNode.Tag as Dictionary<string, object>;
+                if (deviceInfo == null)
                 {
-                    try
-                    {
-                        var segmentation = (BacnetSegmentations)deviceInfo["Segmentation"];
-                        var old_segments = _bacnetClient.MaxSegments;
-                        if (segmentation == BacnetSegmentations.SEGMENTATION_NONE)
-                        {
-                            _bacnetClient.MaxSegments = BacnetMaxSegments.MAX_SEG0;
-                        }
+                    Log($"Error: deviceInfo is null for device {deviceId}");
+                    return;
+                }
+                BacnetAddress deviceAddress = deviceInfo["Address"] as BacnetAddress;
 
+                this.Invoke((MethodInvoker)delegate {
+                    ObjectTreeView.Nodes.Clear();
+                    DeviceTreeView.Enabled = false;
+                    ObjectTreeView.Enabled = false;
+                });
+
+                try
+                {
+                    var objectList = await Task.Run(() =>
+                    {
                         try
                         {
-                            Log($"Requesting object list for Device {deviceId}...");
-                            var oList = new List<BacnetValue>();
-                            var deviceOid = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
-
-                            if (_bacnetClient.ReadPropertyRequest(deviceAddress, deviceOid, BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> countValue, array_index: 0))
+                            var segmentation = (BacnetSegmentations)deviceInfo["Segmentation"];
+                            var old_segments = _bacnetClient.MaxSegments;
+                            if (segmentation == BacnetSegmentations.SEGMENTATION_NONE)
                             {
-                                uint count = (uint)countValue[0].Value;
-                                Log($"Device {deviceId} has {count} objects. Reading them individually.");
-                                for (uint i = 1; i <= count; i++)
-                                {
-                                    if (cancelToken.IsCancellationRequested)
-                                    {
-                                        cancelToken.ThrowIfCancellationRequested();
-                                    }
+                                _bacnetClient.MaxSegments = BacnetMaxSegments.MAX_SEG0;
+                            }
 
-                                    if (_bacnetClient.ReadPropertyRequest(deviceAddress, deviceOid, BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> objIdValue, array_index: i))
+                            try
+                            {
+                                Log($"Requesting object list for Device {deviceId}...");
+                                var oList = new List<BacnetValue>();
+                                var deviceOid = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
+
+                                if (_bacnetClient.ReadPropertyRequest(deviceAddress, deviceOid, BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> countValue, array_index: 0))
+                                {
+                                    uint count = (uint)countValue[0].Value;
+                                    Log($"Device {deviceId} has {count} objects. Reading them individually.");
+                                    for (uint i = 1; i <= count; i++)
                                     {
-                                        oList.Add(objIdValue[0]);
-                                        progress.Report((int)(i * 100 / count));
-                                    }
-                                    else
-                                    {
-                                        Log($"--- WARNING: Failed to read object at index {i} from device {deviceId}. ---");
+                                        if (cancelToken.IsCancellationRequested)
+                                        {
+                                            cancelToken.ThrowIfCancellationRequested();
+                                        }
+
+                                        if (_bacnetClient.ReadPropertyRequest(deviceAddress, deviceOid, BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> objIdValue, array_index: i))
+                                        {
+                                            oList.Add(objIdValue[0]);
+                                            progress.Report((int)(i * 100 / count));
+                                        }
+                                        else
+                                        {
+                                            Log($"--- WARNING: Failed to read object at index {i} from device {deviceId}. ---");
+                                        }
                                     }
                                 }
+                                else
+                                {
+                                    Log($"--- ERROR: Failed to read object list size for device {deviceId}. ---");
+                                }
+                                return oList;
                             }
-                            else
+                            finally
                             {
-                                Log($"--- ERROR: Failed to read object list size for device {deviceId}. ---");
+                                _bacnetClient.MaxSegments = old_segments;
                             }
-                            return oList;
                         }
-                        finally
+                        catch (Exception ex) when (!(ex is OperationCanceledException))
                         {
-                            _bacnetClient.MaxSegments = old_segments;
+                            Log($"--- ERROR reading object list for device {deviceId}: {ex.Message} ---");
+                            return null;
+                        }
+                    }, cancelToken);
+
+                    if (objectList != null && objectList.Any())
+                    {
+                        Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
+                        if (!this.IsDisposed && this.IsHandleCreated)
+                        {
+                            await PopulateObjectTree(objectList);
                         }
                     }
-                    catch (Exception ex) when (!(ex is OperationCanceledException))
+                    else if (objectList != null)
                     {
-                        Log($"--- ERROR reading object list for device {deviceId}: {ex.Message} ---");
-                        return null;
-                    }
-                }, cancelToken);
-
-                if (objectList != null && objectList.Any())
-                {
-                    Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
-                    if (!this.IsDisposed && this.IsHandleCreated)
-                    {
-                        await PopulateObjectTree(objectList);
+                        Log($"--- ERROR: Failed to read any objects for device {deviceId}. ---");
                     }
                 }
-                else if (objectList != null)
+                finally
                 {
-                    Log($"--- ERROR: Failed to read any objects for device {deviceId}. ---");
-                }
-            }
-            finally
-            {
-                if (this.IsHandleCreated)
-                {
-                    this.Invoke((MethodInvoker)delegate
+                    if (this.IsHandleCreated)
                     {
-                        DeviceTreeView.Enabled = true;
-                        ObjectTreeView.Enabled = true;
-                    });
+                        this.Invoke((MethodInvoker)delegate
+                        {
+                            DeviceTreeView.Enabled = true;
+                            ObjectTreeView.Enabled = true;
+                        });
+                    }
                 }
-            }
+            });
         }
     }
 }

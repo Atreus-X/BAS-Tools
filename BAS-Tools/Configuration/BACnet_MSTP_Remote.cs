@@ -110,6 +110,7 @@ namespace MainApp.Configuration
                         networkNode.Nodes.Add(deviceNode);
                         networkNode.Expand();
                         ReadDeviceName(deviceNode, deviceId, adr);
+                        discoveryStatusLabel.Text = $"Found: {deviceTreeView.GetNodeCount(true)}";
                     }
                 }
                 catch (Exception ex) { Log($"Error in OnIamHandler: {ex.Message}"); }
@@ -138,7 +139,7 @@ namespace MainApp.Configuration
             DiscoverObjectsButton_Click(_sender, e);
         }
 
-        private new async void DiscoverObjectsButton_Click(object _sender, EventArgs e)
+        private async void DiscoverObjectsButton_Click(object _sender, EventArgs e)
         {
             if (deviceTreeView.SelectedNode != null && deviceTreeView.SelectedNode.Tag != null && deviceTreeView.SelectedNode.Tag.ToString() != "NETWORK_NODE")
             {
@@ -186,6 +187,7 @@ namespace MainApp.Configuration
                 MessageBox.Show("Please select a device from the list first.", "Device Not Selected");
             }
         }
+
         private void NetworkFilter_CheckedChanged(object _sender, EventArgs _e)
         {
             networkNumberComboBox.Visible = listNetworkRadioButton.Checked;
@@ -258,6 +260,8 @@ namespace MainApp.Configuration
             startDiscoveryButton.Enabled = false;
             cancelDiscoveryButton.Visible = true;
             discoveryStatusLabel.Visible = true;
+            objectDiscoveryProgressBar.Style = ProgressBarStyle.Marquee;
+            objectDiscoveryProgressBar.Visible = true;
             _discoveryTimer.Start();
 
             string bbmdIp = bbmdIpComboBox.Text.Trim();
@@ -321,6 +325,8 @@ namespace MainApp.Configuration
             discoveryStatusLabel.Visible = false;
             _networksToScan.Clear();
             DeviceTreeView.Enabled = true;
+            objectDiscoveryProgressBar.Visible = false;
+            objectDiscoveryProgressBar.Style = ProgressBarStyle.Blocks;
         }
 
         protected override void PopulateDefaultValues()

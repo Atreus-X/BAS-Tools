@@ -44,15 +44,15 @@
             this.connectButton = new System.Windows.Forms.Button();
             this.disconnectButton = new System.Windows.Forms.Button();
             this.actionsFrame = new System.Windows.Forms.GroupBox();
-            this.actionsLayout = new System.Windows.Forms.FlowLayoutPanel();
+            this.actionsLayout = new System.Windows.Forms.TableLayoutPanel();
             this.startDiscoveryButton = new System.Windows.Forms.Button();
             this.cancelDiscoveryButton = new System.Windows.Forms.Button();
-            this.discoveryStatusLabel = new System.Windows.Forms.Label();
             this.pingButton = new System.Windows.Forms.Button();
             this.discoverObjectsButton = new System.Windows.Forms.Button();
             this.manualReadWriteButton = new System.Windows.Forms.Button();
             this.clearLogButton = new System.Windows.Forms.Button();
             this.cancelActionButton = new System.Windows.Forms.Button();
+            this.discoveryStatusLabel = new System.Windows.Forms.Label();
             this.objectDiscoveryProgressBar = new System.Windows.Forms.ProgressBar();
             this.objectCountLabel = new System.Windows.Forms.Label();
             this.bottomPanelSplitContainer = new System.Windows.Forms.SplitContainer();
@@ -133,7 +133,7 @@
             // 
             this.mainSplitContainer.Panel2.Controls.Add(this.bottomPanelSplitContainer);
             this.mainSplitContainer.Size = new System.Drawing.Size(818, 953);
-            this.mainSplitContainer.SplitterDistance = 175;
+            this.mainSplitContainer.SplitterDistance = 195;
             this.mainSplitContainer.SplitterWidth = 3;
             this.mainSplitContainer.TabIndex = 3;
             // 
@@ -154,8 +154,8 @@
             // topPanelSplitContainer.Panel2
             // 
             this.topPanelSplitContainer.Panel2.Controls.Add(this.actionsFrame);
-            this.topPanelSplitContainer.Size = new System.Drawing.Size(818, 175);
-            this.topPanelSplitContainer.SplitterDistance = 120;
+            this.topPanelSplitContainer.Size = new System.Drawing.Size(818, 195);
+            this.topPanelSplitContainer.SplitterDistance = 131;
             this.topPanelSplitContainer.SplitterWidth = 3;
             this.topPanelSplitContainer.TabIndex = 0;
             // 
@@ -322,7 +322,7 @@
             this.actionsFrame.Margin = new System.Windows.Forms.Padding(2);
             this.actionsFrame.Name = "actionsFrame";
             this.actionsFrame.Padding = new System.Windows.Forms.Padding(2);
-            this.actionsFrame.Size = new System.Drawing.Size(818, 52);
+            this.actionsFrame.Size = new System.Drawing.Size(818, 61);
             this.actionsFrame.TabIndex = 1;
             this.actionsFrame.TabStop = false;
             this.actionsFrame.Text = "Actions";
@@ -330,25 +330,38 @@
             // actionsLayout
             // 
             this.actionsLayout.AutoSize = true;
-            this.actionsLayout.Controls.Add(this.startDiscoveryButton);
-            this.actionsLayout.Controls.Add(this.cancelDiscoveryButton);
-            this.actionsLayout.Controls.Add(this.discoveryStatusLabel);
-            this.actionsLayout.Controls.Add(this.pingButton);
-            this.actionsLayout.Controls.Add(this.discoverObjectsButton);
-            this.actionsLayout.Controls.Add(this.manualReadWriteButton);
-            this.actionsLayout.Controls.Add(this.clearLogButton);
-            this.actionsLayout.Controls.Add(this.cancelActionButton);
-            this.actionsLayout.Controls.Add(this.objectDiscoveryProgressBar);
-            this.actionsLayout.Controls.Add(this.objectCountLabel);
+            this.actionsLayout.ColumnCount = 8;
+            this.actionsLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.actionsLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.actionsLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.actionsLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.actionsLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.actionsLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.actionsLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.actionsLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.actionsLayout.Controls.Add(this.startDiscoveryButton, 0, 0);
+            this.actionsLayout.Controls.Add(this.cancelDiscoveryButton, 1, 0);
+            this.actionsLayout.Controls.Add(this.pingButton, 3, 0);
+            this.actionsLayout.Controls.Add(this.discoverObjectsButton, 4, 0);
+            this.actionsLayout.Controls.Add(this.manualReadWriteButton, 5, 0);
+            this.actionsLayout.Controls.Add(this.clearLogButton, 6, 0);
+            this.actionsLayout.Controls.Add(this.cancelActionButton, 7, 0);
+            this.actionsLayout.Controls.Add(this.discoveryStatusLabel, 2, 0);
+            this.actionsLayout.Controls.Add(this.objectDiscoveryProgressBar, 1, 1);
+            this.actionsLayout.Controls.Add(this.objectCountLabel, 0, 1);
             this.actionsLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.actionsLayout.Location = new System.Drawing.Point(2, 15);
             this.actionsLayout.Margin = new System.Windows.Forms.Padding(2);
             this.actionsLayout.Name = "actionsLayout";
-            this.actionsLayout.Size = new System.Drawing.Size(814, 35);
+            this.actionsLayout.RowCount = 2;
+            this.actionsLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.actionsLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.actionsLayout.Size = new System.Drawing.Size(814, 44);
             this.actionsLayout.TabIndex = 0;
             // 
             // startDiscoveryButton
             // 
+            this.startDiscoveryButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.startDiscoveryButton.AutoSize = true;
             this.startDiscoveryButton.Location = new System.Drawing.Point(2, 2);
             this.startDiscoveryButton.Margin = new System.Windows.Forms.Padding(2);
@@ -360,6 +373,7 @@
             // 
             // cancelDiscoveryButton
             // 
+            this.cancelDiscoveryButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.cancelDiscoveryButton.AutoSize = true;
             this.cancelDiscoveryButton.Location = new System.Drawing.Point(65, 2);
             this.cancelDiscoveryButton.Margin = new System.Windows.Forms.Padding(2);
@@ -369,6 +383,67 @@
             this.cancelDiscoveryButton.Text = "Cancel";
             this.cancelDiscoveryButton.UseVisualStyleBackColor = true;
             this.cancelDiscoveryButton.Visible = false;
+            // 
+            // pingButton
+            // 
+            this.pingButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.pingButton.AutoSize = true;
+            this.pingButton.Location = new System.Drawing.Point(178, 2);
+            this.pingButton.Margin = new System.Windows.Forms.Padding(2);
+            this.pingButton.Name = "pingButton";
+            this.pingButton.Size = new System.Drawing.Size(75, 23);
+            this.pingButton.TabIndex = 3;
+            this.pingButton.Text = "Ping Device";
+            this.pingButton.UseVisualStyleBackColor = true;
+            // 
+            // discoverObjectsButton
+            // 
+            this.discoverObjectsButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.discoverObjectsButton.AutoSize = true;
+            this.discoverObjectsButton.Location = new System.Drawing.Point(257, 2);
+            this.discoverObjectsButton.Margin = new System.Windows.Forms.Padding(2);
+            this.discoverObjectsButton.Name = "discoverObjectsButton";
+            this.discoverObjectsButton.Size = new System.Drawing.Size(98, 23);
+            this.discoverObjectsButton.TabIndex = 4;
+            this.discoverObjectsButton.Text = "Discover Objects";
+            this.discoverObjectsButton.UseVisualStyleBackColor = true;
+            // 
+            // manualReadWriteButton
+            // 
+            this.manualReadWriteButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.manualReadWriteButton.AutoSize = true;
+            this.manualReadWriteButton.Location = new System.Drawing.Point(359, 2);
+            this.manualReadWriteButton.Margin = new System.Windows.Forms.Padding(2);
+            this.manualReadWriteButton.Name = "manualReadWriteButton";
+            this.manualReadWriteButton.Size = new System.Drawing.Size(110, 23);
+            this.manualReadWriteButton.TabIndex = 5;
+            this.manualReadWriteButton.Text = "Manual Read/Write";
+            this.manualReadWriteButton.UseVisualStyleBackColor = true;
+            // 
+            // clearLogButton
+            // 
+            this.clearLogButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.clearLogButton.AutoSize = true;
+            this.clearLogButton.Location = new System.Drawing.Point(473, 2);
+            this.clearLogButton.Margin = new System.Windows.Forms.Padding(2);
+            this.clearLogButton.Name = "clearLogButton";
+            this.clearLogButton.Size = new System.Drawing.Size(68, 23);
+            this.clearLogButton.TabIndex = 7;
+            this.clearLogButton.Text = "Clear Log";
+            this.clearLogButton.UseVisualStyleBackColor = true;
+            // 
+            // cancelActionButton
+            // 
+            this.cancelActionButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.cancelActionButton.AutoSize = true;
+            this.cancelActionButton.Enabled = false;
+            this.cancelActionButton.Location = new System.Drawing.Point(545, 2);
+            this.cancelActionButton.Margin = new System.Windows.Forms.Padding(2);
+            this.cancelActionButton.Name = "cancelActionButton";
+            this.cancelActionButton.Size = new System.Drawing.Size(75, 23);
+            this.cancelActionButton.TabIndex = 8;
+            this.cancelActionButton.Text = "Cancel";
+            this.cancelActionButton.UseVisualStyleBackColor = true;
             // 
             // discoveryStatusLabel
             // 
@@ -382,69 +457,14 @@
             this.discoveryStatusLabel.Text = "Found: 0";
             this.discoveryStatusLabel.Visible = false;
             // 
-            // pingButton
-            // 
-            this.pingButton.AutoSize = true;
-            this.pingButton.Location = new System.Drawing.Point(178, 2);
-            this.pingButton.Margin = new System.Windows.Forms.Padding(2);
-            this.pingButton.Name = "pingButton";
-            this.pingButton.Size = new System.Drawing.Size(75, 23);
-            this.pingButton.TabIndex = 3;
-            this.pingButton.Text = "Ping Device";
-            this.pingButton.UseVisualStyleBackColor = true;
-            // 
-            // discoverObjectsButton
-            // 
-            this.discoverObjectsButton.AutoSize = true;
-            this.discoverObjectsButton.Location = new System.Drawing.Point(257, 2);
-            this.discoverObjectsButton.Margin = new System.Windows.Forms.Padding(2);
-            this.discoverObjectsButton.Name = "discoverObjectsButton";
-            this.discoverObjectsButton.Size = new System.Drawing.Size(98, 23);
-            this.discoverObjectsButton.TabIndex = 4;
-            this.discoverObjectsButton.Text = "Discover Objects";
-            this.discoverObjectsButton.UseVisualStyleBackColor = true;
-            // 
-            // manualReadWriteButton
-            // 
-            this.manualReadWriteButton.AutoSize = true;
-            this.manualReadWriteButton.Location = new System.Drawing.Point(359, 2);
-            this.manualReadWriteButton.Margin = new System.Windows.Forms.Padding(2);
-            this.manualReadWriteButton.Name = "manualReadWriteButton";
-            this.manualReadWriteButton.Size = new System.Drawing.Size(110, 23);
-            this.manualReadWriteButton.TabIndex = 5;
-            this.manualReadWriteButton.Text = "Manual Read/Write";
-            this.manualReadWriteButton.UseVisualStyleBackColor = true;
-            // 
-            // clearLogButton
-            // 
-            this.clearLogButton.AutoSize = true;
-            this.clearLogButton.Location = new System.Drawing.Point(473, 2);
-            this.clearLogButton.Margin = new System.Windows.Forms.Padding(2);
-            this.clearLogButton.Name = "clearLogButton";
-            this.clearLogButton.Size = new System.Drawing.Size(68, 23);
-            this.clearLogButton.TabIndex = 7;
-            this.clearLogButton.Text = "Clear Log";
-            this.clearLogButton.UseVisualStyleBackColor = true;
-            // 
-            // cancelActionButton
-            // 
-            this.cancelActionButton.AutoSize = true;
-            this.cancelActionButton.Enabled = false;
-            this.cancelActionButton.Location = new System.Drawing.Point(545, 2);
-            this.cancelActionButton.Margin = new System.Windows.Forms.Padding(2);
-            this.cancelActionButton.Name = "cancelActionButton";
-            this.cancelActionButton.Size = new System.Drawing.Size(75, 23);
-            this.cancelActionButton.TabIndex = 8;
-            this.cancelActionButton.Text = "Cancel";
-            this.cancelActionButton.UseVisualStyleBackColor = true;
-            // 
             // objectDiscoveryProgressBar
             // 
-            this.objectDiscoveryProgressBar.Anchor = System.Windows.Forms.AnchorStyles.Left;
-            this.objectDiscoveryProgressBar.Location = new System.Drawing.Point(624, 2);
+            this.actionsLayout.SetColumnSpan(this.objectDiscoveryProgressBar, 6);
+            this.objectDiscoveryProgressBar.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.objectDiscoveryProgressBar.Location = new System.Drawing.Point(65, 29);
             this.objectDiscoveryProgressBar.Margin = new System.Windows.Forms.Padding(2);
             this.objectDiscoveryProgressBar.Name = "objectDiscoveryProgressBar";
-            this.objectDiscoveryProgressBar.Size = new System.Drawing.Size(109, 23);
+            this.objectDiscoveryProgressBar.Size = new System.Drawing.Size(554, 13);
             this.objectDiscoveryProgressBar.TabIndex = 9;
             this.objectDiscoveryProgressBar.Visible = false;
             // 
@@ -452,12 +472,13 @@
             // 
             this.objectCountLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.objectCountLabel.AutoSize = true;
-            this.objectCountLabel.Location = new System.Drawing.Point(737, 7);
+            this.objectCountLabel.Location = new System.Drawing.Point(2, 29);
             this.objectCountLabel.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.objectCountLabel.Name = "objectCountLabel";
-            this.objectCountLabel.Size = new System.Drawing.Size(68, 13);
+            this.objectCountLabel.Size = new System.Drawing.Size(59, 13);
             this.objectCountLabel.TabIndex = 10;
-            this.objectCountLabel.Text = "Found 0 of 0";
+            this.objectCountLabel.Text = "Found 0 %";
+            this.objectCountLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.objectCountLabel.Visible = false;
             // 
             // bottomPanelSplitContainer
@@ -475,8 +496,8 @@
             // bottomPanelSplitContainer.Panel2
             // 
             this.bottomPanelSplitContainer.Panel2.Controls.Add(this.outputFrame);
-            this.bottomPanelSplitContainer.Size = new System.Drawing.Size(818, 775);
-            this.bottomPanelSplitContainer.SplitterDistance = 500;
+            this.bottomPanelSplitContainer.Size = new System.Drawing.Size(818, 755);
+            this.bottomPanelSplitContainer.SplitterDistance = 480;
             this.bottomPanelSplitContainer.SplitterWidth = 3;
             this.bottomPanelSplitContainer.TabIndex = 0;
             // 
@@ -493,7 +514,7 @@
             // leftPanelSplitContainer.Panel2
             // 
             this.leftPanelSplitContainer.Panel2.Controls.Add(this.propertiesFrame);
-            this.leftPanelSplitContainer.Size = new System.Drawing.Size(818, 500);
+            this.leftPanelSplitContainer.Size = new System.Drawing.Size(818, 480);
             this.leftPanelSplitContainer.SplitterDistance = 400;
             this.leftPanelSplitContainer.TabIndex = 0;
             // 
@@ -505,7 +526,7 @@
             this.browserFrame.Margin = new System.Windows.Forms.Padding(2);
             this.browserFrame.Name = "browserFrame";
             this.browserFrame.Padding = new System.Windows.Forms.Padding(2);
-            this.browserFrame.Size = new System.Drawing.Size(400, 500);
+            this.browserFrame.Size = new System.Drawing.Size(400, 480);
             this.browserFrame.TabIndex = 0;
             this.browserFrame.TabStop = false;
             this.browserFrame.Text = "Device & Object Browser";
@@ -525,8 +546,8 @@
             // browserSplitContainer.Panel2
             // 
             this.browserSplitContainer.Panel2.Controls.Add(this.objectTreeView);
-            this.browserSplitContainer.Size = new System.Drawing.Size(396, 483);
-            this.browserSplitContainer.SplitterDistance = 237;
+            this.browserSplitContainer.Size = new System.Drawing.Size(396, 463);
+            this.browserSplitContainer.SplitterDistance = 227;
             this.browserSplitContainer.SplitterWidth = 3;
             this.browserSplitContainer.TabIndex = 0;
             // 
@@ -536,7 +557,7 @@
             this.deviceTreeView.Location = new System.Drawing.Point(0, 0);
             this.deviceTreeView.Margin = new System.Windows.Forms.Padding(2);
             this.deviceTreeView.Name = "deviceTreeView";
-            this.deviceTreeView.Size = new System.Drawing.Size(396, 237);
+            this.deviceTreeView.Size = new System.Drawing.Size(396, 227);
             this.deviceTreeView.TabIndex = 0;
             // 
             // objectTreeView
@@ -545,7 +566,7 @@
             this.objectTreeView.Location = new System.Drawing.Point(0, 0);
             this.objectTreeView.Margin = new System.Windows.Forms.Padding(2);
             this.objectTreeView.Name = "objectTreeView";
-            this.objectTreeView.Size = new System.Drawing.Size(396, 243);
+            this.objectTreeView.Size = new System.Drawing.Size(396, 233);
             this.objectTreeView.TabIndex = 0;
             // 
             // propertiesFrame
@@ -555,7 +576,7 @@
             this.propertiesFrame.Dock = System.Windows.Forms.DockStyle.Fill;
             this.propertiesFrame.Location = new System.Drawing.Point(0, 0);
             this.propertiesFrame.Name = "propertiesFrame";
-            this.propertiesFrame.Size = new System.Drawing.Size(414, 500);
+            this.propertiesFrame.Size = new System.Drawing.Size(414, 480);
             this.propertiesFrame.TabIndex = 0;
             this.propertiesFrame.TabStop = false;
             this.propertiesFrame.Text = "Object Properties";
@@ -571,7 +592,7 @@
             this.propertiesDataGridView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.propertiesDataGridView.Location = new System.Drawing.Point(3, 45);
             this.propertiesDataGridView.Name = "propertiesDataGridView";
-            this.propertiesDataGridView.Size = new System.Drawing.Size(408, 452);
+            this.propertiesDataGridView.Size = new System.Drawing.Size(408, 432);
             this.propertiesDataGridView.TabIndex = 1;
             // 
             // colProperty
@@ -749,7 +770,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.readIntervalNumericUpDown)).EndInit();
             this.outputFrame.ResumeLayout(false);
             this.ResumeLayout(false);
-
         }
 
         #endregion
@@ -768,7 +788,7 @@
         private System.Windows.Forms.Button connectButton;
         private System.Windows.Forms.Button disconnectButton;
         private System.Windows.Forms.GroupBox actionsFrame;
-        private System.Windows.Forms.FlowLayoutPanel actionsLayout;
+        private System.Windows.Forms.TableLayoutPanel actionsLayout;
         private System.Windows.Forms.Button startDiscoveryButton;
         private System.Windows.Forms.Button pingButton;
         private System.Windows.Forms.Button discoverObjectsButton;
