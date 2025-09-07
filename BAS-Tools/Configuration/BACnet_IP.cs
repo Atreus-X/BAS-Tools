@@ -234,13 +234,105 @@ namespace MainApp.Configuration
                         TreeNode deviceNode = new TreeNode(deviceText) { Name = deviceId.ToString(), Tag = deviceInfo };
                         networkNode.Nodes.Add(deviceNode);
                         networkNode.Expand();
-                        ReadDeviceName(deviceNode, deviceId, adr);
-                        objectCountLabel.Text = $"Found: {deviceTreeView.GetNodeCount(true)}";
+                        Task.Run(() => ReadDeviceProperties(deviceNode, deviceId, adr));
+                        int deviceCount = 0;
+                        foreach (TreeNode n in deviceTreeView.Nodes)
+                        {
+                            deviceCount += n.Nodes.Count;
+                        }
+                        objectCountLabel.Text = $"Found: {deviceCount}";
                     }
                 }
                 catch (Exception ex) { Log($"Error in OnIamHandler: {ex.Message}"); }
             });
         }
+        private void ReadDeviceProperties(TreeNode deviceNode, uint deviceId, BacnetAddress adr)
+        {
+            string finalDeviceName = deviceId.ToString();
+            string errorText = null;
+            bool supportsReadPropertyMultiple = false;
+            var deviceInfo = deviceNode.Tag as Dictionary<string, object>;
+            var segmentation = (BacnetSegmentations)deviceInfo["Segmentation"];
+            var old_segments = _bacnetClient.MaxSegments;
+            if (segmentation == BacnetSegmentations.SEGMENTATION_NONE)
+            {
+                _bacnetClient.MaxSegments = BacnetMaxSegments.MAX_SEG0;
+            }
+            try
+            {
+                lock (_bacnetLock)
+                {
+                    var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
+                    var propertiesToRead = new List<BacnetPropertyReference>
+                    {
+                        new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_ALL, BACNET_ARRAY_ALL)
+                    };
+                    var request = new BacnetReadAccessSpecification(objectId, propertiesToRead);
+
+                    if (_bacnetClient.ReadPropertyMultipleRequest(adr, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results) && results != null && results.Count > 0)
+                    {
+                        var result = results[0];
+                        var objectNameProp = result.values.FirstOrDefault(p => p.property.propertyIdentifier == (uint)BacnetPropertyIds.PROP_OBJECT_NAME);
+                        if (objectNameProp.value != null && objectNameProp.value.Count > 0)
+                        {
+                            finalDeviceName = objectNameProp.value[0].Value.ToString();
+                        }
+                        else
+                        {
+                            errorText = " (Name not available)";
+                        }
+
+                        var servicesSupportedProp = result.values.FirstOrDefault(p => p.property.propertyIdentifier == (uint)BacnetPropertyIds.PROP_PROTOCOL_SERVICES_SUPPORTED);
+                        if (servicesSupportedProp.value != null && servicesSupportedProp.value.Count > 0)
+                        {
+                            var servicesSupported = (BacnetBitString)servicesSupportedProp.value[0].Value;
+                            if (servicesSupported.value.Length > 1 && (servicesSupported.value[1] & 0x40) > 0)
+                            {
+                                supportsReadPropertyMultiple = true;
+                            }
+                        }
+                    }
+                    else // Fallback to individual reads
+                    {
+                        if (_bacnetClient.ReadPropertyRequest(adr, objectId, BacnetPropertyIds.PROP_OBJECT_NAME, out IList<BacnetValue> values) && values?.Count > 0)
+                        {
+                            finalDeviceName = values[0].Value.ToString();
+                        }
+                        else
+                        {
+                            errorText = " (Name not available)";
+                        }
+
+                        if (_bacnetClient.ReadPropertyRequest(adr, objectId, BacnetPropertyIds.PROP_PROTOCOL_SERVICES_SUPPORTED, out values) && values?.Count > 0)
+                        {
+                            var servicesSupported = (BacnetBitString)values[0].Value;
+                            if (servicesSupported.value.Length > 1 && (servicesSupported.value[1] & 0x40) > 0)
+                            {
+                                supportsReadPropertyMultiple = true;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"Error reading properties for device {deviceId}: {ex.Message}");
+                errorText = " (Error reading properties)";
+            }
+            finally
+            {
+                _bacnetClient.MaxSegments = old_segments;
+                if (!this.IsDisposed && this.IsHandleCreated)
+                {
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        deviceInfo["SupportsReadPropertyMultiple"] = supportsReadPropertyMultiple;
+                        deviceNode.Text = $"{finalDeviceName} ({deviceInfo["MAC"]}) ({deviceId}) ({deviceInfo["VendorName"]}){errorText ?? ""}";
+                    });
+                }
+            }
+        }
+
 
         private void DiscoverButton_Click(object sender, EventArgs e)
         {
@@ -275,9 +367,9 @@ namespace MainApp.Configuration
 
         private void PingButton_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(instanceNumberComboBox.Text) || string.IsNullOrWhiteSpace(ipAddressComboBox.Text))
+            if (string.IsNullOrWhiteSpace(instanceNumberComboBox.Text))
             {
-                MessageBox.Show("IP Address and Instance number are required for Ping.", "Error");
+                MessageBox.Show("Instance number is required for Ping.", "Error");
                 return;
             }
             EnsureBacnetClientStarted();
@@ -286,19 +378,21 @@ namespace MainApp.Configuration
             Log($"Pinging Device ID: {deviceId}...");
 
             string bbmdIp = bbmdIpComboBox.Text.Trim();
-            if (!string.IsNullOrWhiteSpace(bbmdIp))
+            if (!string.IsNullOrWhiteSpace(bbmdIp) && ushort.TryParse(networkNumberComboBox.Text, out ushort net) && net > 0)
             {
                 int bbmdPort = int.Parse(ipPortComboBox.Text);
-                ushort.TryParse(networkNumberComboBox.Text, out ushort net);
-                _bacnetClient.RemoteWhoIs(bbmdIp, bbmdPort, (int)deviceId, (int)deviceId, net == 0 ? (ushort)0xFFFF : net);
+                _bacnetClient.RemoteWhoIs(bbmdIp, bbmdPort, (int)deviceId, (int)deviceId, net);
+            }
+            else if (!string.IsNullOrWhiteSpace(bbmdIp))
+            {
+                int bbmdPort = int.Parse(ipPortComboBox.Text);
+                _bacnetClient.RemoteWhoIs(bbmdIp, bbmdPort, (int)deviceId, (int)deviceId);
             }
             else
             {
                 try
                 {
-                    var port = ushort.Parse(ipPortComboBox.Text);
-                    var adr = new BacnetAddress(BacnetAddressTypes.IP, ipAddressComboBox.Text, port);
-                    _bacnetClient.WhoIs(lowLimit: (int)deviceId, highLimit: (int)deviceId, adr: adr);
+                    _bacnetClient.WhoIs(lowLimit: (int)deviceId, highLimit: (int)deviceId);
                 }
                 catch (Exception ex)
                 {
@@ -307,6 +401,7 @@ namespace MainApp.Configuration
                 }
             }
         }
+
 
         protected override void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e)
         {
@@ -383,3 +478,4 @@ namespace MainApp.Configuration
         }
     }
 }
+

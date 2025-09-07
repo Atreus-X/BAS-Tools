@@ -13,13 +13,13 @@ using static System.IO.BACnet.Serialize.ASN1;
 
 namespace MainApp.BACnet
 {
+    // Add this class to the BACnetControlBase.cs file
     public class DiscoveryProgress
     {
         public uint Current { get; set; }
         public uint Total { get; set; }
         public int Percentage => Total == 0 ? 0 : (int)(Current * 100 / Total);
     }
-
     public partial class BACnetControlBase : UserControl, IHistorySupport
     {
         protected BacnetClient _bacnetClient;
@@ -728,7 +728,10 @@ namespace MainApp.BACnet
                         Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
                         if (!this.IsDisposed && this.IsHandleCreated)
                         {
-                            await PopulateObjectTree(objectList);
+                            this.Invoke((MethodInvoker)(async () =>
+                            {
+                                await PopulateObjectTree(objectList);
+                            }));
                         }
                     }
                     else if (objectList != null)
@@ -747,7 +750,8 @@ namespace MainApp.BACnet
                         });
                     }
                 }
-            });
+            }, cancelToken);
         }
     }
 }
+

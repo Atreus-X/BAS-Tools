@@ -3328,7 +3328,7 @@ namespace System.IO.BACnet.Serialize
         public static void Encode(EncodeBuffer buffer, BacnetNpduControls function, BacnetAddress destination, BacnetAddress source = null, byte hop_count = 0xFF)
         {
             // Modif FC
-            bool has_destination = destination != null && destination.net > 0; // && destination.net != 0xFFFF;
+            bool has_destination = destination != null && destination.net > 0;
             bool has_source = source != null && source.net > 0 && source.net != 0xFFFF;
 
             buffer.buffer[buffer.offset++] = BACNET_PROTOCOL_VERSION;
@@ -3339,7 +3339,7 @@ namespace System.IO.BACnet.Serialize
                 buffer.buffer[buffer.offset++] = (byte)((destination.net & 0xFF00) >> 8);
                 buffer.buffer[buffer.offset++] = (byte)((destination.net & 0x00FF) >> 0);
 
-                if (destination.net == 0xFFFF)                  //patch by F. Chaxel
+                if (destination.net == 0xFFFF)
                     buffer.buffer[buffer.offset++] = 0;
                 else
                 {

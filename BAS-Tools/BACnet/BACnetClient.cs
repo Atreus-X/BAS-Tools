@@ -845,7 +845,7 @@ namespace System.IO.BACnet
 
                 EncodeBuffer b = new EncodeBuffer(new byte[m_client.MaxBufferLength], 0);
 
-                BacnetAddress remoteBroadcast = new BacnetAddress(BacnetAddressTypes.IP, network_number, new byte[] { 255, 255, 255, 255 });
+                BacnetAddress remoteBroadcast = new BacnetAddress(BacnetAddressTypes.IP, network_number, new byte[0]);
                 NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.DestinationSpecified, remoteBroadcast);
                 APDU.EncodeUnconfirmedServiceRequest(b, BacnetPduTypes.PDU_TYPE_UNCONFIRMED_SERVICE_REQUEST, BacnetUnconfirmedServices.SERVICE_UNCONFIRMED_WHO_IS);
                 Services.EncodeWhoIsBroadcast(b, low_limit, high_limit);

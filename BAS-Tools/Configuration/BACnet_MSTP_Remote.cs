@@ -153,10 +153,15 @@ namespace MainApp.Configuration
                 var progress = new Progress<DiscoveryProgress>(p =>
                 {
                     if (objectDiscoveryProgressBar.IsHandleCreated)
+                    {
                         objectDiscoveryProgressBar.Value = p.Percentage;
+                    }
                     if (objectCountLabel.IsHandleCreated)
+                    {
                         objectCountLabel.Text = $"Found {p.Current} of {p.Total} ({p.Percentage}%)";
+                    }
                 });
+
 
                 objectDiscoveryProgressBar.Value = 0;
                 objectDiscoveryProgressBar.Visible = true;
@@ -186,11 +191,8 @@ namespace MainApp.Configuration
                             cancelActionButton.Enabled = false;
                         });
                     }
-                    if (_cancellationTokenSource != null)
-                    {
-                        _cancellationTokenSource.Dispose();
-                        _cancellationTokenSource = null;
-                    }
+                    _cancellationTokenSource.Dispose();
+                    _cancellationTokenSource = null;
                 }
             }
             else
@@ -202,6 +204,10 @@ namespace MainApp.Configuration
         private void NetworkFilter_CheckedChanged(object _sender, EventArgs _e)
         {
             networkNumberComboBox.Visible = listNetworkRadioButton.Checked;
+            if (_sender is RadioButton rb && rb.Checked)
+            {
+                _historyManager.AddEntry("networkFilter", rb.Name);
+            }
         }
 
         private void EnsureBacnetClientStarted()
@@ -271,11 +277,8 @@ namespace MainApp.Configuration
             startDiscoveryButton.Enabled = false;
             cancelDiscoveryButton.Visible = true;
             discoveryStatusLabel.Visible = true;
-            discoveryStatusLabel.Text = "Found: 0";
             objectDiscoveryProgressBar.Style = ProgressBarStyle.Marquee;
-            objectDiscoveryProgressBar.Visible = false; // Not for device discovery
-            objectCountLabel.Visible = false; // Not for device discovery
-
+            objectDiscoveryProgressBar.Visible = true;
             _discoveryTimer.Start();
 
             string bbmdIp = bbmdIpComboBox.Text.Trim();
@@ -339,6 +342,8 @@ namespace MainApp.Configuration
             discoveryStatusLabel.Visible = false;
             _networksToScan.Clear();
             DeviceTreeView.Enabled = true;
+            objectDiscoveryProgressBar.Visible = false;
+            objectDiscoveryProgressBar.Style = ProgressBarStyle.Blocks;
         }
 
         protected override void PopulateDefaultValues()
@@ -377,6 +382,22 @@ namespace MainApp.Configuration
             PopulateComboBoxWithHistory(apduTimeoutComboBox, "apduTimeout");
             PopulateComboBoxWithHistory(bbmdPortComboBox, "bbmdPort");
             PopulateComboBoxWithHistory(bbmdTtlComboBox, "bbmdTtl");
+
+            var historyList = _historyManager.GetHistoryForPrefixedKey("networkFilter");
+            string lastFilter = historyList.FirstOrDefault();
+            if (lastFilter == listNetworkRadioButton.Name)
+            {
+                listNetworkRadioButton.Checked = true;
+            }
+            else if (lastFilter == localNetworkRadioButton.Name)
+            {
+                localNetworkRadioButton.Checked = true;
+            }
+            else
+            {
+                anyNetworkRadioButton.Checked = true;
+            }
+            networkNumberComboBox.Visible = listNetworkRadioButton.Checked;
 
             if (string.IsNullOrEmpty(networkNumberComboBox.Text)) networkNumberComboBox.Text = "1";
             if (string.IsNullOrEmpty(apduTimeoutComboBox.Text)) apduTimeoutComboBox.Text = "25000";
