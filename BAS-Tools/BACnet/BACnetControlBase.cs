@@ -555,6 +555,10 @@ namespace MainApp.BACnet
             _bacnetClient?.Dispose();
         }
 
+        public RichTextBox GetOutputTextBox()
+        {
+            return OutputTextBox;
+        }
         protected virtual void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e) { }
         protected virtual void ObjectTreeView_AfterSelect(object sender, TreeViewEventArgs e)
         {

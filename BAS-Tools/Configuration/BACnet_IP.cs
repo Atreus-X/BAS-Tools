@@ -18,6 +18,7 @@ namespace MainApp.Configuration
     public partial class BACnet_IP : BACnetControlBase
     {
         private string _lastBBMDIp = "";
+        private string _lastInterfaceIp = "";
         private System.Windows.Forms.Timer _discoveryTimer;
 
         protected override TreeView DeviceTreeView => deviceTreeView;
@@ -80,11 +81,14 @@ namespace MainApp.Configuration
             instanceNumberComboBox.Leave += (s, args) => SaveComboBoxEntry(instanceNumberComboBox, "instanceNumber");
             ipPortComboBox.Leave += (s, args) => SaveComboBoxEntry(ipPortComboBox, "ipPort");
             apduTimeoutComboBox.Leave += (s, args) => SaveComboBoxEntry(apduTimeoutComboBox, "apduTimeout");
+            bbmdTtlComboBox.Leave += (s, args) => SaveComboBoxEntry(bbmdTtlComboBox, "bbmdTtl");
+
+            // Events that trigger a client restart
+            interfaceComboBox.SelectionChangeCommitted += (s, args) => EnsureBacnetClientStarted();
             bbmdIpComboBox.Leave += (s, args) => {
                 SaveComboBoxEntry(bbmdIpComboBox, "bbmdIp");
                 EnsureBacnetClientStarted();
             };
-            bbmdTtlComboBox.Leave += (s, args) => SaveComboBoxEntry(bbmdTtlComboBox, "bbmdTtl");
 
             expandAllButton.Click += (s, e) => deviceTreeView.ExpandAll();
             collapseAllButton.Click += (s, e) => deviceTreeView.CollapseAll();
@@ -155,8 +159,10 @@ namespace MainApp.Configuration
         private void EnsureBacnetClientStarted()
         {
             string currentBBMDIp = bbmdIpComboBox.Text.Trim();
+            string currentInterfaceSelection = interfaceComboBox.SelectedItem?.ToString() ?? "";
 
-            if (_isClientStarted && _bacnetClient != null && _lastBBMDIp == currentBBMDIp) return;
+            if (_isClientStarted && _bacnetClient != null && _lastBBMDIp == currentBBMDIp && _lastInterfaceIp == currentInterfaceSelection) return;
+
             if (_bacnetClient != null)
             {
                 _bacnetClient.Dispose();
@@ -174,6 +180,8 @@ namespace MainApp.Configuration
                     var match = System.Text.RegularExpressions.Regex.Match(interfaceComboBox.SelectedItem.ToString(), @"\((.*?)\)");
                     if (match.Success) localIp = match.Groups[1].Value;
                 }
+
+                Log($"Binding to local IP: {localIp}");
 
                 var transport = new BacnetIpUdpProtocolTransport(int.Parse(ipPortComboBox.Text), false, false, 1472, localIp);
                 _bacnetClient = new BacnetClient(transport) { Timeout = int.Parse(apduTimeoutComboBox.Text) };
@@ -198,19 +206,21 @@ namespace MainApp.Configuration
 
                 _isClientStarted = true;
                 _lastBBMDIp = currentBBMDIp;
+                _lastInterfaceIp = currentInterfaceSelection;
                 Log("BACnet client initialization complete.");
             }
             catch (Exception ex)
             {
                 _isClientStarted = false;
-                Log($"--- ERROR initializing BACnet client: {ex.Message} ---");
-                MessageBox.Show($"Error during BACnet initialization: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Error during BACnet initialization: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void OnIamHandler(BacnetClient sender, BacnetAddress adr, uint deviceId, uint maxApdu, BacnetSegmentations segmentation, ushort vendorId)
         {
+            GlobalLogger.Log($"OnIam from {adr} for device {deviceId}.");
             Log($"OnIam from {adr} for device {deviceId}. Segmentation support: {segmentation}");
+            if (this.IsDisposed || !this.IsHandleCreated) return;
             this.Invoke((MethodInvoker)delegate
             {
                 try
@@ -230,11 +240,11 @@ namespace MainApp.Configuration
                     if (!networkNode.Nodes.ContainsKey(deviceId.ToString()))
                     {
                         var deviceInfo = new Dictionary<string, object> { { "Address", adr }, { "VendorName", vendorName }, { "MAC", macAddress }, { "Segmentation", segmentation }, { "VendorId", vendorId } };
-                        string deviceText = $"(Name not read) ({macAddress}) ({deviceId}) ({vendorName})";
+                        string deviceText = $"{deviceId} ({macAddress}) ({vendorName})";
                         TreeNode deviceNode = new TreeNode(deviceText) { Name = deviceId.ToString(), Tag = deviceInfo };
                         networkNode.Nodes.Add(deviceNode);
                         networkNode.Expand();
-                        Task.Run(() => ReadDeviceProperties(deviceNode, deviceId, adr));
+
                         int deviceCount = 0;
                         foreach (TreeNode n in deviceTreeView.Nodes)
                         {
@@ -316,7 +326,9 @@ namespace MainApp.Configuration
             }
             catch (Exception ex)
             {
-                Log($"Error reading properties for device {deviceId}: {ex.Message}");
+                string errorMessage = $"Error reading properties for device {deviceId}: {ex.ToString()}";
+                GlobalLogger.Log(errorMessage);
+                Log(errorMessage);
                 errorText = " (Error reading properties)";
             }
             finally

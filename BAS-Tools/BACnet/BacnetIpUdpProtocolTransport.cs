@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using MainApp;
 
 namespace System.IO.BACnet
 {
@@ -12,6 +13,7 @@ namespace System.IO.BACnet
         private int m_port;
         private string m_local_endpoint_ip;
         private bool m_dont_fragment;
+        private volatile bool _is_running;
 
         public event MessageRecievedHandler MessageRecieved;
         public BacnetAddressTypes Type { get { return BacnetAddressTypes.IP; } }
@@ -29,7 +31,7 @@ namespace System.IO.BACnet
 
         private void ReceiveThread()
         {
-            while (m_client != null)
+            while (_is_running)
             {
                 try
                 {
@@ -41,8 +43,24 @@ namespace System.IO.BACnet
                     }
                 }
                 catch (ObjectDisposedException) { return; }
-                catch (SocketException se) { Trace.TraceWarning("A socket exception occurred in ReceiveThread: " + se.Message); }
-                catch (Exception ex) { Trace.TraceError("An unhandled error occurred in ReceiveThread: " + ex.ToString()); }
+                catch (SocketException se)
+                {
+                    if (_is_running) // Only log if we're not shutting down
+                    {
+                        string msg = "A socket exception occurred in ReceiveThread: " + se.Message;
+                        Trace.TraceWarning(msg);
+                        GlobalLogger.Log($"--- TRANSPORT ERROR: {msg} ---");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (_is_running)
+                    {
+                        string msg = "An unhandled error occurred in ReceiveThread: " + ex.ToString();
+                        Trace.TraceError(msg);
+                        GlobalLogger.Log($"--- TRANSPORT ERROR: {msg} ---");
+                    }
+                }
             }
         }
 
@@ -56,6 +74,7 @@ namespace System.IO.BACnet
                 m_client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                 m_client.Client.Bind(local_ep);
                 m_client.EnableBroadcast = true;
+                _is_running = true;
 
                 if (m_dont_fragment) m_client.DontFragment = true;
 
@@ -75,6 +94,7 @@ namespace System.IO.BACnet
         public void Stop()
         {
             if (m_client == null) return;
+            _is_running = false;
             m_client.Close();
             if (m_receive_thread != null)
             {
@@ -171,3 +191,4 @@ namespace System.IO.BACnet
         public void Dispose() { Stop(); }
     }
 }
+
