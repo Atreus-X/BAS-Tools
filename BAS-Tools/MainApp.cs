@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using BAS_Tools;
+using MainApp.BACnet;
 using MainApp.Configuration;
 
 namespace MainApp
@@ -78,10 +79,20 @@ namespace MainApp
             }
 
             // Show the selected control
-            _protocolControls[key].Visible = true;
+            var selectedControl = _protocolControls[key];
+            selectedControl.Visible = true;
             this.Text = $"BAS Tools - {key}"; // Update window title
-        }
 
+            // Re-register the logger for the active control
+            if (selectedControl is BACnetControlBase bacnetControl)
+            {
+                var rtb = bacnetControl.GetOutputTextBox();
+                if (rtb != null)
+                {
+                    GlobalLogger.Register(rtb);
+                }
+            }
+        }
         // --- Menu Item Click Handlers ---
         private void BacnetIpMenuItem_Click(object sender, EventArgs e)
         {

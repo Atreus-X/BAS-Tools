@@ -1,11 +1,12 @@
-﻿using MainApp;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.BACnet.Serialize;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows.Forms;
+using MainApp;
+using static System.IO.BACnet.Bvlc;
 
 namespace System.IO.BACnet
 {
@@ -423,7 +424,11 @@ namespace System.IO.BACnet
                     BacnetSegmentations segmentation;
                     ushort vendor_id;
                     if (Services.DecodeIamBroadcast(buffer, offset, out device_id, out max_adpu, out segmentation, out vendor_id) >= 0)
+                    {
+                        // Add a small delay before responding to give the device time to process.
+                        System.Threading.Thread.Sleep(20);
                         OnIam(this, adr, device_id, max_adpu, segmentation, vendor_id);
+                    }
                     else
                         Trace.TraceWarning("Couldn't decode IamBroadcast");
                 }
@@ -774,13 +779,30 @@ namespace System.IO.BACnet
             {
                 if (m_client == null) return;
 
+                // Log raw packet data for debugging
+                StringBuilder hex = new StringBuilder(msg_length * 2);
+                for (int i = 0; i < Math.Min(msg_length, 32); i++) // Log first 32 bytes
+                    hex.AppendFormat("{0:x2}", buffer[offset + i]);
+                GlobalLogger.Log($"--- RAW PACKET RECEIVED from {remote_address} --- Length: {msg_length}, Data: {hex}...");
+
+                BacnetAddress npdu_source_address = remote_address;
+
                 if (sender.Type == BacnetAddressTypes.IP)
                 {
-                    int bvlc_length = Bvlc.Decode(buffer, offset, out _, out _, ref remote_address);
+                    BacnetBvlcFunctions function;
+                    int bvlc_length = Bvlc.Decode(buffer, offset, out function, out _, ref npdu_source_address);
+
                     if (bvlc_length < 0)
+                    {
+                        GlobalLogger.Log("--- BVLC DECODE FAILED --- Packet dropped.");
+                        return;
+                    }
+
+                    if (function == Bvlc.BacnetBvlcFunctions.BVLC_RESULT)
                     {
                         return;
                     }
+
                     offset += bvlc_length;
                     msg_length -= bvlc_length;
                 }
@@ -795,7 +817,9 @@ namespace System.IO.BACnet
                 int npdu_len = NPDU.Decode(buffer, offset, out npdu_function, out destination, out source, out hop_count, out nmt, out vendor_id);
 
                 if (source != null)
-                    remote_address.RoutedSource = source;
+                {
+                    npdu_source_address.RoutedSource = source;
+                }
 
                 if ((npdu_function & BacnetNpduControls.NetworkLayerMessage) == BacnetNpduControls.NetworkLayerMessage) return;
 
@@ -806,7 +830,7 @@ namespace System.IO.BACnet
                     if (msg_length > 0)
                     {
                         BacnetPduTypes apdu_type = APDU.GetDecodedType(buffer, offset);
-                        ProcessApdu(remote_address, apdu_type, buffer, offset, msg_length);
+                        ProcessApdu(npdu_source_address, apdu_type, buffer, offset, msg_length);
                     }
                 }
             }
@@ -1303,8 +1327,8 @@ namespace System.IO.BACnet
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.ExpectingReply, adr.RoutedSource);
 
-            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST | (m_max_segments != BacnetMaxSegments.MAX_SEG0 ? BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED : 0);
-            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROPERTY, m_max_segments, m_client.MaxAdpuLength, invoke_id);
+            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST;
+            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROPERTY, BacnetMaxSegments.MAX_SEG0, m_client.MaxAdpuLength, invoke_id);
 
             Services.EncodeReadProperty(b, object_id, (uint)property_id, array_index);
 
@@ -1494,8 +1518,8 @@ namespace System.IO.BACnet
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.ExpectingReply, adr.RoutedSource);
 
-            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST | (m_max_segments != BacnetMaxSegments.MAX_SEG0 ? BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED : 0);
-            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, m_max_segments, m_client.MaxAdpuLength, invoke_id);
+            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST;
+            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, BacnetMaxSegments.MAX_SEG0, m_client.MaxAdpuLength, invoke_id);
 
             Services.EncodeReadPropertyMultiple(b, object_id, property_id_and_array_index);
 
@@ -1533,8 +1557,8 @@ namespace System.IO.BACnet
             EncodeBuffer b = GetEncodeBuffer(m_client.HeaderLength);
             NPDU.Encode(b, BacnetNpduControls.PriorityNormalMessage | BacnetNpduControls.ExpectingReply, adr.RoutedSource);
 
-            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST | (m_max_segments != BacnetMaxSegments.MAX_SEG0 ? BacnetPduTypes.SEGMENTED_RESPONSE_ACCEPTED : 0);
-            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, m_max_segments, m_client.MaxAdpuLength, invoke_id);
+            BacnetPduTypes pduType = BacnetPduTypes.PDU_TYPE_CONFIRMED_SERVICE_REQUEST;
+            APDU.EncodeConfirmedServiceRequest(b, pduType, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, BacnetMaxSegments.MAX_SEG0, m_client.MaxAdpuLength, invoke_id);
 
             Services.EncodeReadPropertyMultiple(b, properties);
 
@@ -2438,8 +2462,11 @@ namespace System.IO.BACnet
 
         public void Dispose()
         {
-            m_client.Dispose();
-            m_client = null;
+            if (m_client != null)
+            {
+                m_client.Dispose();
+                m_client = null;
+            }
         }
     }
 
@@ -2603,7 +2630,19 @@ namespace System.IO.BACnet
 
             if (msg_length > buffer.Length) return -1;
 
-            if (function == BacnetBvlcFunctions.BVLC_FORWARDED_NPDU)
+            GlobalLogger.Log($"BVLC Function: {function}, Length: {msg_length}");
+
+            if (function == BacnetBvlcFunctions.BVLC_RESULT)
+            {
+                // This is a response to a BVLC message (e.g., Foreign Device Registration).
+                // We can log it, but we don't need to process it further as an APDU.
+                // The BVLC header is 4 bytes, plus 2 for the result code = 6 bytes.
+                // We'll return 0 to indicate no further APDU processing is needed.
+                ushort resultCode = (ushort)((buffer[offset + 4] << 8) | buffer[offset + 5]);
+                GlobalLogger.Log($"BVLC Result Code: {resultCode}");
+                return 0; // Don't process the rest of the packet
+            }
+            else if (function == BacnetBvlcFunctions.BVLC_FORWARDED_NPDU)
             {
                 byte[] ip = new byte[4];
                 Array.Copy(buffer, offset + 4, ip, 0, 4);
