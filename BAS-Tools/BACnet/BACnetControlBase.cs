@@ -56,12 +56,10 @@ namespace MainApp.BACnet
             _historyManager = new HistoryManager(historyPrefix);
 
             PopulateDefaultValues();
-            // Wire up event handlers BEFORE loading history to ensure the loaded state is persisted.
-            WireUpCommonEventHandlers();
-            WireUpProtocolSpecificEventHandlers();
-
             LoadHistory();
             UpdateAllStates(null, null);
+            WireUpCommonEventHandlers();
+            WireUpProtocolSpecificEventHandlers();
             InitializeContextMenu();
 
             _propertyPollingTimer.Tick += PropertyPollingTimer_Tick;
@@ -421,25 +419,18 @@ namespace MainApp.BACnet
                             foreach (var propValue in propertyListValues)
                             {
                                 var propId = (BacnetPropertyIds)(uint)propValue.Value;
-                                try
+                                if (_bacnetClient.ReadPropertyRequest(adr, _selectedObjectId, propId, out IList<BacnetValue> values))
                                 {
-                                    if (_bacnetClient.ReadPropertyRequest(adr, _selectedObjectId, propId, out IList<BacnetValue> values))
+                                    var prop = new BacnetPropertyValue
                                     {
-                                        var prop = new BacnetPropertyValue
-                                        {
-                                            property = new BacnetPropertyReference((uint)propId, BACNET_ARRAY_ALL),
-                                            value = values
-                                        };
-                                        allProperties.Add(prop);
-                                    }
-                                    else
-                                    {
-                                        Log($"Failed to read property: {propId}");
-                                    }
+                                        property = new BacnetPropertyReference((uint)propId, BACNET_ARRAY_ALL),
+                                        value = values
+                                    };
+                                    allProperties.Add(prop);
                                 }
-                                catch (Exception ex)
+                                else
                                 {
-                                    Log($"Exception while reading property {propId}: {ex.Message}");
+                                    Log($"Failed to read property: {propId}");
                                 }
                             }
                             success = true;
@@ -564,10 +555,7 @@ namespace MainApp.BACnet
             _bacnetClient?.Dispose();
         }
 
-        protected virtual void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e)
-        {
-            DeviceTreeView.Enabled = false; // Disable the treeview to prevent selection changes during object loading
-        }
+        protected virtual void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e) { }
         protected virtual void ObjectTreeView_AfterSelect(object sender, TreeViewEventArgs e)
         {
             _propertyPollingTimer.Stop();
@@ -666,27 +654,19 @@ namespace MainApp.BACnet
                 if (deviceInfo == null)
                 {
                     Log($"Error: deviceInfo is null for device {deviceId}");
-                    // Re-enable the treeview in case of an early exit
-                    this.Invoke((MethodInvoker)delegate {
-                        DeviceTreeView.Enabled = true;
-                        ObjectTreeView.Enabled = true;
-                    });
                     return;
                 }
                 BacnetAddress deviceAddress = deviceInfo["Address"] as BacnetAddress;
 
-                List<BacnetValue> objectList = null;
-
-                // Operations that need to run on the UI thread
                 this.Invoke((MethodInvoker)delegate {
                     ObjectTreeView.Nodes.Clear();
-                    // DeviceTreeView is already disabled by AfterSelect event
+                    DeviceTreeView.Enabled = false;
                     ObjectTreeView.Enabled = false;
                 });
 
                 try
                 {
-                    objectList = await Task.Run(() =>
+                    var objectList = await Task.Run(() =>
                     {
                         try
                         {
@@ -709,7 +689,10 @@ namespace MainApp.BACnet
                                     Log($"Device {deviceId} has {count} objects. Reading them individually.");
                                     for (uint i = 1; i <= count; i++)
                                     {
-                                        cancelToken.ThrowIfCancellationRequested();
+                                        if (cancelToken.IsCancellationRequested)
+                                        {
+                                            cancelToken.ThrowIfCancellationRequested();
+                                        }
 
                                         if (_bacnetClient.ReadPropertyRequest(deviceAddress, deviceOid, BacnetPropertyIds.PROP_OBJECT_LIST, out IList<BacnetValue> objIdValue, array_index: i))
                                         {
@@ -740,26 +723,24 @@ namespace MainApp.BACnet
                         }
                     }, cancelToken);
 
-                    // All subsequent UI operations must be on the UI thread
-                    if (!this.IsDisposed && this.IsHandleCreated)
+                    if (objectList != null && objectList.Any())
                     {
-                        this.Invoke((MethodInvoker)(async () =>
+                        Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
+                        if (!this.IsDisposed && this.IsHandleCreated)
                         {
-                            if (objectList != null && objectList.Any())
+                            this.Invoke((MethodInvoker)(async () =>
                             {
-                                Log($"--- SUCCESS: Found {objectList.Count} objects. ---");
                                 await PopulateObjectTree(objectList);
-                            }
-                            else if (objectList != null)
-                            {
-                                Log($"--- ERROR: Failed to read any objects for device {deviceId}. ---");
-                            }
-                        }));
+                            }));
+                        }
+                    }
+                    else if (objectList != null)
+                    {
+                        Log($"--- ERROR: Failed to read any objects for device {deviceId}. ---");
                     }
                 }
                 finally
                 {
-                    // Always re-enable the UI from the UI thread
                     if (this.IsHandleCreated)
                     {
                         this.Invoke((MethodInvoker)delegate

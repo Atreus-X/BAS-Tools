@@ -93,6 +93,8 @@ namespace MainApp.Configuration
             {
                 try
                 {
+                    string macAddress = (adr.RoutedSource != null && adr.RoutedSource.adr != null) ? string.Join(":", adr.RoutedSource.adr.Select(b => b.ToString("X2"))) : "N/A";
+                    string vendorName = BacnetVendorInfo.GetVendorName(vendorId);
                     string networkNodeKey = $"NET-{deviceNetwork}";
                     TreeNode networkNode = deviceTreeView.Nodes.Cast<TreeNode>().FirstOrDefault(n => n.Name == networkNodeKey);
                     if (networkNode == null)
@@ -102,65 +104,25 @@ namespace MainApp.Configuration
                     }
                     if (!networkNode.Nodes.ContainsKey(deviceId.ToString()))
                     {
-                        ReadDeviceNameAndAddNode(networkNode, deviceId, adr, _segmentation, vendorId);
+                        var deviceInfo = new Dictionary<string, object> { { "Address", adr }, { "VendorName", vendorName }, { "MAC", macAddress }, { "Segmentation", _segmentation }, { "VendorId", vendorId } };
+                        string deviceText = $"(Name not read) ({macAddress}) ({deviceId}) ({vendorName})";
+                        TreeNode deviceNode = new TreeNode(deviceText) { Name = deviceId.ToString(), Tag = deviceInfo };
+                        networkNode.Nodes.Add(deviceNode);
+                        networkNode.Expand();
+                        ReadDeviceName(deviceNode, deviceId, adr);
+
+                        int deviceCount = 0;
+                        foreach (TreeNode netNode in deviceTreeView.Nodes)
+                        {
+                            deviceCount += netNode.Nodes.Count;
+                        }
+                        discoveryStatusLabel.Text = $"Found: {deviceCount}";
                     }
                 }
                 catch (Exception ex) { Log($"Error in OnIamHandler: {ex.Message}"); }
             });
         }
 
-        private void ReadDeviceNameAndAddNode(TreeNode networkNode, uint deviceId, BacnetAddress adr, BacnetSegmentations segmentation, ushort vendorId)
-        {
-            Task.Run(() =>
-            {
-                string finalDeviceName = deviceId.ToString();
-                string errorText = null;
-
-                try
-                {
-                    lock (_bacnetLock)
-                    {
-                        var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
-                        if (_bacnetClient.ReadPropertyRequest(adr, objectId, BacnetPropertyIds.PROP_OBJECT_NAME, out IList<BacnetValue> values) && values?.Count > 0)
-                        {
-                            finalDeviceName = values[0].Value.ToString();
-                        }
-                        else
-                        {
-                            errorText = " (Name not available)";
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log($"Error reading name for device {deviceId}: {ex.Message}");
-                    errorText = " (Error reading name)";
-                }
-                finally
-                {
-                    if (!this.IsDisposed && this.IsHandleCreated)
-                    {
-                        this.Invoke((MethodInvoker)delegate
-                        {
-                            string macAddress = (adr.RoutedSource != null && adr.RoutedSource.adr != null) ? string.Join(":", adr.RoutedSource.adr.Select(b => b.ToString("X2"))) : "N/A";
-                            string vendorName = BacnetVendorInfo.GetVendorName(vendorId);
-                            var deviceInfo = new Dictionary<string, object> { { "Address", adr }, { "VendorName", vendorName }, { "MAC", macAddress }, { "Segmentation", segmentation }, { "VendorId", vendorId } };
-                            string deviceText = $"{finalDeviceName} ({macAddress}) ({deviceId}) ({vendorName}){errorText ?? ""}";
-                            TreeNode deviceNode = new TreeNode(deviceText) { Name = deviceId.ToString(), Tag = deviceInfo };
-                            networkNode.Nodes.Add(deviceNode);
-                            networkNode.Expand();
-
-                            int deviceCount = 0;
-                            foreach (TreeNode netNode in deviceTreeView.Nodes)
-                            {
-                                deviceCount += netNode.Nodes.Count;
-                            }
-                            discoveryStatusLabel.Text = $"Found: {deviceCount}";
-                        });
-                    }
-                }
-            });
-        }
         protected override void DeviceTreeView_AfterSelect(object _sender, TreeViewEventArgs e)
         {
             if (e.Node == null || e.Node.Tag == null || e.Node.Tag.ToString() == "NETWORK_NODE")

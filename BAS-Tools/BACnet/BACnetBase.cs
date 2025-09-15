@@ -6063,7 +6063,8 @@ namespace System.IO.BACnet.Serialize
 
         public static int DecodeIamBroadcast(byte[] buffer, int offset, out UInt32 device_id, out UInt32 max_apdu, out BacnetSegmentations segmentation, out UInt16 vendor_id)
         {
-            int len = 0;
+            int len;
+            int apdu_len = 0;
             byte tag_number;
             uint len_value;
             BacnetObjectId object_id;
@@ -6076,34 +6077,77 @@ namespace System.IO.BACnet.Serialize
 
             try
             {
-                // This is the corrected logic. It removes the faulty check for context-specific tags 
-                // and correctly increments the offset (len) throughout the parsing process.
+                byte first_byte = buffer[offset];
 
-                // --- STANDARD DECODING (APPLICATION TAGS) ---
-                len += ASN1.decode_tag_number_and_value(buffer, offset + len, out tag_number, out len_value);
-                if (tag_number != (byte)BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID) return -1;
-                len += ASN1.decode_object_id(buffer, offset + len, out object_id.type, out object_id.instance);
-                if (object_id.type != BacnetObjectTypes.OBJECT_DEVICE) return -1;
-                device_id = object_id.instance;
+                if (ASN1.IS_CONTEXT_SPECIFIC(first_byte))
+                {
+                    // --- NON-STANDARD DECODING (CONTEXT-SPECIFIC TAGS) ---
+                    if (!ASN1.decode_is_context_tag(buffer, offset + apdu_len, 0)) return -1;
+                    len = ASN1.decode_tag_number_and_value(buffer, offset + apdu_len, out tag_number, out len_value);
+                    apdu_len += len;
+                    len = ASN1.decode_object_id(buffer, offset + apdu_len, out object_id.type, out object_id.instance);
+                    if (object_id.type != BacnetObjectTypes.OBJECT_DEVICE) return -1;
+                    device_id = object_id.instance;
+                    apdu_len += len;
 
-                len += ASN1.decode_tag_number_and_value(buffer, offset + len, out tag_number, out len_value);
-                if (tag_number != (byte)BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT) return -1;
-                len += ASN1.decode_unsigned(buffer, offset + len, len_value, out decoded_value);
-                max_apdu = decoded_value;
+                    if (!ASN1.decode_is_context_tag(buffer, offset + apdu_len, 1)) return -1;
+                    len = ASN1.decode_tag_number_and_value(buffer, offset + apdu_len, out tag_number, out len_value);
+                    apdu_len += len;
+                    len = ASN1.decode_unsigned(buffer, offset + apdu_len, len_value, out decoded_value);
+                    max_apdu = decoded_value;
+                    apdu_len += len;
 
-                len += ASN1.decode_tag_number_and_value(buffer, offset + len, out tag_number, out len_value);
-                if (tag_number != (byte)BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED) return -1;
-                len += ASN1.decode_enumerated(buffer, offset + len, len_value, out decoded_value);
-                if (decoded_value > (uint)BacnetSegmentations.SEGMENTATION_NONE) return -1;
-                segmentation = (BacnetSegmentations)decoded_value;
+                    if (!ASN1.decode_is_context_tag(buffer, offset + apdu_len, 2)) return -1;
+                    len = ASN1.decode_tag_number_and_value(buffer, offset + apdu_len, out tag_number, out len_value);
+                    apdu_len += len;
+                    len = ASN1.decode_enumerated(buffer, offset + apdu_len, len_value, out decoded_value);
+                    if (decoded_value > (uint)BacnetSegmentations.SEGMENTATION_NONE) return -1;
+                    segmentation = (BacnetSegmentations)decoded_value;
+                    apdu_len += len;
 
-                len += ASN1.decode_tag_number_and_value(buffer, offset + len, out tag_number, out len_value);
-                if (tag_number != (byte)BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT) return -1;
-                len += ASN1.decode_unsigned(buffer, offset + len, len_value, out decoded_value);
-                if (decoded_value > 0xFFFF) return -1;
-                vendor_id = (ushort)decoded_value;
+                    if (!ASN1.decode_is_context_tag(buffer, offset + apdu_len, 3)) return -1;
+                    len = ASN1.decode_tag_number_and_value(buffer, offset + apdu_len, out tag_number, out len_value);
+                    apdu_len += len;
+                    len = ASN1.decode_unsigned(buffer, offset + apdu_len, len_value, out decoded_value);
+                    if (decoded_value > 0xFFFF) return -1;
+                    vendor_id = (ushort)decoded_value;
+                    apdu_len += len;
+                }
+                else
+                {
+                    // --- STANDARD DECODING (APPLICATION TAGS) ---
+                    len = ASN1.decode_tag_number_and_value(buffer, offset + apdu_len, out tag_number, out len_value);
+                    if (tag_number != (byte)BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID) return -1;
+                    apdu_len += len;
+                    len = ASN1.decode_object_id(buffer, offset + apdu_len, out object_id.type, out object_id.instance);
+                    if (object_id.type != BacnetObjectTypes.OBJECT_DEVICE) return -1;
+                    device_id = object_id.instance;
+                    apdu_len += len;
 
-                return len;
+                    len = ASN1.decode_tag_number_and_value(buffer, offset + apdu_len, out tag_number, out len_value);
+                    if (tag_number != (byte)BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT) return -1;
+                    apdu_len += len;
+                    len = ASN1.decode_unsigned(buffer, offset + apdu_len, len_value, out decoded_value);
+                    max_apdu = decoded_value;
+                    apdu_len += len;
+
+                    len = ASN1.decode_tag_number_and_value(buffer, offset + apdu_len, out tag_number, out len_value);
+                    if (tag_number != (byte)BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED) return -1;
+                    apdu_len += len;
+                    len = ASN1.decode_enumerated(buffer, offset + apdu_len, len_value, out decoded_value);
+                    if (decoded_value > (uint)BacnetSegmentations.SEGMENTATION_NONE) return -1;
+                    segmentation = (BacnetSegmentations)decoded_value;
+                    apdu_len += len;
+
+                    len = ASN1.decode_tag_number_and_value(buffer, offset + apdu_len, out tag_number, out len_value);
+                    if (tag_number != (byte)BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT) return -1;
+                    apdu_len += len;
+                    len = ASN1.decode_unsigned(buffer, offset + apdu_len, len_value, out decoded_value);
+                    if (decoded_value > 0xFFFF) return -1;
+                    vendor_id = (ushort)decoded_value;
+                    apdu_len += len;
+                }
+                return apdu_len;
             }
             catch (Exception ex)
             {
