@@ -208,92 +208,74 @@ namespace MainApp.Configuration
             }
         }
 
-        private void OnIamHandler(BacnetClient sender, BacnetAddress adr, uint deviceId, uint maxApdu, BacnetSegmentations segmentation, ushort vendorId)
+        private async void OnIamHandler(BacnetClient sender, BacnetAddress adr, uint deviceId, uint maxApdu, BacnetSegmentations segmentation, ushort vendorId)
         {
-            Log($"OnIam from {adr} for device {deviceId}. Segmentation support: {segmentation}");
-            this.Invoke((MethodInvoker)delegate
+            // Deep copy the address object immediately to prevent race conditions from the transport layer
+            var adrCopy = new BacnetAddress(adr.type, adr.net, adr.adr != null ? (byte[])adr.adr.Clone() : null);
+            if (adr.RoutedSource != null)
             {
-                try
-                {
-                    ushort deviceNetwork = (adr.RoutedSource != null) ? adr.RoutedSource.net : adr.net;
-                    string macAddress = adr.ToString(true);
-                    string vendorName = BacnetVendorInfo.GetVendorName(vendorId);
-
-                    string networkNodeKey = $"NET-{deviceNetwork}";
-                    TreeNode networkNode = deviceTreeView.Nodes.Cast<TreeNode>().FirstOrDefault(n => n.Name == networkNodeKey);
-                    if (networkNode == null)
-                    {
-                        networkNode = new TreeNode($"Network {deviceNetwork}") { Name = networkNodeKey, Tag = "NETWORK_NODE" };
-                        deviceTreeView.Nodes.Add(networkNode);
-                    }
-
-                    if (!networkNode.Nodes.ContainsKey(deviceId.ToString()))
-                    {
-                        var deviceInfo = new Dictionary<string, object> { { "Address", adr }, { "VendorName", vendorName }, { "MAC", macAddress }, { "Segmentation", segmentation }, { "VendorId", vendorId } };
-                        string deviceText = $"(Name not read) ({macAddress}) ({deviceId}) ({vendorName})";
-                        TreeNode deviceNode = new TreeNode(deviceText) { Name = deviceId.ToString(), Tag = deviceInfo };
-                        networkNode.Nodes.Add(deviceNode);
-                        networkNode.Expand();
-                        Task.Run(() => ReadDeviceProperties(deviceNode, deviceId, adr));
-                        int deviceCount = 0;
-                        foreach (TreeNode n in deviceTreeView.Nodes)
-                        {
-                            deviceCount += n.Nodes.Count;
-                        }
-                        objectCountLabel.Text = $"Found: {deviceCount}";
-                    }
-                }
-                catch (Exception ex) { Log($"Error in OnIamHandler: {ex.Message}"); }
-            });
-        }
-        private void ReadDeviceProperties(TreeNode deviceNode, uint deviceId, BacnetAddress adr)
-        {
-            string finalDeviceName = deviceId.ToString();
-            string errorText = null;
-            bool supportsReadPropertyMultiple = false;
-            var deviceInfo = deviceNode.Tag as Dictionary<string, object>;
-            var segmentation = (BacnetSegmentations)deviceInfo["Segmentation"];
-            var old_segments = _bacnetClient.MaxSegments;
-            if (segmentation == BacnetSegmentations.SEGMENTATION_NONE)
-            {
-                _bacnetClient.MaxSegments = BacnetMaxSegments.MAX_SEG0;
+                adrCopy.RoutedSource = new BacnetAddress(adr.RoutedSource.type, adr.RoutedSource.net, adr.RoutedSource.adr != null ? (byte[])adr.RoutedSource.adr.Clone() : null);
             }
+
             try
             {
-                lock (_bacnetLock)
+                // Do all non-UI work first, using the copied address
+                var deviceNode = await ReadDevicePropertiesAsync(deviceId, adrCopy, maxApdu, segmentation, vendorId);
+
+                // Now, perform all UI updates in a single Invoke call
+                if (deviceNode != null && !this.IsDisposed && this.IsHandleCreated)
                 {
-                    var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
-                    var propertiesToRead = new List<BacnetPropertyReference>
+                    this.Invoke((MethodInvoker)delegate
                     {
-                        new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_ALL, BACNET_ARRAY_ALL)
-                    };
-                    var request = new BacnetReadAccessSpecification(objectId, propertiesToRead);
+                        ushort deviceNetwork = (adrCopy.RoutedSource != null) ? adrCopy.RoutedSource.net : adrCopy.net;
+                        string networkNodeKey = $"NET-{deviceNetwork}";
+                        TreeNode networkNode = deviceTreeView.Nodes.Cast<TreeNode>().FirstOrDefault(n => n.Name == networkNodeKey);
 
-                    if (_bacnetClient.ReadPropertyMultipleRequest(adr, new List<BacnetReadAccessSpecification> { request }, out IList<BacnetReadAccessResult> results) && results != null && results.Count > 0)
-                    {
-                        var result = results[0];
-                        var objectNameProp = result.values.FirstOrDefault(p => p.property.propertyIdentifier == (uint)BacnetPropertyIds.PROP_OBJECT_NAME);
-                        if (objectNameProp.value != null && objectNameProp.value.Count > 0)
+                        if (networkNode == null)
                         {
-                            finalDeviceName = objectNameProp.value[0].Value.ToString();
-                        }
-                        else
-                        {
-                            errorText = " (Name not available)";
+                            networkNode = new TreeNode($"Network {deviceNetwork}") { Name = networkNodeKey, Tag = "NETWORK_NODE" };
+                            deviceTreeView.Nodes.Add(networkNode);
                         }
 
-                        var servicesSupportedProp = result.values.FirstOrDefault(p => p.property.propertyIdentifier == (uint)BacnetPropertyIds.PROP_PROTOCOL_SERVICES_SUPPORTED);
-                        if (servicesSupportedProp.value != null && servicesSupportedProp.value.Count > 0)
+                        if (!networkNode.Nodes.ContainsKey(deviceId.ToString()))
                         {
-                            var servicesSupported = (BacnetBitString)servicesSupportedProp.value[0].Value;
-                            if (servicesSupported.value.Length > 1 && (servicesSupported.value[1] & 0x40) > 0)
+                            networkNode.Nodes.Add(deviceNode);
+                            networkNode.Expand();
+
+                            int deviceCount = 0;
+                            foreach (TreeNode n in deviceTreeView.Nodes)
                             {
-                                supportsReadPropertyMultiple = true;
+                                deviceCount += n.Nodes.Count;
                             }
+                            objectCountLabel.Text = $"Found: {deviceCount}";
                         }
-                    }
-                    else // Fallback to individual reads
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"Error in OnIamHandler: {ex.Message}");
+            }
+        }
+
+        private Task<TreeNode> ReadDevicePropertiesAsync(uint deviceId, BacnetAddress adr, uint maxApdu, BacnetSegmentations segmentation, ushort vendorId)
+        {
+            return Task.Run(() =>
+            {
+                string finalDeviceName = deviceId.ToString();
+                string errorText = null;
+                bool supportsReadPropertyMultiple = false;
+
+                var old_segments = _bacnetClient.MaxSegments;
+                if (segmentation == BacnetSegmentations.SEGMENTATION_NONE)
+                {
+                    _bacnetClient.MaxSegments = BacnetMaxSegments.MAX_SEG0;
+                }
+                try
+                {
+                    lock (_bacnetLock)
                     {
+                        var objectId = new BacnetObjectId(BacnetObjectTypes.OBJECT_DEVICE, deviceId);
                         if (_bacnetClient.ReadPropertyRequest(adr, objectId, BacnetPropertyIds.PROP_OBJECT_NAME, out IList<BacnetValue> values) && values?.Count > 0)
                         {
                             finalDeviceName = values[0].Value.ToString();
@@ -313,26 +295,32 @@ namespace MainApp.Configuration
                         }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                Log($"Error reading properties for device {deviceId}: {ex.Message}");
-                errorText = " (Error reading properties)";
-            }
-            finally
-            {
-                _bacnetClient.MaxSegments = old_segments;
-                if (!this.IsDisposed && this.IsHandleCreated)
+                catch (Exception ex)
                 {
-                    this.Invoke((MethodInvoker)delegate
-                    {
-                        deviceInfo["SupportsReadPropertyMultiple"] = supportsReadPropertyMultiple;
-                        deviceNode.Text = $"{finalDeviceName} ({deviceInfo["MAC"]}) ({deviceId}) ({deviceInfo["VendorName"]}){errorText ?? ""}";
-                    });
+                    Log($"Error reading properties for device {deviceId}: {ex.Message}");
+                    errorText = " (Error reading properties)";
                 }
-            }
-        }
+                finally
+                {
+                    _bacnetClient.MaxSegments = old_segments;
+                }
 
+                string macAddress = adr.ToString(true);
+                string vendorName = BacnetVendorInfo.GetVendorName(vendorId);
+                var deviceInfo = new Dictionary<string, object>
+                {
+                    { "Address", adr },
+                    { "VendorName", vendorName },
+                    { "MAC", macAddress },
+                    { "Segmentation", segmentation },
+                    { "VendorId", vendorId },
+                    { "SupportsReadPropertyMultiple", supportsReadPropertyMultiple }
+                };
+                string deviceText = $"{finalDeviceName} ({macAddress}) ({deviceId}) ({vendorName}){errorText ?? ""}";
+                TreeNode deviceNode = new TreeNode(deviceText) { Name = deviceId.ToString(), Tag = deviceInfo };
+                return deviceNode;
+            });
+        }
 
         private void DiscoverButton_Click(object sender, EventArgs e)
         {
@@ -403,19 +391,24 @@ namespace MainApp.Configuration
         }
 
 
-        protected override void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e)
+        protected override async void DeviceTreeView_AfterSelect(object sender, TreeViewEventArgs e)
         {
+            DeviceTreeView.Enabled = false; // Immediately disable to prevent further interaction
+
             if (e.Node == null || e.Node.Tag == null || e.Node.Tag.ToString() == "NETWORK_NODE")
             {
                 _lastPingedDeviceId = null;
                 UpdateAllStates(null, null);
                 objectTreeView.Nodes.Clear();
+                DeviceTreeView.Enabled = true; // Re-enable if no action is taken
                 return;
             }
 
             _lastPingedDeviceId = uint.Parse(e.Node.Name);
             UpdateAllStates(null, null);
-            DiscoverObjectsButton_Click(sender, e);
+            await DiscoverObjectsButton_Click(sender, e); // Await the completion
+
+            DeviceTreeView.Enabled = true; // Re-enable after all operations are complete
         }
 
         protected override void PopulateDefaultValues()
@@ -478,4 +471,5 @@ namespace MainApp.Configuration
         }
     }
 }
+
 
