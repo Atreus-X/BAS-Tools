@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using BAS_Tools;
 using MainApp.BACnet;
@@ -50,14 +51,57 @@ namespace MainApp
                 control.Dock = DockStyle.Fill;
             }
 
-            // Show the BACnet MS/TP Remote control by default
-            ShowProtocolControl("BACnet MS/TP Remote");
+            // Show the last used control, or default to "BACnet MS/TP Remote"
+            string lastControl = BAS_Tools.Properties.Settings.Default.LastConfiguration;
+            if (!string.IsNullOrEmpty(lastControl) && _protocolControls.ContainsKey(lastControl))
+            {
+                ShowProtocolControl(lastControl);
+            }
+            else
+            {
+                ShowProtocolControl("BACnet MS/TP Remote");
+            }
+
 
             this.FormClosing += MainApp_FormClosing;
+            this.KeyDown += MainApp_KeyDown; // Add KeyDown event handler
+            this.KeyPreview = true; // Set KeyPreview to true
+        }
+
+        private void MainApp_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Control && e.KeyCode == Keys.D)
+            {
+                // Find the active control and trigger the discover button
+                var activeControl = mainContentPanel.Controls.OfType<UserControl>().FirstOrDefault(c => c.Visible);
+                if (activeControl != null)
+                {
+                    Button discoverButton = null;
+                    if (activeControl is BACnet_IP)
+                        discoverButton = activeControl.Controls.Find("discoverButton", true).FirstOrDefault() as Button;
+                    else if (activeControl is BACnet_MSTP_Local || activeControl is BACnet_MSTP_Remote)
+                        discoverButton = activeControl.Controls.Find("startDiscoveryButton", true).FirstOrDefault() as Button;
+
+                    if (discoverButton != null && discoverButton.Enabled)
+                    {
+                        discoverButton.PerformClick();
+                    }
+                }
+            }
         }
 
         private void MainApp_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                var result = MessageBox.Show("Are you sure you want to exit?", "Exit Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (result == DialogResult.No)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+            }
+
             // Iterate through all protocol controls and call their Shutdown method if available
             foreach (var control in _protocolControls.Values)
             {
@@ -82,6 +126,9 @@ namespace MainApp
             var selectedControl = _protocolControls[key];
             selectedControl.Visible = true;
             this.Text = $"BAS Tools - {key}"; // Update window title
+            BAS_Tools.Properties.Settings.Default.LastConfiguration = key;
+            BAS_Tools.Properties.Settings.Default.Save();
+
 
             // Re-register the logger for the active control
             if (selectedControl is BACnetControlBase bacnetControl)

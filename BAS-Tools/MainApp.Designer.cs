@@ -71,7 +71,8 @@
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(142, 22);
+            this.exitToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.F4)));
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.exitToolStripMenuItem.Text = "Exit";
             // 
             // configurationToolStripMenuItem
@@ -89,31 +90,36 @@
             // bacnetIPToolStripMenuItem
             // 
             this.bacnetIPToolStripMenuItem.Name = "bacnetIPToolStripMenuItem";
-            this.bacnetIPToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.bacnetIPToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D1)));
+            this.bacnetIPToolStripMenuItem.Size = new System.Drawing.Size(237, 22);
             this.bacnetIPToolStripMenuItem.Text = "BACnet/IP";
             // 
             // bacnetMSTPLocalToolStripMenuItem
             // 
             this.bacnetMSTPLocalToolStripMenuItem.Name = "bacnetMSTPLocalToolStripMenuItem";
-            this.bacnetMSTPLocalToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.bacnetMSTPLocalToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D2)));
+            this.bacnetMSTPLocalToolStripMenuItem.Size = new System.Drawing.Size(237, 22);
             this.bacnetMSTPLocalToolStripMenuItem.Text = "BACnet MS/TP Local";
             // 
             // bacnetMSTPRemoteToolStripMenuItem
             // 
             this.bacnetMSTPRemoteToolStripMenuItem.Name = "bacnetMSTPRemoteToolStripMenuItem";
-            this.bacnetMSTPRemoteToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.bacnetMSTPRemoteToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D3)));
+            this.bacnetMSTPRemoteToolStripMenuItem.Size = new System.Drawing.Size(237, 22);
             this.bacnetMSTPRemoteToolStripMenuItem.Text = "BACnet MS/TP Remote";
             // 
             // modbusTCPToolStripMenuItem
             // 
             this.modbusTCPToolStripMenuItem.Name = "modbusTCPToolStripMenuItem";
-            this.modbusTCPToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.modbusTCPToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D4)));
+            this.modbusTCPToolStripMenuItem.Size = new System.Drawing.Size(237, 22);
             this.modbusTCPToolStripMenuItem.Text = "Modbus TCP/IP";
             // 
             // modbusRTUToolStripMenuItem
             // 
             this.modbusRTUToolStripMenuItem.Name = "modbusRTUToolStripMenuItem";
-            this.modbusRTUToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.modbusRTUToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D5)));
+            this.modbusRTUToolStripMenuItem.Size = new System.Drawing.Size(237, 22);
             this.modbusRTUToolStripMenuItem.Text = "Modbus RTU";
             // 
             // aboutToolStripMenuItem
